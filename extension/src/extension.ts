@@ -14,6 +14,7 @@ interface ValidationResponse {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  console.log("CI Test: Triggering Extension Workflow");
   console.log("DDD Enforcer is now active!");
 
   // Hataları göstereceğimiz koleksiyon (Diagnostic Collection)
