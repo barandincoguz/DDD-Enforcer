@@ -1,0 +1,108 @@
+# ----------------------------------------------------------------------
+# PYTHON (Backend & AI)
+# ----------------------------------------------------------------------
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Sanal Ortamlar (Virtual Environments)
+# Farklı isimler kullanma ihtimalinize karşı hepsini ekledim
+venv/
+env/
+.venv/
+.env
+
+# Environment Variables (ÇOK ÖNEMLİ - API Keyler burada!)
+.env
+.env.local
+.env.*
+
+# Distribution / Packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebooks (Eğer kullanırsanız checkpointleri atmasın)
+.ipynb_checkpoints
+
+# ----------------------------------------------------------------------
+# NODE.JS & VS CODE EXTENSION (Frontend)
+# ----------------------------------------------------------------------
+# Bağımlılıklar (Bunlar internetten iner, repoda yer kaplamasın)
+node_modules/
+
+# Derlenmiş JavaScript Dosyaları (TypeScript'ten çıkanlar)
+out/
+dist/
+
+# VS Code Extension Paketleri
+*.vsix
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VS Code Test Artifacts
+.vscode-test/
+
+# ----------------------------------------------------------------------
+# RAG & DATABASE (Vector Store)
+# ----------------------------------------------------------------------
+# ChromaDB yerel veritabanı klasörleri (GitHub'a şişkinlik yapmasın)
+chroma_db/
+*.sqlite3
+*.db
+
+# ----------------------------------------------------------------------
+# IDE & EDITOR SETTINGS
+# ----------------------------------------------------------------------
+# VS Code kişisel ayarları (launch.json hariç tutulabilir ama genelde ignore edilir)
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+# Cursor / Diğer Editörler
+.idea/
+*.swp
+*.swo
+
+# ----------------------------------------------------------------------
+# OPERATING SYSTEM (macOS & Windows)
+# ----------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ----------------------------------------------------------------------
+# CUSTOM PROJECT FILES
+# ----------------------------------------------------------------------
+# Buraya proje özelinde istemediğin dosyaları ekleyebilirsin
+audit_logs/
+temp/

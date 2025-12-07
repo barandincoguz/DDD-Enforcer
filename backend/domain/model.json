@@ -1,0 +1,58 @@
+{
+  "project_metadata": {
+    "project_name": "ECommerceCore",
+    "version": "1.0.0",
+    "description": "Core domain definition for the e-commerce monolith. Enforces strict separation between Sales, Inventory, and Shipping."
+  },
+  "bounded_contexts": [
+    {
+      "context_name": "SalesContext",
+      "description": "Handles order placement, pricing, and customer acquisition.",
+      "allowed_dependencies": ["InventoryContext"],
+      "ubiquitous_language": {
+        "entities": [
+          {
+            "name": "Customer",
+            "description": "The person making the purchase. Identified by CustomerID.",
+            "synonyms_to_avoid": ["Client", "User", "Buyer", "Patron"]
+          },
+          {
+            "name": "Order",
+            "description": "An intent to purchase items.",
+            "synonyms_to_avoid": ["Deal", "Cart", "Basket"]
+          }
+        ],
+        "value_objects": [
+          { "name": "Money", "attributes": ["amount", "currency"] },
+          {
+            "name": "ShippingAddress",
+            "description": "Distinct from BillingAddress."
+          }
+        ]
+      }
+    },
+    {
+      "context_name": "ShippingContext",
+      "description": "Handles the physical delivery of goods. Logistics only.",
+      "allowed_dependencies": [],
+      "ubiquitous_language": {
+        "entities": [
+          {
+            "name": "Shipment",
+            "description": "A package of goods being transported.",
+            "synonyms_to_avoid": ["Package", "Box", "Delivery"]
+          },
+          {
+            "name": "Carrier",
+            "description": "The external service provider (e.g., FedEx).",
+            "synonyms_to_avoid": ["Transporter", "Driver"]
+          }
+        ]
+      }
+    }
+  ],
+  "global_rules": {
+    "naming_convention": "PascalCase for Classes, snake_case for variables",
+    "banned_global_terms": ["Manager", "Helper", "Util", "Common"]
+  }
+}

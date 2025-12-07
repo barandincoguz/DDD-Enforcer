@@ -1,3 +1,4 @@
+# --- Geliştirme Dosyaları (Pakette olmamalı) ---
 .vscode/**
 .vscode-test/**
 src/**
@@ -9,3 +10,23 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+
+# --- Güvenlik (ÇOK ÖNEMLİ) ---
+# .env dosyası asla paketin içine girmemeli!
+.env
+.env.*
+
+# --- Python Artıkları ---
+# Extension klasöründe yanlışlıkla Python çalıştırırsan diye
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# --- Gereksiz Loglar ---
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# --- GitHub ---
+.github/
