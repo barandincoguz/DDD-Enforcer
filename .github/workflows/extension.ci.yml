@@ -1,0 +1,42 @@
+name: Extension CI
+
+on:
+  push:
+    branches: ["main", "feature/**"]
+    paths:
+      - "extension/**" # Sadece extension klasöründe değişiklik varsa çalış
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "extension/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Tüm komutları 'extension' klasörü içinde çalıştırır
+    defaults:
+      run:
+        working-directory: ./extension
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm" # npm paketlerini önbelleğe al
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci # 'npm install' yerine 'ci' (Clean Install) CI ortamları için daha güvenlidir
+
+      - name: Compile Extension (Type Check)
+        run: npm run compile
+        # Eğer TypeScript hatası varsa (örn: tip uyuşmazlığı) burada patlar ve bozuk kodu main'e almaz.
+
+      - name: Lint Check
+        run: npm run lint
+        # Kod stili hatalarını kontrol eder.
