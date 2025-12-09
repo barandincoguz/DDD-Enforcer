@@ -19,20 +19,27 @@ jobs:
         working-directory: ./backend
 
     steps:
-      # 1. YENİ ADIM: Gereksiz dosyaları silip yer açıyoruz (~10GB yer açar)
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space-action@v1.3.1
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
-
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      # --- DÜZELTME: Manuel Disk Temizliği (Action kullanmadan) ---
+      - name: Free Disk Space (Manual)
+        run: |
+          echo "Listing initial space..."
+          df -h
+
+          echo "Removing large directories..."
+          # Gereksiz Android SDK'ları sil (~2GB)
+          sudo rm -rf /usr/local/lib/android
+          # Gereksiz .NET SDK'ları sil (~500MB)
+          sudo rm -rf /usr/share/dotnet
+          # Gereksiz Haskell derleyicisini sil (~500MB)
+          sudo rm -rf /opt/ghc
+          # Docker imajlarını temizle
+          sudo docker image prune --all --force
+
+          echo "Space after cleanup..."
+          df -h
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -40,16 +47,17 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      # 2. GÜNCELLEME: Önce CPU versiyonu Torch yükle, sonra diğerlerini
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
 
-          # ÖNEMLİ: PyTorch'un CPU versiyonunu (küçük boyutlu) zorla yüklüyoruz.
-          # Bu sayede requirements.txt içindeki devasa GPU versiyonunu indirmez.
+          # 1. CPU Versiyon Torch Yükle (Disk dolmasını asıl önleyen bu)
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
+          # 2. Diğer Gereksinimleri Yükle
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+          # 3. Test Araçlarını Yükle
           pip install pytest httpx
 
       - name: Check Syntax (Compile Check)
