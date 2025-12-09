@@ -76,3 +76,4 @@ def calculate_total():
     """
     parser = CodeParser()
     print(parser.parse_code(sample_code))
+# --- Test etmek için küçük bir blok (Main içinde çalışmayacak) ---
