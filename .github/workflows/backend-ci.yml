@@ -1,11 +1,10 @@
 name: Backend CI
 
-# Tetikleyiciler: Ne zaman çalışsın?
 on:
   push:
-    branches: ["main", "feature/**"] # Main ve feature dallarına pushlanınca
+    branches: ["main", "feature/**"]
     paths:
-      - "backend/**" # Sadece backend klasöründe değişiklik varsa çalış
+      - "backend/**"
   pull_request:
     branches: ["main"]
     paths:
@@ -15,35 +14,48 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # Burası ÇOK ÖNEMLİ: Tüm komutları 'backend' klasörü içinde çalıştırır
     defaults:
       run:
         working-directory: ./backend
 
     steps:
+      # 1. YENİ ADIM: Gereksiz dosyaları silip yer açıyoruz (~10GB yer açar)
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space-action@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip" # Kütüphaneleri önbelleğe al (Hızlandırır!)
+          cache: "pip"
 
+      # 2. GÜNCELLEME: Önce CPU versiyonu Torch yükle, sonra diğerlerini
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
+
+          # ÖNEMLİ: PyTorch'un CPU versiyonunu (küçük boyutlu) zorla yüklüyoruz.
+          # Bu sayede requirements.txt içindeki devasa GPU versiyonunu indirmez.
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Test için gerekli ek paketler
           pip install pytest httpx
 
       - name: Check Syntax (Compile Check)
         run: |
-          # Kodun içinde syntax hatası var mı diye bakar (çalıştırmaz)
           python -m compileall .
 
       - name: Run Basic Tests
-        # İleride test yazınca burası işleyecek. Şimdilik parser'ın çalışıp çalışmadığına bakar.
         run: |
-          # Eğer test klasörü boşsa hata vermemesi için '|| true' ekledik
           pytest || echo "No tests found yet, skipping..."
