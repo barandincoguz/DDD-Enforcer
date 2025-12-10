@@ -21,7 +21,7 @@ class LLMClient:
         to detect DDD violations.
         """
         
-        # PROMPT ENGINEERING (Sihirli Kısım)
+        # PROMPT ENGINEERING
         prompt = f"""
         You are a strict Domain-Driven Design (DDD) Architect Enforcer.
         
