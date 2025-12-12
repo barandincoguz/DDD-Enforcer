@@ -2,6 +2,7 @@ import glob
 import json
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from core.architect import DomainArchitect
 
@@ -20,18 +21,25 @@ app_state = {}
 async def lifespan(app: FastAPI):
     print("🚀 System initializing...")
 
-    model_path = "domain/model.json"
+    # Get the directory where this script is located (backend directory)
+    backend_dir = Path(__file__).parent.absolute()
+    model_path = backend_dir / "domain" / "model.json"
+    inputs_dir = backend_dir / "inputs"
+
+    print(f"📁 Backend directory: {backend_dir}")
+    print(f"📄 Model path: {model_path}")
+    print(f"📂 Inputs directory: {inputs_dir}")
 
     # Desteklenen SRS formatları
     possible_srs_files = []
-    possible_srs_files.extend(glob.glob("inputs/*.pdf"))
-    possible_srs_files.extend(glob.glob("inputs/*.docx"))
-    possible_srs_files.extend(glob.glob("inputs/*.txt"))
+    possible_srs_files.extend(glob.glob(str(inputs_dir / "*.pdf")))
+    possible_srs_files.extend(glob.glob(str(inputs_dir / "*.docx")))
+    possible_srs_files.extend(glob.glob(str(inputs_dir / "*.txt")))
 
     # ------------------------------------------------------
     # 📌 1) Eğer domain modeli yoksa: SRS'den üret
     # ------------------------------------------------------
-    if not os.path.exists(model_path):
+    if not model_path.exists():
         print("⚠️ Domain Model not found. Searching for SRS files...")
 
         if possible_srs_files:
@@ -62,7 +70,8 @@ async def lifespan(app: FastAPI):
 
                 print("   -> Domain Model synthesis complete.")
 
-                # JSON olarak kaydet
+                # JSON olarak kaydet - ensure directory exists first
+                model_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(model_path, "w") as f:
                     f.write(final_model.model_dump_json(indent=2))
 
@@ -71,6 +80,14 @@ async def lifespan(app: FastAPI):
 
             except Exception as e:
                 print(f"❌ Critical Error during generation: {e}")
+                print(f"   🔍 Working directory: {os.getcwd()}")
+                print(f"   🔍 Backend directory: {backend_dir}")
+                print(f"   📁 Model path: {model_path}")
+                print(f"   📂 Model directory exists: {model_path.parent.exists()}")
+                import traceback
+
+                print("   📝 Full traceback:")
+                traceback.print_exc()
                 app_state["domain_rules"] = {}
 
         else:
@@ -82,8 +99,17 @@ async def lifespan(app: FastAPI):
     # ------------------------------------------------------
     else:
         print("📂 Loading existing domain model...")
-        with open(model_path, "r") as f:
-            app_state["domain_rules"] = json.load(f)
+        try:
+            with open(model_path, "r") as f:
+                app_state["domain_rules"] = json.load(f)
+            print("✅ Domain model loaded successfully!")
+        except Exception as e:
+            print(f"❌ Error loading existing model: {e}")
+            print(f"   🔍 Working directory: {os.getcwd()}")
+            print(f"   🔍 Backend directory: {backend_dir}")
+            print(f"   📁 Model path: {model_path}")
+            print(f"   📄 Model file exists: {model_path.exists()}")
+            app_state["domain_rules"] = {}
 
     # Araçlar
     app_state["parser"] = CodeParser()

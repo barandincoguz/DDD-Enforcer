@@ -1,13 +1,15 @@
-import os
 import json
+import os
+from typing import List, Literal
+
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import List, Literal
 
 # .env dosyasını yükle
 load_dotenv()
+
 
 # --- 1. Pydantic Modelleri (Structured Output için Şema) ---
 # Bu modeller, Gemini'nin yanıtı %100 bu formatta üretmesini garanti eder.
@@ -18,16 +20,18 @@ class Violation(BaseModel):
     message: str = Field(description="Detailed explanation of the violation.")
     suggestion: str = Field(description="Actionable suggestion to fix the code.")
 
+
 class ValidationResponse(BaseModel):
     is_violation: bool = Field(description="True if any violation is detected.")
     violations: List[Violation] = Field(description="List of detected violations.")
+
 
 class LLMClient:
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("API Key not found! Please check your .env file.")
-        
+
         # Yeni SDK Client Başlatma
         self.client = genai.Client(api_key=api_key)
 
@@ -36,7 +40,7 @@ class LLMClient:
         Sends the parsed code structure and domain rules to Gemini
         to detect DDD violations using Structured Outputs.
         """
-        
+
         # Prompt artık daha sade çünkü JSON formatını config hallediyor
         prompt = f"""
         You are a strict Domain-Driven Design (DDD) Architect Enforcer.
@@ -58,18 +62,18 @@ class LLMClient:
         try:
             # Yeni SDK Yapısı
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash", # En güncel hızlı model
+                model="gemini-2.5-flash-lite",  # En güncel hızlı model
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     # Pydantic modelini şema olarak veriyoruz:
-                    response_schema=ValidationResponse 
-                )
+                    response_schema=ValidationResponse,
+                ),
             )
 
             # Yeni SDK'da response.text direkt şemaya uygun JSON döner.
             # Alternatif olarak response.parsed kullanılabilir ancak dict dönmesini istediğin için:
-            return json.loads(response.text)
+            return json.loads(response.text)  # type: ignore
 
         except Exception as e:
             # Hata durumunda manuel fallback
@@ -79,26 +83,24 @@ class LLMClient:
                     {
                         "type": "SystemError",
                         "message": f"LLM Error: {str(e)}",
-                        "suggestion": "Check API logs or connectivity."
+                        "suggestion": "Check API logs or connectivity.",
                     }
-                ]
+                ],
             }
+
 
 # --- TEST BLOCK ---
 if __name__ == "__main__":
-    dummy_ast = {
-        'classes': [{'name': 'ClientManager'}],
-        'imports': []
-    }
-    
+    dummy_ast = {"classes": [{"name": "ClientManager"}], "imports": []}
+
     dummy_rules = {
-        "bounded_contexts": [{
-            "ubiquitous_language": {
-                "entities": [
-                    {"name": "Customer", "synonyms_to_avoid": ["Client"]}
-                ]
+        "bounded_contexts": [
+            {
+                "ubiquitous_language": {
+                    "entities": [{"name": "Customer", "synonyms_to_avoid": ["Client"]}]
+                }
             }
-        }]
+        ]
     }
 
     client = LLMClient()

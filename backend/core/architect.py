@@ -13,7 +13,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))  # type: ignore
 
 
 class DomainArchitect:
-    def __init__(self, model: str = "gemini-2.5-flash"):
+    def __init__(self, model: str = "gemini-2.5-flash-lite"):
         self.model = genai.GenerativeModel(model_name=model)  # type: ignore
         self.last_request_time = 0
         self.min_delay = 6.0
@@ -132,10 +132,25 @@ Extract ALL relevant sentences, no limit."""
                         prompt,
                         generation_config=genai.GenerationConfig(  # type: ignore
                             response_mime_type="application/json",
-                            max_output_tokens=3000,  # Arttırıldı: daha fazla sentence
+                            max_output_tokens=5000,  # Arttırıldı: daha fazla sentence
                         ),
                     )
                     result = self._clean_and_parse_json(response.text)
+
+                    # Check if JSON parsing failed
+                    if (
+                        isinstance(result, dict)
+                        and result.get("error") == "json_parse_failed"
+                    ):
+                        print(
+                            f"      ⚠️ Sentence extraction JSON parse failed in chunk {chunk_idx + 1}"
+                        )
+                        # Fallback: split into sentences
+                        fallback = [
+                            s.strip() for s in chunk.split(".") if len(s.strip()) > 20
+                        ]
+                        all_sentences.extend(fallback[:50])
+                        break
 
                     # Extract sentences from this chunk
                     chunk_sentences = []
@@ -182,7 +197,6 @@ Extract ALL relevant sentences, no limit."""
                 self._wait_for_rate_limit()
 
                 # TÜM CÜMLELERI KULLAN - ancak token limitine dikkat
-                # Gemini 2.5-flash: 1M token input limit
                 text = "\n".join(domain_sentences)
 
                 # Eğer çok uzunsa akıllıca özetle
@@ -222,6 +236,16 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement, not
                     ),
                 )
                 result = self._clean_and_parse_json(response.text)
+
+                # Check if JSON parsing failed
+                if (
+                    isinstance(result, dict)
+                    and result.get("error") == "json_parse_failed"
+                ):
+                    print(
+                        f"   ⚠️ Context identification JSON parse failed, using fallback"
+                    )
+                    return ["CoreDomain"]
 
                 # Handle different response formats
                 if isinstance(result, dict) and "contexts" in result:
@@ -303,6 +327,19 @@ RESPOND WITH JSON:
 
                 result = self._clean_and_parse_json(response.text)
 
+                # Check if JSON parsing failed
+                if (
+                    isinstance(result, dict)
+                    and result.get("error") == "json_parse_failed"
+                ):
+                    print(
+                        f"   ⚠️ Context analysis JSON parse failed for contexts: {contexts}"
+                    )
+                    return [
+                        {"context": ctx, "analysis": {"error": "JSON parse failed"}}
+                        for ctx in contexts
+                    ]
+
                 # Format sonuçları
                 if isinstance(result, dict) and "analyses" in result:
                     formatted_results = []
@@ -382,8 +419,12 @@ RESPOND WITH JSON matching this schema:
           "description": "Entity description",
           "synonyms_to_avoid": ["Synonym1"]
         }}],
-        "value_objects": [],
-        "domain_events": []
+        "value_objects": [{{
+          "name": "ValueObjectName",
+          "attributes": ["attribute1", "attribute2"],
+          "description": "Value object description"
+        }}],
+        "domain_events": ["EventName1", "EventName2"]
       }},
       "allowed_dependencies": []
     }}
@@ -400,7 +441,30 @@ RESPOND WITH JSON matching this schema:
                         response_mime_type="application/json", max_output_tokens=4000
                     ),
                 )
-                return self._clean_and_parse_json(response.text)
+                result = self._clean_and_parse_json(response.text)
+
+                # Check if JSON parsing failed
+                if (
+                    isinstance(result, dict)
+                    and result.get("error") == "json_parse_failed"
+                ):
+                    print(f"   ⚠️ Synthesis JSON parse failed, creating minimal model")
+                    # Return a minimal valid structure
+                    return {
+                        "project_name": "Generated Domain Model",
+                        "project_metadata": {
+                            "version": "1.0",
+                            "generated_at": time.strftime("%Y-%m-%d"),
+                            "description": "Auto-generated fallback model due to JSON parse error",
+                        },
+                        "bounded_contexts": [],
+                        "global_rules": {
+                            "naming_convention": "PascalCase",
+                            "banned_global_terms": ["Manager", "Util"],
+                        },
+                    }
+
+                return result
 
             except Exception as e:
                 wait_time = self._handle_quota_error(e, retry_count)
@@ -415,10 +479,61 @@ RESPOND WITH JSON matching this schema:
     # -------------------------------------------------------
     # 4B — main.py tarafından çağrılan method (DomainModel döner)
     # -------------------------------------------------------
+    def _cleanup_domain_data(self, json_data: Dict) -> Dict:
+        """Clean up JSON data to match DomainModel schema requirements"""
+        # Ensure global_rules has a default value
+        if "global_rules" not in json_data:
+            json_data["global_rules"] = {
+                "naming_convention": "PascalCase",
+                "banned_global_terms": [],
+            }
+
+        if "bounded_contexts" in json_data:
+            for context in json_data["bounded_contexts"]:
+                # Ensure allowed_dependencies has a default value
+                if "allowed_dependencies" not in context:
+                    context["allowed_dependencies"] = None
+
+                if "ubiquitous_language" in context:
+                    ub_lang = context["ubiquitous_language"]
+
+                    # Fix entities - ensure they have synonyms_to_avoid field
+                    if "entities" in ub_lang:
+                        for entity in ub_lang["entities"]:
+                            if (
+                                isinstance(entity, dict)
+                                and "synonyms_to_avoid" not in entity
+                            ):
+                                entity["synonyms_to_avoid"] = None
+
+                    # Fix value objects - ensure they have required attributes field
+                    if "value_objects" in ub_lang:
+                        for vo in ub_lang["value_objects"]:
+                            if isinstance(vo, dict) and "attributes" not in vo:
+                                # Add empty attributes list if missing
+                                vo["attributes"] = []
+
+                    # Fix domain events - ensure they are strings, not dicts
+                    if "domain_events" in ub_lang:
+                        events = ub_lang["domain_events"]
+                        if isinstance(events, list):
+                            cleaned_events = []
+                            for event in events:
+                                if isinstance(event, dict) and "name" in event:
+                                    # Convert dict to string using the name
+                                    cleaned_events.append(event["name"])
+                                elif isinstance(event, str):
+                                    cleaned_events.append(event)
+                            ub_lang["domain_events"] = cleaned_events
+
+        return json_data
+
     def synthesize_final_model(self, analyses: List[Dict]) -> DomainModel:
         try:
             json_data = self.synthesize(analyses)
-            return DomainModel(**json_data)
+            # Clean up the data before validation
+            cleaned_data = self._cleanup_domain_data(json_data)
+            return DomainModel(**cleaned_data)
         except Exception as e:
             print(f"   ⚠️ Error creating DomainModel: {e}")
             print("   🔄 Creating fallback model from analyses...")
@@ -495,15 +610,120 @@ RESPOND WITH JSON matching this schema:
             traceback.print_exc()
             raise
 
-    # Helper Metod
+    # Helper Method
     def _clean_and_parse_json(self, response_text: str):
-        """Markdown bloklarını temizler ve JSON parse eder."""
+        """Enhanced JSON parsing with multiple cleanup strategies."""
+        import re
+
+        # Strategy 1: Basic markdown cleanup
         try:
-            # Markdown '```json' ve '```' temizliği
             cleaned_text = (
                 response_text.replace("```json", "").replace("```", "").strip()
             )
             return json.loads(cleaned_text)
         except json.JSONDecodeError:
-            print(f"      ⚠️ Raw JSON parse failed. Text: {response_text[:100]}...")
-            return {}
+            pass
+
+        # Strategy 2: Extract JSON from mixed content using regex
+        try:
+            # Look for JSON object patterns
+            json_pattern = r"\{(?:[^{}]|{[^{}]*})*\}"
+            json_matches = re.findall(json_pattern, response_text, re.DOTALL)
+
+            for match in json_matches:
+                try:
+                    parsed = json.loads(match)
+                    if (
+                        isinstance(parsed, dict) and len(parsed) > 1
+                    ):  # Valid non-empty dict
+                        return parsed
+                except json.JSONDecodeError:
+                    continue
+        except Exception:
+            pass
+
+        # Strategy 3: Clean common LLM response artifacts
+        try:
+            # Remove common prefixes and suffixes
+            text = response_text
+
+            # Remove markdown blocks more aggressively
+            text = re.sub(r"```[a-zA-Z]*\n?", "", text)
+            text = re.sub(r"```\n?", "", text)
+
+            # Remove common LLM prefixes
+            prefixes_to_remove = [
+                "Here's the JSON:",
+                "Here is the JSON:",
+                "JSON Response:",
+                "Response:",
+                "Result:",
+                "Here's the analysis:",
+                "Analysis result:",
+            ]
+            for prefix in prefixes_to_remove:
+                if text.strip().startswith(prefix):
+                    text = text.strip()[len(prefix) :].strip()
+
+            # Remove trailing explanations after JSON
+            lines = text.split("\n")
+            json_lines = []
+            in_json = False
+            brace_count = 0
+
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("{") or in_json:
+                    in_json = True
+                    json_lines.append(line)
+                    brace_count += line.count("{") - line.count("}")
+                    if brace_count <= 0 and stripped.endswith("}"):
+                        break
+
+            if json_lines:
+                json_text = "\n".join(json_lines)
+                return json.loads(json_text)
+
+        except Exception:
+            pass
+
+        # Strategy 4: Fix common JSON syntax errors
+        try:
+            text = response_text.strip()
+
+            # Remove markdown
+            text = re.sub(r"```[a-zA-Z]*\n?", "", text)
+            text = re.sub(r"```\n?", "", text)
+
+            # Find potential JSON content
+            start_idx = text.find("{")
+            end_idx = text.rfind("}")
+
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                json_candidate = text[start_idx : end_idx + 1]
+
+                # Fix common issues
+                json_candidate = re.sub(
+                    r",(\s*[}\]])", r"\1", json_candidate
+                )  # Remove trailing commas
+                json_candidate = re.sub(
+                    r'(["\w])\s*\n\s*(["\w])', r"\1, \2", json_candidate
+                )  # Fix missing commas
+
+                return json.loads(json_candidate)
+
+        except Exception:
+            pass
+
+        # Strategy 5: Return fallback structure
+        print(
+            f"      ⚠️ All JSON parse strategies failed. Text: {response_text[:100]}..."
+        )
+        print(f"      🔄 Returning fallback empty structure.")
+
+        # Return a structure that won't break downstream processing
+        return {
+            "error": "json_parse_failed",
+            "raw_response": response_text[:500],  # Keep first 500 chars for debugging
+            "fallback": True,
+        }

@@ -33,7 +33,13 @@ class SRSDocumentParser:
     # HELPERS
     # -------------------------------------------------------
     def _truncate_at_references(self, text: str) -> str:
-        stop_words = ["references", "bibliography", "kaynakça"]
+        stop_words = [
+            "references",
+            "bibliography",
+            "kaynakça",
+            "referanslar",
+            "literatür",
+        ]
 
         lines = text.split("\n")
         for i, line in enumerate(lines):
