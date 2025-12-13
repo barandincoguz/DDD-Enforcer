@@ -11,7 +11,6 @@ from core.schemas import DomainModel
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))  # type: ignore
 
-
 class DomainArchitect:
     def __init__(self, model: str = "gemini-2.5-flash-lite"):
         self.model = genai.GenerativeModel(model_name=model)  # type: ignore
@@ -19,12 +18,12 @@ class DomainArchitect:
         self.min_delay = 6.0
         self.request_count = 0
         self.quota_exhausted = False
-        print(f"🤖 Domain Architect initialized with model: {model}")
-        print(f"⚙️  Rate limiting: {self.min_delay}s between requests")
+        print(f"[AI] Domain Architect initialized with model: {model}")
+        print(f"[CONFIG] Rate limiting: {self.min_delay}s between requests")
         print(
-            "🎯 Smart chunking enabled - processes ENTIRE SRS document without context loss"
+            "[INFO] Smart chunking enabled - processes ENTIRE SRS document without context loss"
         )
-        print("📊 Estimated API requests: ~4-8 (depends on document size)")
+        print("[INFO] Estimated API requests: ~4-8 (depends on document size)")
 
     def _wait_for_rate_limit(self):
         """Enforce minimum delay between API requests"""
@@ -32,11 +31,11 @@ class DomainArchitect:
         time_since_last = current_time - self.last_request_time
         if time_since_last < self.min_delay:
             sleep_time = self.min_delay - time_since_last
-            print(f"   ⏸️  Rate limiting: waiting {sleep_time:.1f}s...")
+            print(f"   [WAIT] Rate limiting: waiting {sleep_time:.1f}s...")
             time.sleep(sleep_time)
         self.last_request_time = time.time()
         self.request_count += 1
-        print(f"   📊 API Request #{self.request_count}")
+        print(f"   [API] Request #{self.request_count}")
 
     def _handle_quota_error(self, error: Exception, retry_count: int) -> float:
         """Handle quota exceeded errors with smart backoff"""
@@ -58,8 +57,8 @@ class DomainArchitect:
                 # Exponential backoff: 15s, 30s, 60s, 120s
                 wait_time = min(15 * (2**retry_count), 300)
 
-            print(f"   🚫 Quota exceeded! Waiting {wait_time:.1f}s before retry...")
-            print(f"   📈 Total requests made: {self.request_count}")
+            print(f"   [QUOTA] Exceeded! Waiting {wait_time:.1f}s before retry...")
+            print(f"   [STATS] Total requests made: {self.request_count}")
             time.sleep(wait_time)
             return wait_time
 
@@ -69,7 +68,7 @@ class DomainArchitect:
     # 1. SCOUT (AKILLI CHUNKING - Tüm dokümanı işle)
     # -------------------------------------------------------
     def extract_domain_sentences(self, clean_text: str) -> List[str]:
-        print("🕵️ Extracting domain-relevant sentences with smart chunking...")
+        print("[SCOUT] Extracting domain-relevant sentences with smart chunking...")
 
         # BAĞLAM KORUMA: Tüm text'i chunk'lara böl ve hepsini işle
         chunk_size = 10000  # Her chunk 10k karakter
@@ -95,13 +94,13 @@ class DomainArchitect:
                 chunks.append(clean_text[start:end])
                 start = end
 
-        print(f"   📊 Processing {len(chunks)} chunks ({total_length} chars total)")
-        print(f"   🎯 This will use {len(chunks)} API request(s) for Scout phase")
+        print(f"   [INFO] Processing {len(chunks)} chunks ({total_length} chars total)")
+        print(f"   [INFO] This will use {len(chunks)} API request(s) for Scout phase")
 
-        # Her chunk'ı işle
+        # Process each chunk
         for chunk_idx, chunk in enumerate(chunks):
             print(
-                f"   📦 Processing chunk {chunk_idx + 1}/{len(chunks)} ({len(chunk)} chars)..."
+                f"   [CHUNK] Processing chunk {chunk_idx + 1}/{len(chunks)} ({len(chunk)} chars)..."
             )
 
             for retry_count in range(5):
@@ -143,7 +142,7 @@ Extract ALL relevant sentences, no limit."""
                         and result.get("error") == "json_parse_failed"
                     ):
                         print(
-                            f"      ⚠️ Sentence extraction JSON parse failed in chunk {chunk_idx + 1}"
+                            f"      [WARN] Sentence extraction JSON parse failed in chunk {chunk_idx + 1}"
                         )
                         # Fallback: split into sentences
                         fallback = [
@@ -161,12 +160,12 @@ Extract ALL relevant sentences, no limit."""
 
                     all_sentences.extend(chunk_sentences)
                     print(
-                        f"      ✅ Chunk {chunk_idx + 1}: extracted {len(chunk_sentences)} sentences"
+                        f"      [OK] Chunk {chunk_idx + 1}: extracted {len(chunk_sentences)} sentences"
                     )
                     break  # Başarılı, bir sonraki chunk'a geç
 
                 except json.JSONDecodeError as e:
-                    print(f"      ⚠️ JSON parse error in chunk {chunk_idx + 1}: {e}")
+                    print(f"      [WARN] JSON parse error in chunk {chunk_idx + 1}: {e}")
                     # Fallback: cümlelere böl
                     fallback = [
                         s.strip() for s in chunk.split(".") if len(s.strip()) > 20
@@ -176,13 +175,13 @@ Extract ALL relevant sentences, no limit."""
                 except Exception as e:
                     wait_time = self._handle_quota_error(e, retry_count)
                     if wait_time == 0:
-                        print(f"      ⚠️ Error in chunk {chunk_idx + 1}: {e}")
+                        print(f"      [WARN] Error in chunk {chunk_idx + 1}: {e}")
                         if retry_count < 4:
                             continue
                         break
 
         print(
-            f"   ✅ Total sentences extracted: {len(all_sentences)} from {len(chunks)} chunks"
+            f"   [OK] Total sentences extracted: {len(all_sentences)} from {len(chunks)} chunks"
         )
         return all_sentences if all_sentences else [clean_text[:1000]]
 
@@ -190,7 +189,7 @@ Extract ALL relevant sentences, no limit."""
     # 2. CONTEXT IDENTIFICATION (TAM BAĞLAM)
     # -------------------------------------------------------
     def identify_contexts(self, domain_sentences: List[str]) -> List[str]:
-        print("🏗️ Identifying bounded contexts from ALL domain knowledge...")
+        print("[ARCHITECT] Identifying bounded contexts from ALL domain knowledge...")
 
         for retry_count in range(5):
             try:
@@ -203,12 +202,12 @@ Extract ALL relevant sentences, no limit."""
                 max_chars = 50000  # ~12k token
                 if len(text) > max_chars:
                     print(
-                        f"   📊 Using all {len(domain_sentences)} sentences (truncated to {max_chars} chars)"
+                        f"   [INFO] Using all {len(domain_sentences)} sentences (truncated to {max_chars} chars)"
                     )
                     text = text[:max_chars]
                 else:
                     print(
-                        f"   📊 Using all {len(domain_sentences)} sentences ({len(text)} chars)"
+                        f"   [INFO] Using all {len(domain_sentences)} sentences ({len(text)} chars)"
                     )
 
                 prompt = f"""Analyze ALL the domain knowledge below and identify distinct Bounded Contexts.
@@ -243,7 +242,7 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement, not
                     and result.get("error") == "json_parse_failed"
                 ):
                     print(
-                        f"   ⚠️ Context identification JSON parse failed, using fallback"
+                        f"   [WARN] Context identification JSON parse failed, using fallback"
                     )
                     return ["CoreDomain"]
 
@@ -258,7 +257,7 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement, not
             except Exception as e:
                 wait_time = self._handle_quota_error(e, retry_count)
                 if wait_time == 0:
-                    print(f"   ⚠️ Error in identify_contexts: {e}")
+                    print(f"   [WARN] Error in identify_contexts: {e}")
                     return ["CoreDomain"]  # Fallback
 
         return ["CoreDomain"]
@@ -269,8 +268,8 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement, not
     def extract_all_contexts_details(
         self, contexts: List[str], domain_sentences: List[str]
     ) -> List[Dict]:
-        """Tüm context'leri tek bir API call'da analiz et - REQUEST TASARRUFU!"""
-        print(f"🔬 Analyzing ALL {len(contexts)} contexts in ONE request...")
+        """Analyze all contexts in a single API call - REQUEST OPTIMIZATION!"""
+        print(f"[SPECIALIST] Analyzing ALL {len(contexts)} contexts in ONE request...")
 
         for retry_count in range(5):
             try:
@@ -284,12 +283,12 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement, not
                 max_chars = 60000  # ~15k token
                 if len(sentences_text) > max_chars:
                     print(
-                        f"   📊 Using {len(domain_sentences)} sentences (truncated to {max_chars} chars)"
+                        f"   [INFO] Using {len(domain_sentences)} sentences (truncated to {max_chars} chars)"
                     )
                     sentences_text = sentences_text[:max_chars]
                 else:
                     print(
-                        f"   📊 Using all {len(domain_sentences)} sentences ({len(sentences_text)} chars)"
+                        f"   [INFO] Using all {len(domain_sentences)} sentences ({len(sentences_text)} chars)"
                     )
 
                 prompt = f"""You are a DDD Expert. Analyze the domain knowledge for ALL these contexts at once: {contexts_text}
@@ -333,7 +332,7 @@ RESPOND WITH JSON:
                     and result.get("error") == "json_parse_failed"
                 ):
                     print(
-                        f"   ⚠️ Context analysis JSON parse failed for contexts: {contexts}"
+                        f"   [WARN] Context analysis JSON parse failed for contexts: {contexts}"
                     )
                     return [
                         {"context": ctx, "analysis": {"error": "JSON parse failed"}}
@@ -356,7 +355,7 @@ RESPOND WITH JSON:
                     return [{"context": ctx, "analysis": {}} for ctx in contexts]
 
             except json.JSONDecodeError as e:
-                print(f"   ⚠️ JSON parse error: {e}")
+                print(f"   [WARN] JSON parse error: {e}")
                 return [
                     {"context": ctx, "analysis": {"error": "JSON parse failed"}}
                     for ctx in contexts
@@ -364,7 +363,7 @@ RESPOND WITH JSON:
             except Exception as e:
                 wait_time = self._handle_quota_error(e, retry_count)
                 if wait_time == 0:
-                    print(f"   ⚠️ Error analyzing contexts: {e}")
+                    print(f"   [WARN] Error analyzing contexts: {e}")
                     if retry_count < 4:
                         continue
                     return [
@@ -381,7 +380,7 @@ RESPOND WITH JSON:
     # 4. SYNTHESIZER
     # -------------------------------------------------------
     def synthesize(self, analyses: List[Dict]):
-        print("🧠 Synthesizing final Domain Model...")
+        print("[SYNTHESIS] Synthesizing final Domain Model...")
 
         for retry_count in range(5):
             try:
@@ -448,7 +447,7 @@ RESPOND WITH JSON matching this schema:
                     isinstance(result, dict)
                     and result.get("error") == "json_parse_failed"
                 ):
-                    print(f"   ⚠️ Synthesis JSON parse failed, creating minimal model")
+                    print(f"   [WARN] Synthesis JSON parse failed, creating minimal model")
                     # Return a minimal valid structure
                     return {
                         "project_name": "Generated Domain Model",
@@ -469,7 +468,7 @@ RESPOND WITH JSON matching this schema:
             except Exception as e:
                 wait_time = self._handle_quota_error(e, retry_count)
                 if wait_time == 0:
-                    print(f"   ⚠️ Error in synthesize: {e}")
+                    print(f"   [WARN] Error in synthesize: {e}")
                     if retry_count < 4:
                         continue
                     raise
@@ -535,8 +534,8 @@ RESPOND WITH JSON matching this schema:
             cleaned_data = self._cleanup_domain_data(json_data)
             return DomainModel(**cleaned_data)
         except Exception as e:
-            print(f"   ⚠️ Error creating DomainModel: {e}")
-            print("   🔄 Creating fallback model from analyses...")
+            print(f"   [WARN] Error creating DomainModel: {e}")
+            print("   [FALLBACK] Creating fallback model from analyses...")
             # Create a minimal fallback model with all required fields
             from core.schemas import GlobalRules, ProjectMetadata
 
@@ -558,53 +557,53 @@ RESPOND WITH JSON matching this schema:
     # MAIN PIPELINE (OPTİMİZE EDİLMİŞ - Daha Az Request!)
     # -------------------------------------------------------
     def analyze_document(self, raw_text: str):
-        print("🚀 Starting FULL CONTEXT analysis pipeline...")
-        print(f"📄 Document size: {len(raw_text)} characters")
-        print("✅ NO CONTEXT LOSS - entire document will be processed")
+        print("[PIPELINE] Starting FULL CONTEXT analysis pipeline...")
+        print(f"[DOC] Document size: {len(raw_text)} characters")
+        print("[INFO] NO CONTEXT LOSS - entire document will be processed")
 
         try:
             # 1) Scout - Extract domain-relevant information
             # BAĞLAM KORUMA: Tüm text'i işle!
             print(f"\n{'=' * 60}")
-            print("📍 STEP 1/4: Scout - Extracting domain sentences")
-            print(f"🔍 Processing ENTIRE document: {len(raw_text)} characters")
-            clean_text = raw_text  # TÜM TEXT!
+            print("[STEP 1/4] Scout - Extracting domain sentences")
+            print(f"[PROCESS] Processing ENTIRE document: {len(raw_text)} characters")
+            clean_text = raw_text  # ALL TEXT!
             domain_sentences = self.extract_domain_sentences(clean_text)
-            print(f"✅ Extracted {len(domain_sentences)} domain sentences")
+            print(f"[OK] Extracted {len(domain_sentences)} domain sentences")
 
             if not domain_sentences:
-                print("⚠️ No domain sentences found, using raw text...")
+                print("[WARN] No domain sentences found, using raw text...")
                 domain_sentences = [clean_text[:1000]]
 
             # 2) Context Discovery (1 REQUEST)
             print(f"\n{'=' * 60}")
-            print("📍 STEP 2/4: Architect - Identifying contexts")
+            print("[STEP 2/4] Architect - Identifying contexts")
             contexts = self.identify_contexts(domain_sentences)
-            print(f"✅ Identified {len(contexts)} bounded contexts: {contexts}")
+            print(f"[OK] Identified {len(contexts)} bounded contexts: {contexts}")
 
             # Limit contexts to avoid too many
             if len(contexts) > 5:
-                print(f"   ⚠️ Too many contexts ({len(contexts)}), limiting to top 5")
+                print(f"   [WARN] Too many contexts ({len(contexts)}), limiting to top 5")
                 contexts = contexts[:5]
 
             # 3) Specialist - ALL contexts in ONE request (1 REQUEST)
             print(f"\n{'=' * 60}")
-            print("📍 STEP 3/4: Specialist - Analyzing all contexts")
-            print(f"🚀 OPTIMIZATION: All {len(contexts)} contexts in 1 API call!")
+            print("[STEP 3/4] Specialist - Analyzing all contexts")
+            print(f"[OPT] OPTIMIZATION: All {len(contexts)} contexts in 1 API call!")
             full_results = self.extract_all_contexts_details(contexts, domain_sentences)
 
             for idx, result in enumerate(full_results):
-                print(f"   ✅ Context {idx + 1}: {result['context']}")
+                print(f"   [OK] Context {idx + 1}: {result['context']}")
 
             print(f"\n{'=' * 60}")
-            print("📍 STEP 4/4: Ready for synthesis")
-            print("✅ Analysis pipeline complete with FULL context preserved!")
-            print(f"📊 Total API requests so far: {self.request_count}")
-            print("💡 Synthesis will use 1 more request")
+            print("[STEP 4/4] Ready for synthesis")
+            print("[OK] Analysis pipeline complete with FULL context preserved!")
+            print(f"[STATS] Total API requests so far: {self.request_count}")
+            print("[INFO] Synthesis will use 1 more request")
             return full_results
 
         except Exception as e:
-            print(f"❌ Pipeline error: {e}")
+            print(f"[ERROR] Pipeline error: {e}")
             import traceback
 
             traceback.print_exc()
@@ -717,9 +716,9 @@ RESPOND WITH JSON matching this schema:
 
         # Strategy 5: Return fallback structure
         print(
-            f"      ⚠️ All JSON parse strategies failed. Text: {response_text[:100]}..."
+            f"      [WARN] All JSON parse strategies failed. Text: {response_text[:100]}..."
         )
-        print(f"      🔄 Returning fallback empty structure.")
+        print(f"      [FALLBACK] Returning fallback empty structure.")
 
         # Return a structure that won't break downstream processing
         return {

@@ -41,28 +41,72 @@ class LLMClient:
         to detect DDD violations using Structured Outputs.
         """
 
-        # Prompt artık daha sade çünkü JSON formatını config hallediyor
         prompt = f"""
-        You are a strict Domain-Driven Design (DDD) Architect Enforcer.
+You are a Domain-Driven Design (DDD) violation detector. Your job is VERY specific and LIMITED.
 
-        Your Task: Analyze the provided Python Code Structure (AST) against the strict Domain Rules.
+=== YOU CAN ONLY FLAG TWO TYPES OF VIOLATIONS ===
 
-        1. GROUND TRUTH (Domain Rules):
-        {json.dumps(domain_rules, indent=2)}
+TYPE 1 - SYNONYM VIOLATIONS:
+- Look at 'synonyms_to_avoid' arrays in the domain rules
+- If a class/function name contains a word from 'synonyms_to_avoid', flag it
+- Example: synonyms_to_avoid: ["Client", "User", "Buyer"]
+  - "ClientManager" contains "Client" → VIOLATION
+  - "UserService" contains "User" → VIOLATION
+  - "CustomerService" does NOT contain any synonym → NO VIOLATION
 
-        2. INPUT CODE STRUCTURE (AST):
-        {json.dumps(ast_data, indent=2)}
+TYPE 2 - BANNED GLOBAL TERM VIOLATIONS:
+- Look at 'global_rules.banned_global_terms' array
+- If a class/function name contains a banned term, flag it
+- Example: banned_global_terms: ["Manager", "Util", "Helper"]
+  - "OrderManager" contains "Manager" → VIOLATION
+  - "StringUtil" contains "Util" → VIOLATION
+  - "OrderService" does NOT contain any banned term → NO VIOLATION
 
-        3. INSTRUCTIONS:
-        - Analyze the AST specifically for 'ubiquitous_language' violations (synonyms defined in synonyms_to_avoid).
-        - Check for 'allowed_dependencies' violations (Context Leakage).
-        - If a violation is found, set is_violation to true and provide details.
-        """
+=== THINGS YOU MUST NOT FLAG (ALLOWED PATTERNS) ===
+
+These are STANDARD DDD patterns and are ALWAYS allowed:
+- Repository (CustomerRepository, OrderRepository, ProductRepository)
+- Service (OrderService, PaymentService, CustomerService)
+- Factory (OrderFactory, CustomerFactory)
+- Gateway (PaymentGateway, EmailGateway)
+- Aggregate (OrderAggregate)
+- Specification (CustomerSpecification)
+- Event (OrderPlaced, PaymentCompleted, CustomerCreated)
+- ValueObject, Entity names from the domain model
+
+=== CORRECT ENTITY NAMES ARE NEVER VIOLATIONS ===
+
+The 'name' field in entities defines the CORRECT term:
+- {{"name": "Customer", "synonyms_to_avoid": ["Client"]}}
+- "Customer" is CORRECT → NEVER flag it
+- "Client" is WRONG → flag it
+
+=== DOMAIN RULES ===
+{json.dumps(domain_rules, indent=2)}
+
+=== CODE TO ANALYZE ===
+{json.dumps(ast_data, indent=2)}
+
+=== YOUR TASK ===
+1. Check each CLASS name in "classes" array: Does it contain a word from ANY 'synonyms_to_avoid' list? If yes → violation
+2. Check each CLASS name in "classes" array: Does it contain a word from 'banned_global_terms'? If yes → violation
+3. Check each FUNCTION name in "functions" array: Does it contain a word from ANY 'synonyms_to_avoid' list? If yes → violation
+4. Check each FUNCTION name in "functions" array: Does it contain a word from 'banned_global_terms'? If yes → violation
+5. If NO violations found, return is_violation: false with empty violations array
+6. DO NOT invent new rules. ONLY use the rules provided above.
+7. When in doubt, DO NOT flag it as a violation.
+
+=== FUNCTION NAME EXAMPLES ===
+- synonyms_to_avoid for Customer: ["Client", "User", "Buyer"]
+  - "get_buyer_info" contains "buyer" → VIOLATION (should be get_customer_info)
+  - "add_client" contains "client" → VIOLATION (should be add_customer)
+  - "get_customer_info" → NO VIOLATION (uses correct term)
+"""
 
         try:
             # Yeni SDK Yapısı
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash-lite",  # En güncel hızlı model
+                model="gemini-2.5-flash",  # En güncel hızlı model
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

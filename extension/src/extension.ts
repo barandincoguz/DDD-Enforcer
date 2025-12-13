@@ -94,7 +94,7 @@ function extractKeyword(message: string): string {
   return match ? match[1] : "";
 }
 
-// Dosya içinde kelimenin geçtiği ilk yeri bul
+// Dosya içinde kelimenin geçtiği yeri bul (class/def tanımlarını önceliklendir)
 function findKeywordRange(
   document: vscode.TextDocument,
   keyword: string
@@ -104,15 +104,63 @@ function findKeywordRange(
   }
 
   const text = document.getText();
-  const index = text.indexOf(keyword);
+  
+  // 1. Önce class/def tanımlarında ara (en doğru sonuç)
+  // Patterns: "class ClassName", "def function_name", "ClassName:" assignment
+  const definitionPatterns = [
+    new RegExp(`class\\s+${escapeRegex(keyword)}\\b`),           // class ClassName
+    new RegExp(`def\\s+${escapeRegex(keyword)}\\b`),             // def function_name
+    new RegExp(`^\\s*${escapeRegex(keyword)}\\s*=`, "m"),        // ClassName = ...
+  ];
 
-  if (index === -1) {
-    return new vscode.Range(0, 0, 0, 0);
+  for (const pattern of definitionPatterns) {
+    const match = pattern.exec(text);
+    if (match) {
+      // Match içinde keyword'ün pozisyonunu bul
+      const keywordIndexInMatch = match[0].indexOf(keyword);
+      const absoluteIndex = match.index + keywordIndexInMatch;
+      
+      const positionStart = document.positionAt(absoluteIndex);
+      const positionEnd = document.positionAt(absoluteIndex + keyword.length);
+      return new vscode.Range(positionStart, positionEnd);
+    }
   }
 
-  const positionStart = document.positionAt(index);
-  const positionEnd = document.positionAt(index + keyword.length);
-  return new vscode.Range(positionStart, positionEnd);
+  // 2. Tanım bulunamazsa, yorum olmayan satırlarda ara
+  const lines = text.split("\n");
+  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+    const line = lines[lineNum];
+    const trimmedLine = line.trim();
+    
+    // Yorum satırlarını atla
+    if (trimmedLine.startsWith("#")) {
+      continue;
+    }
+    
+    // Docstring içindeyse atla (basit kontrol)
+    if (trimmedLine.startsWith('"""') || trimmedLine.startsWith("'''")) {
+      continue;
+    }
+    
+    const keywordIndex = line.indexOf(keyword);
+    if (keywordIndex !== -1) {
+      // Yorumdan önce mi kontrol et (satır içi yorum)
+      const commentIndex = line.indexOf("#");
+      if (commentIndex === -1 || keywordIndex < commentIndex) {
+        const positionStart = new vscode.Position(lineNum, keywordIndex);
+        const positionEnd = new vscode.Position(lineNum, keywordIndex + keyword.length);
+        return new vscode.Range(positionStart, positionEnd);
+      }
+    }
+  }
+
+  // 3. Hiçbir şey bulunamazsa ilk satır
+  return new vscode.Range(0, 0, 0, 0);
+}
+
+// Regex özel karakterlerini escape et
+function escapeRegex(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function deactivate() {}
