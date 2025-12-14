@@ -11,6 +11,8 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from typing import Any, Dict, List
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -29,11 +31,11 @@ from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel
 
-app_state = {}
+app_state: Dict[str, Any] = {}
 rag_config = RAGConfig()
 
 
-def find_srs_files() -> list:
+def find_srs_files() -> List[str]:
     """Find all supported SRS files in the inputs directory."""
     files = []
     for ext in ParserConfig.SUPPORTED_EXTENSIONS:
@@ -41,7 +43,7 @@ def find_srs_files() -> list:
     return files
 
 
-def generate_domain_model(srs_path: str) -> dict:
+def generate_domain_model(srs_path: str) -> Dict[str, Any]:
     """Generate domain model from SRS document using AI pipeline."""
     doc_parser = SRSDocumentParser()
     raw_text = doc_parser.parse_file(srs_path)
@@ -64,13 +66,13 @@ def generate_domain_model(srs_path: str) -> dict:
     return final_model.model_dump(mode="json")
 
 
-def load_existing_model() -> dict:
+def load_existing_model() -> Dict[str, Any]:
     """Load existing domain model from file."""
     with open(DOMAIN_MODEL_PATH, "r") as f:
         return json.load(f)
 
 
-def initialize_rag(srs_files: list) -> RAGPipeline:
+def initialize_rag(srs_files: List[str]) -> RAGPipeline:
     """Initialize RAG pipeline and index SRS documents."""
     rag = RAGPipeline()
 
@@ -83,10 +85,7 @@ def initialize_rag(srs_files: list) -> RAGPipeline:
             filename = Path(srs_path).name
             ext = Path(srs_path).suffix[1:]
             chunk_count = rag.index_document(
-                raw_text=raw_text,
-                doc_id="srs_main",
-                doc_name=filename,
-                doc_type=ext
+                raw_text=raw_text, doc_id="srs_main", doc_name=filename, doc_type=ext
             )
             print(f"[RAG] Indexed {chunk_count} chunks from {filename}")
 
@@ -115,6 +114,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[ERROR] Generation failed: {e}")
                 import traceback
+
                 traceback.print_exc()
                 app_state["domain_rules"] = {}
         else:
@@ -158,8 +158,10 @@ app = FastAPI(lifespan=lifespan)
 # REQUEST/RESPONSE MODELS
 # =============================================================================
 
+
 class CodeSubmission(BaseModel):
     """Request model for code validation."""
+
     filename: str
     content: str
 
@@ -167,6 +169,7 @@ class CodeSubmission(BaseModel):
 # =============================================================================
 # VALIDATION ENDPOINT
 # =============================================================================
+
 
 @app.post("/validate")
 def validate_code(submission: CodeSubmission):
@@ -182,11 +185,13 @@ def validate_code(submission: CodeSubmission):
     if not rules:
         return {
             "is_violation": True,
-            "violations": [{
-                "type": "ConfigError",
-                "message": "Domain Model is empty. Check backend logs.",
-                "suggestion": "Add inputs/srs.pdf and restart backend.",
-            }],
+            "violations": [
+                {
+                    "type": "ConfigError",
+                    "message": "Domain Model is empty. Check backend logs.",
+                    "suggestion": "Add inputs/srs.pdf and restart backend.",
+                }
+            ],
         }
 
     # Parse code to AST with filename
@@ -195,11 +200,13 @@ def validate_code(submission: CodeSubmission):
     if "error" in ast_data:
         return {
             "is_violation": True,
-            "violations": [{
-                "type": "SyntaxError",
-                "message": ast_data["error"],
-                "suggestion": "Fix Python syntax.",
-            }],
+            "violations": [
+                {
+                    "type": "SyntaxError",
+                    "message": ast_data["error"],
+                    "suggestion": "Fix Python syntax.",
+                }
+            ],
         }
 
     # Check for violations
@@ -212,7 +219,7 @@ def validate_code(submission: CodeSubmission):
             try:
                 sources = rag.retrieve_source(
                     violation_type=violation.get("type", ""),
-                    violation_message=violation.get("message", "")
+                    violation_message=violation.get("message", ""),
                 )
                 violation["sources"] = sources
             except Exception:
@@ -224,6 +231,7 @@ def validate_code(submission: CodeSubmission):
 # =============================================================================
 # RAG DIAGNOSTIC ENDPOINTS
 # =============================================================================
+
 
 @app.get("/rag/stats")
 def get_rag_stats():

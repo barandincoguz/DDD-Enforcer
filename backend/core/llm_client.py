@@ -9,7 +9,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from dotenv import load_dotenv
 from google import genai
@@ -26,8 +26,10 @@ load_dotenv()
 # RESPONSE SCHEMAS
 # =============================================================================
 
+
 class Violation(BaseModel):
     """Single DDD violation detected in code."""
+
     type: Literal[
         "SynonymViolation",
         "BannedTermViolation",
@@ -35,7 +37,7 @@ class Violation(BaseModel):
         "ContextBoundaryViolation",
         "ValueObjectViolation",
         "DomainEventViolation",
-        "SystemError"
+        "SystemError",
     ] = Field(description="Type of violation")
     message: str = Field(description="Detailed explanation of the violation")
     suggestion: str = Field(description="Actionable suggestion to fix the code")
@@ -43,6 +45,7 @@ class Violation(BaseModel):
 
 class ValidationResponse(BaseModel):
     """Response from violation analysis."""
+
     is_violation: bool = Field(description="True if any violation is detected")
     violations: List[Violation] = Field(description="List of detected violations")
 
@@ -50,6 +53,7 @@ class ValidationResponse(BaseModel):
 # =============================================================================
 # LLM CLIENT
 # =============================================================================
+
 
 class LLMClient:
     """Client for DDD violation detection using Google Gemini."""
@@ -62,7 +66,9 @@ class LLMClient:
         self.config = config or LLMConfig()
         self.client = genai.Client(api_key=api_key)
 
-    def analyze_violation(self, ast_data: dict, domain_rules: dict) -> dict:
+    def analyze_violation(
+        self, ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Analyze code for DDD violations.
 
@@ -85,17 +91,21 @@ class LLMClient:
         except Exception as e:
             return {
                 "is_violation": True,
-                "violations": [{
-                    "type": "SystemError",
-                    "message": f"LLM Error: {str(e)}",
-                    "suggestion": "Check API logs or connectivity.",
-                }],
+                "violations": [
+                    {
+                        "type": "SystemError",
+                        "message": f"LLM Error: {str(e)}",
+                        "suggestion": "Check API logs or connectivity.",
+                    }
+                ],
             }
 
-    def _build_prompt(self, ast_data: dict, domain_rules: dict) -> str:
+    def _build_prompt(
+        self, ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
+    ) -> str:
         """Build the analysis prompt."""
         filename = ast_data.get("filename", "unknown.py")
-        
+
         return f"""You are a Domain-Driven Design (DDD) violation detector for enterprise software.
 
 === VIOLATION TYPES YOU MUST DETECT ===
@@ -236,11 +246,13 @@ Now analyze the code thoroughly and report ALL violations."""
 if __name__ == "__main__":
     dummy_ast = {"classes": [{"name": "ClientManager"}], "imports": []}
     dummy_rules = {
-        "bounded_contexts": [{
-            "ubiquitous_language": {
-                "entities": [{"name": "Customer", "synonyms_to_avoid": ["Client"]}]
+        "bounded_contexts": [
+            {
+                "ubiquitous_language": {
+                    "entities": [{"name": "Customer", "synonyms_to_avoid": ["Client"]}]
+                }
             }
-        }]
+        ]
     }
 
     client = LLMClient()

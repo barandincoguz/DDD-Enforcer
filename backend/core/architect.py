@@ -15,7 +15,7 @@ import json
 import os
 import re
 import time
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from google import genai
@@ -23,11 +23,13 @@ from google.genai import types
 
 from core.schemas import DomainModel, GlobalRules, ProjectMetadata
 from config import LLMConfig
+
 load_dotenv()
 
 
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
+
     LLMConfig = LLMConfig()
 
     def __init__(self, model: str = LLMConfig.MODEL_NAME):
@@ -63,9 +65,9 @@ class DomainArchitect:
         """Handle quota exceeded errors with exponential backoff."""
         error_str = str(error)
         is_quota_error = (
-            "429" in error_str or
-            "quota" in error_str.lower() or
-            "ResourceExhausted" in str(type(error))
+            "429" in error_str
+            or "quota" in error_str.lower()
+            or "ResourceExhausted" in str(type(error))
         )
 
         if not is_quota_error:
@@ -77,7 +79,7 @@ class DomainArchitect:
             wait_time = max(float(retry_match.group(1)), 10)
         else:
             # Exponential backoff: 15s, 30s, 60s, 120s
-            wait_time = min(15 * (2 ** retry_count), 300)
+            wait_time = min(15 * (2**retry_count), 300)
 
         print(f"   [QUOTA] Exceeded! Waiting {wait_time:.1f}s...")
         time.sleep(wait_time)
@@ -165,9 +167,14 @@ Extract ALL relevant sentences, no limit."""
                 )
                 result = self._parse_json_response(response.text)
 
-                if result.get("error") == "json_parse_failed":
+                if (
+                    isinstance(result, dict)
+                    and result.get("error") == "json_parse_failed"
+                ):
                     # Fallback: split chunk into sentences
-                    return [s.strip() for s in chunk.split(".") if len(s.strip()) > 20][:50]
+                    return [s.strip() for s in chunk.split(".") if len(s.strip()) > 20][
+                        :50
+                    ]
 
                 if isinstance(result, dict) and "sentences" in result:
                     return result["sentences"]
@@ -179,7 +186,9 @@ Extract ALL relevant sentences, no limit."""
                 if self._handle_quota_error(e, retry) == 0:
                     print(f"      [WARN] Chunk {chunk_num} error: {e}")
                     if retry >= 4:
-                        return [s.strip() for s in chunk.split(".") if len(s.strip()) > 20][:50]
+                        return [
+                            s.strip() for s in chunk.split(".") if len(s.strip()) > 20
+                        ][:50]
 
         return []
 
@@ -228,19 +237,26 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        max_output_tokens=3000  # Increased for complete response
+                        max_output_tokens=3000,  # Increased for complete response
                     ),
                 )
-                
+
                 # DEBUG: Log FULL response
-                print(f"\n[DEBUG ARCHITECT] Full response ({len(response.text)} chars):")
+                print(
+                    f"\n[DEBUG ARCHITECT] Full response ({len(response.text)} chars):"
+                )
                 print(response.text)
                 print("[DEBUG END]\n")
-                
+
                 result = self._parse_json_response(response.text)
 
-                if result.get("error") == "json_parse_failed":
-                    print(f"      [WARN] Retrying due to parse failure (attempt {retry + 1}/5)")
+                if (
+                    isinstance(result, dict)
+                    and result.get("error") == "json_parse_failed"
+                ):
+                    print(
+                        f"      [WARN] Retrying due to parse failure (attempt {retry + 1}/5)"
+                    )
                     if retry < 4:
                         continue
                     return ["CoreDomain"]
@@ -251,7 +267,7 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
                         return contexts
                 elif isinstance(result, list) and len(result) > 0:
                     return result
-                
+
                 print(f"      [WARN] Empty result, retrying (attempt {retry + 1}/5)")
                 if retry < 4:
                     continue
@@ -270,7 +286,7 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
 
     def extract_all_contexts_details(
         self, contexts: List[str], domain_sentences: List[str]
-    ) -> List[Dict]:
+    ) -> List[Dict[str, Any]]:
         """
         Analyze all contexts in a single API call for efficiency.
 
@@ -324,8 +340,14 @@ RESPOND WITH JSON:
                 )
                 result = self._parse_json_response(response.text)
 
-                if result.get("error") == "json_parse_failed":
-                    return [{"context": ctx, "analysis": {"error": "parse_failed"}} for ctx in contexts]
+                if (
+                    isinstance(result, dict)
+                    and result.get("error") == "json_parse_failed"
+                ):
+                    return [
+                        {"context": ctx, "analysis": {"error": "parse_failed"}}
+                        for ctx in contexts
+                    ]
 
                 if isinstance(result, dict) and "analyses" in result:
                     return [
@@ -338,15 +360,21 @@ RESPOND WITH JSON:
                 if self._handle_quota_error(e, retry) == 0:
                     print(f"   [WARN] Analysis error: {e}")
                     if retry >= 4:
-                        return [{"context": ctx, "analysis": {"error": str(e)}} for ctx in contexts]
+                        return [
+                            {"context": ctx, "analysis": {"error": str(e)}}
+                            for ctx in contexts
+                        ]
 
-        return [{"context": ctx, "analysis": {"error": "retries_exhausted"}} for ctx in contexts]
+        return [
+            {"context": ctx, "analysis": {"error": "retries_exhausted"}}
+            for ctx in contexts
+        ]
 
     # =========================================================================
     # STAGE 4: SYNTHESIZER - Create Final Model
     # =========================================================================
 
-    def synthesize(self, analyses: List[Dict]) -> Dict:
+    def synthesize(self, analyses: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Synthesize all context analyses into a cohesive domain model.
 
@@ -408,27 +436,31 @@ RESPOND WITH JSON matching this schema:
                     model=self.model_name,
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        max_output_tokens=4000
+                        response_mime_type="application/json", max_output_tokens=4000
                     ),
                 )
-                
+
                 # DEBUG: Log raw response
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("[DEBUG] RAW LLM RESPONSE:")
                 print(response.text[:1000])  # İlk 1000 karakter
-                print("="*60 + "\n")
-                
+                print("=" * 60 + "\n")
+
                 result = self._parse_json_response(response.text)
-                
+
                 # DEBUG: Log parsed result
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("[DEBUG] PARSED JSON RESULT:")
                 print(json.dumps(result, indent=2)[:1000])
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
 
-                if result.get("error") == "json_parse_failed":
-                    print(f"   [WARN] JSON parse failed, retrying (attempt {retry + 1}/5)")
+                if (
+                    isinstance(result, dict)
+                    and result.get("error") == "json_parse_failed"
+                ):
+                    print(
+                        f"   [WARN] JSON parse failed, retrying (attempt {retry + 1}/5)"
+                    )
                     if retry < 4:
                         time.sleep(2)  # Brief pause before retry
                         continue
@@ -438,13 +470,17 @@ RESPOND WITH JSON matching this schema:
                 # Verify required fields exist
                 required = ["project_name", "project_metadata", "bounded_contexts"]
                 missing = [f for f in required if f not in result]
-                
+
                 if missing:
-                    print(f"   [WARN] Missing required fields: {missing}, retrying (attempt {retry + 1}/5)")
+                    print(
+                        f"   [WARN] Missing required fields: {missing}, retrying (attempt {retry + 1}/5)"
+                    )
                     if retry < 4:
                         time.sleep(2)
                         continue
-                    print("   [ERROR] Incomplete response after retries, using fallback")
+                    print(
+                        "   [ERROR] Incomplete response after retries, using fallback"
+                    )
                     return self._create_fallback_model()
 
                 return result
@@ -457,32 +493,40 @@ RESPOND WITH JSON matching this schema:
 
         raise Exception("Failed to synthesize after all retries")
 
-    def synthesize_final_model(self, analyses: List[Dict]) -> DomainModel:
+    def synthesize_final_model(self, analyses: List[Dict[str, Any]]) -> DomainModel:
         """Create validated DomainModel from analyses."""
         try:
             json_data = self.synthesize(analyses)
-            
+
             # DEBUG: Log data before cleanup
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("[DEBUG] JSON DATA BEFORE CLEANUP:")
             print(json.dumps(json_data, indent=2)[:1000])
-            print("="*60 + "\n")
-            
+            print("=" * 60 + "\n")
+
             cleaned_data = self._cleanup_domain_data(json_data)
-            
+
             # DEBUG: Log data after cleanup
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("[DEBUG] JSON DATA AFTER CLEANUP:")
             print(json.dumps(cleaned_data, indent=2)[:1000])
-            print("="*60 + "\n")
-            
+            print("=" * 60 + "\n")
+
             # DEBUG: Log required fields
             print("[DEBUG] Checking required fields:")
-            print(f"   - project_name: {'✓' if 'project_name' in cleaned_data else '✗ MISSING'}")
-            print(f"   - project_metadata: {'✓' if 'project_metadata' in cleaned_data else '✗ MISSING'}")
-            print(f"   - bounded_contexts: {'✓' if 'bounded_contexts' in cleaned_data else '✗ MISSING'}")
-            print(f"   - global_rules: {'✓' if 'global_rules' in cleaned_data else '✗ MISSING'}")
-            
+            print(
+                f"   - project_name: {'✓' if 'project_name' in cleaned_data else '✗ MISSING'}"
+            )
+            print(
+                f"   - project_metadata: {'✓' if 'project_metadata' in cleaned_data else '✗ MISSING'}"
+            )
+            print(
+                f"   - bounded_contexts: {'✓' if 'bounded_contexts' in cleaned_data else '✗ MISSING'}"
+            )
+            print(
+                f"   - global_rules: {'✓' if 'global_rules' in cleaned_data else '✗ MISSING'}"
+            )
+
             return DomainModel(**cleaned_data)
         except Exception as e:
             print(f"   [WARN] Model creation error: {e}")
@@ -505,7 +549,7 @@ RESPOND WITH JSON matching this schema:
     # MAIN PIPELINE
     # =========================================================================
 
-    def analyze_document(self, raw_text: str) -> List[Dict]:
+    def analyze_document(self, raw_text: str) -> List[Dict[str, Any]]:
         """
         Run the full analysis pipeline on an SRS document.
 
@@ -551,6 +595,7 @@ RESPOND WITH JSON matching this schema:
         except Exception as e:
             print(f"[ERROR] Pipeline error: {e}")
             import traceback
+
             traceback.print_exc()
             raise
 
@@ -558,7 +603,7 @@ RESPOND WITH JSON matching this schema:
     # HELPER METHODS
     # =========================================================================
 
-    def _cleanup_domain_data(self, json_data: Dict) -> Dict:
+    def _cleanup_domain_data(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
         """Clean up JSON data to match DomainModel schema."""
         if "global_rules" not in json_data:
             json_data["global_rules"] = {
@@ -596,7 +641,7 @@ RESPOND WITH JSON matching this schema:
 
         return json_data
 
-    def _create_fallback_model(self) -> Dict:
+    def _create_fallback_model(self) -> Dict[str, Any]:
         """Create minimal valid model structure."""
         return {
             "project_name": "Generated Domain Model",
@@ -612,7 +657,7 @@ RESPOND WITH JSON matching this schema:
             },
         }
 
-    def _parse_json_response(self, response_text: str) -> Dict:
+    def _parse_json_response(self, response_text: str) -> Dict[str, Any]:
         """Parse JSON from LLM response with multiple fallback strategies."""
         # Strategy 1: Direct parse (most responses are already valid JSON)
         try:
@@ -632,7 +677,7 @@ RESPOND WITH JSON matching this schema:
             start = response_text.find("{")
             end = response_text.rfind("}")
             if start != -1 and end > start:
-                candidate = response_text[start:end + 1]
+                candidate = response_text[start : end + 1]
                 return json.loads(candidate)
         except json.JSONDecodeError:
             pass
@@ -643,7 +688,7 @@ RESPOND WITH JSON matching this schema:
             start = text.find("{")
             end = text.rfind("}")
             if start != -1 and end > start:
-                candidate = text[start:end + 1]
+                candidate = text[start : end + 1]
                 # Fix trailing commas
                 candidate = re.sub(r",(\s*[}\]])", r"\1", candidate)
                 return json.loads(candidate)

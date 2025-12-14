@@ -6,7 +6,7 @@ needed for DDD violation detection. Does not execute the code.
 """
 
 import ast
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class CodeParser:
@@ -41,7 +41,7 @@ class CodeParser:
             "imports": visitor.imports,
             "functions": visitor.functions,
             "assignments": visitor.assignments,
-            "function_calls": visitor.function_calls
+            "function_calls": visitor.function_calls,
         }
 
 
@@ -49,55 +49,51 @@ class DomainVisitor(ast.NodeVisitor):
     """AST visitor that extracts domain-relevant code elements."""
 
     def __init__(self):
-        self.classes: List[Dict] = []
-        self.imports: List[Dict] = []  # Changed to dict for detailed info
-        self.functions: List[Dict] = []  # Changed to dict for parameters
-        self.assignments: List[Dict] = []
-        self.function_calls: List[Dict] = []
-        self.current_class: str = None
+        self.classes: List[Dict[str, Any]] = []
+        self.imports: List[Dict[str, Any]] = []  # Changed to dict for detailed info
+        self.functions: List[Dict[str, Any]] = []  # Changed to dict for parameters
+        self.assignments: List[Dict[str, Any]] = []
+        self.function_calls: List[Dict[str, Any]] = []
+        self.current_class: Optional[str] = None
 
     def visit_Import(self, node: ast.Import):
         """Record import statements with full details."""
         for alias in node.names:
-            self.imports.append({
-                "module": alias.name,
-                "type": "import",
-                "line": node.lineno
-            })
+            self.imports.append(
+                {"module": alias.name, "type": "import", "line": node.lineno}
+            )
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
         """Record from-import statements with module path."""
         if node.module:
             imported_names = [alias.name for alias in node.names]
-            self.imports.append({
-                "module": node.module,
-                "names": imported_names,
-                "type": "from",
-                "line": node.lineno
-            })
+            self.imports.append(
+                {
+                    "module": node.module,
+                    "names": imported_names,
+                    "type": "from",
+                    "line": node.lineno,
+                }
+            )
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef):
         """Extract class information including name, bases, and methods."""
         prev_class = self.current_class
         self.current_class = node.name
-        
+
         class_info = {
             "name": node.name,
             "line": node.lineno,
-            "bases": [
-                base.id for base in node.bases
-                if isinstance(base, ast.Name)
-            ],
+            "bases": [base.id for base in node.bases if isinstance(base, ast.Name)],
             "methods": [
-                item.name for item in node.body
-                if isinstance(item, ast.FunctionDef)
-            ]
+                item.name for item in node.body if isinstance(item, ast.FunctionDef)
+            ],
         }
         self.classes.append(class_info)
         self.generic_visit(node)
-        
+
         self.current_class = prev_class
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
@@ -111,12 +107,12 @@ class DomainVisitor(ast.NodeVisitor):
                 elif isinstance(arg.annotation, ast.Constant):
                     param_info["type"] = str(arg.annotation.value)
             params.append(param_info)
-        
+
         func_info = {
             "name": node.name,
             "line": node.lineno,
             "parameters": params,
-            "in_class": self.current_class
+            "in_class": self.current_class,
         }
         self.functions.append(func_info)
         self.generic_visit(node)
@@ -125,28 +121,28 @@ class DomainVisitor(ast.NodeVisitor):
         """Track assignments for Value Object violation detection."""
         for target in node.targets:
             assignment_info = {"line": node.lineno}
-            
+
             # Capture target (e.g., order.status)
             if isinstance(target, ast.Attribute):
                 if isinstance(target.value, ast.Name):
                     assignment_info["target"] = f"{target.value.id}.{target.attr}"
             elif isinstance(target, ast.Name):
                 assignment_info["target"] = target.id
-            
+
             # Capture value type
             if isinstance(node.value, ast.Constant):
                 assignment_info["value_type"] = type(node.value.value).__name__
                 assignment_info["value"] = str(node.value.value)
             elif isinstance(node.value, ast.Name):
                 assignment_info["value_type"] = "variable"
-            
+
             self.assignments.append(assignment_info)
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call):
         """Track function calls for domain event violations."""
         call_info = {"line": node.lineno}
-        
+
         if isinstance(node.func, ast.Attribute):
             if isinstance(node.func.value, ast.Name):
                 call_info["function"] = f"{node.func.value.id}.{node.func.attr}"
@@ -154,13 +150,13 @@ class DomainVisitor(ast.NodeVisitor):
                 call_info["function"] = node.func.attr
         elif isinstance(node.func, ast.Name):
             call_info["function"] = node.func.id
-        
+
         # Capture arguments (especially string literals for event names)
         call_info["args"] = []
         for arg in node.args:
             if isinstance(arg, ast.Constant):
                 call_info["args"].append(str(arg.value))
-        
+
         self.function_calls.append(call_info)
         self.generic_visit(node)
 

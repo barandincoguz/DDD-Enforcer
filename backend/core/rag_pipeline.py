@@ -10,7 +10,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import chromadb
 
@@ -25,7 +25,7 @@ class RAGPipeline:
         self,
         persist_directory: Optional[str] = None,
         inputs_directory: Optional[str] = None,
-        config: Optional[RAGConfig] = None
+        config: Optional[RAGConfig] = None,
     ):
         """
         Initialize ChromaDB with persistent storage.
@@ -68,7 +68,7 @@ class RAGPipeline:
         self.client = chromadb.PersistentClient(path=self.persist_directory)
         self.collection = self.client.get_or_create_collection(
             name=self.config.COLLECTION_NAME,
-            metadata={"hnsw:space": self.config.DISTANCE_METRIC}
+            metadata={"hnsw:space": self.config.DISTANCE_METRIC},
         )
 
     # =========================================================================
@@ -76,11 +76,7 @@ class RAGPipeline:
     # =========================================================================
 
     def index_document(
-        self,
-        raw_text: str,
-        doc_id: str,
-        doc_name: str,
-        doc_type: str
+        self, raw_text: str, doc_id: str, doc_name: str, doc_type: str
     ) -> int:
         """
         Index a document into ChromaDB with section-aware chunking.
@@ -96,7 +92,7 @@ class RAGPipeline:
         self.collection.add(
             ids=[c["id"] for c in chunks],
             documents=[c["text"] for c in chunks],
-            metadatas=[c["metadata"] for c in chunks]
+            metadatas=[c["metadata"] for c in chunks],
         )
 
         return len(chunks)
@@ -105,8 +101,8 @@ class RAGPipeline:
         self,
         violation_type: str,
         violation_message: str,
-        n_results: Optional[int] = None
-    ) -> List[Dict]:
+        n_results: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Retrieve source documents for a violation.
 
@@ -122,28 +118,44 @@ class RAGPipeline:
         results = self.collection.query(
             query_texts=[query],
             n_results=n_results,
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas", "distances"],
         )
 
-        sources = []
-        if results["documents"] and results["documents"][0]:
-            for i, doc in enumerate(results["documents"][0]):
-                metadata = results["metadatas"][0][i]
-                distance = results["distances"][0][i]
-                doc_name = metadata.get("doc_name", "unknown")
+        sources: List[Dict[str, Any]] = []
+        documents = results.get("documents")
+        metadatas = results.get("metadatas")
+        distances = results.get("distances")
 
-                sources.append({
-                    "document": doc_name,
-                    "section": metadata.get("section_name", "unknown"),
-                    "page": metadata.get("page_number", 0),
-                    "summary": self._generate_summary(doc, metadata),
-                    "file_path": str(Path(self.inputs_directory) / doc_name),
-                    "relevance_score": round(1 - distance, 3)
-                })
+        if documents and documents[0] and metadatas and distances:
+            for i, doc in enumerate(documents[0]):
+                metadata = metadatas[0][i] if i < len(metadatas[0]) else {}
+                distance = distances[0][i] if i < len(distances[0]) else 0.0
+                doc_name = (
+                    metadata.get("doc_name", "unknown")
+                    if isinstance(metadata, dict)
+                    else "unknown"
+                )
+
+                sources.append(
+                    {
+                        "document": doc_name,
+                        "section": metadata.get("section_name", "unknown")
+                        if isinstance(metadata, dict)
+                        else "unknown",
+                        "page": metadata.get("page_number", 0)
+                        if isinstance(metadata, dict)
+                        else 0,
+                        "summary": self._generate_summary(
+                            doc, metadata if isinstance(metadata, dict) else {}
+                        ),
+                        "file_path": str(Path(self.inputs_directory) / doc_name),
+                        "relevance_score": round(1 - distance, 3),
+                    }
+                )
 
         return sources
 
-    def search(self, query: str, n_results: int = 5) -> List[Dict]:
+    def search(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """Direct search for debugging."""
         if self.collection.count() == 0:
             return []
@@ -151,20 +163,32 @@ class RAGPipeline:
         results = self.collection.query(
             query_texts=[query],
             n_results=n_results,
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas", "distances"],
         )
+
+        # Safely handle potentially None results
+        documents = results.get("documents") or [[]]
+        metadatas = results.get("metadatas") or [[]]
+        distances = results.get("distances") or [[]]
+
+        if not documents[0]:
+            return []
 
         return [
             {
-                "text": results["documents"][0][i][:300] + "..." if len(results["documents"][0][i]) > 300 else results["documents"][0][i],
-                "metadata": results["metadatas"][0][i],
-                "distance": results["distances"][0][i],
-                "relevance": round(1 - results["distances"][0][i], 3)
+                "text": documents[0][i][:300] + "..."
+                if len(documents[0][i]) > 300
+                else documents[0][i],
+                "metadata": metadatas[0][i] if i < len(metadatas[0]) else {},
+                "distance": distances[0][i] if i < len(distances[0]) else 0.0,
+                "relevance": round(
+                    1 - (distances[0][i] if i < len(distances[0]) else 0.0), 3
+                ),
             }
-            for i in range(len(results["documents"][0]))
+            for i in range(len(documents[0]))
         ]
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> Dict[str, Any]:
         """Get collection statistics and configuration."""
         count = self.collection.count()
 
@@ -179,7 +203,7 @@ class RAGPipeline:
                 "min_relevance_score": self.min_relevance,
                 "distance_metric": self.config.DISTANCE_METRIC,
                 "max_summary_length": self.max_summary_length,
-            }
+            },
         }
 
         if count > 0:
@@ -194,19 +218,15 @@ class RAGPipeline:
     # =========================================================================
 
     def _create_chunks(
-        self,
-        raw_text: str,
-        doc_id: str,
-        doc_name: str,
-        doc_type: str
-    ) -> List[Dict]:
+        self, raw_text: str, doc_id: str, doc_name: str, doc_type: str
+    ) -> List[Dict[str, Any]]:
         """Create chunks with metadata from raw text using section-aware splitting."""
         sections = self._parse_sections(raw_text)
         chunks = []
         chunk_index = 0
 
         for section in sections:
-            section_text = '\n'.join(section["content"]).strip()
+            section_text = "\n".join(section["content"]).strip()
             if not section_text:
                 continue
 
@@ -216,32 +236,40 @@ class RAGPipeline:
 
             for sub_chunk in sub_chunks:
                 chunk_id = f"{doc_id}_chunk_{chunk_index}"
-                chunks.append({
-                    "id": chunk_id,
-                    "text": sub_chunk,
-                    "metadata": {
-                        "doc_id": doc_id,
-                        "doc_name": doc_name,
-                        "doc_type": doc_type,
-                        "section_name": section["name"],
-                        "section_number": section["number"],
-                        "page_number": self._estimate_page(chunk_index),
-                        "chunk_index": chunk_index,
-                        "chunk_type": chunk_type,
-                        "bounded_context": bounded_context,
-                        "entities_mentioned": json.dumps(self._extract_entities(sub_chunk)),
-                        "synonyms_mentioned": json.dumps(self._extract_synonyms(sub_chunk)),
-                        "banned_terms": json.dumps(self._extract_banned_terms(sub_chunk))
+                chunks.append(
+                    {
+                        "id": chunk_id,
+                        "text": sub_chunk,
+                        "metadata": {
+                            "doc_id": doc_id,
+                            "doc_name": doc_name,
+                            "doc_type": doc_type,
+                            "section_name": section["name"],
+                            "section_number": section["number"],
+                            "page_number": self._estimate_page(chunk_index),
+                            "chunk_index": chunk_index,
+                            "chunk_type": chunk_type,
+                            "bounded_context": bounded_context,
+                            "entities_mentioned": json.dumps(
+                                self._extract_entities(sub_chunk)
+                            ),
+                            "synonyms_mentioned": json.dumps(
+                                self._extract_synonyms(sub_chunk)
+                            ),
+                            "banned_terms": json.dumps(
+                                self._extract_banned_terms(sub_chunk)
+                            ),
+                        },
                     }
-                })
+                )
                 chunk_index += 1
 
         return chunks
 
-    def _parse_sections(self, raw_text: str) -> List[Dict]:
+    def _parse_sections(self, raw_text: str) -> List[Dict[str, Any]]:
         """Parse document into sections based on numbered headers."""
-        section_pattern = r'^(\d+\.?\d*\.?)\s+(.+?)$'
-        lines = raw_text.split('\n')
+        section_pattern = r"^(\d+\.?\d*\.?)\s+(.+?)$"
+        lines = raw_text.split("\n")
 
         current_section = {"number": "0", "name": "Introduction", "content": []}
         sections = []
@@ -253,12 +281,12 @@ class RAGPipeline:
             if match and len(stripped) < 100:
                 if current_section["content"]:
                     sections.append(current_section)
-                section_num = match.group(1).rstrip('.')
+                section_num = match.group(1).rstrip(".")
                 section_title = match.group(2)
                 current_section = {
                     "number": section_num,
                     "name": f"{section_num} {section_title}",
-                    "content": []
+                    "content": [],
                 }
             else:
                 current_section["content"].append(line)
@@ -267,11 +295,7 @@ class RAGPipeline:
             sections.append(current_section)
 
         if not sections:
-            sections = [{
-                "number": "1",
-                "name": "Document Content",
-                "content": lines
-            }]
+            sections = [{"number": "1", "name": "Document Content", "content": lines}]
 
         return sections
 
@@ -288,12 +312,12 @@ class RAGPipeline:
         while start < len(words):
             end = min(start + self.chunk_size, len(words))
             chunk_words = words[start:end]
-            chunk_text = ' '.join(chunk_words)
+            chunk_text = " ".join(chunk_words)
 
             # Try to end at sentence boundary
-            last_period = chunk_text.rfind('. ')
+            last_period = chunk_text.rfind(". ")
             if last_period > len(chunk_text) * 0.6:
-                chunk_text = chunk_text[:last_period + 1]
+                chunk_text = chunk_text[: last_period + 1]
                 end = start + len(chunk_text.split())
 
             chunks.append(f"{section_header}\n\n{chunk_text}")
@@ -339,16 +363,16 @@ class RAGPipeline:
             query_parts.extend(extracted_terms)
             query_parts.append("domain rule")
 
-        return ' '.join(query_parts) if query_parts else message
+        return " ".join(query_parts) if query_parts else message
 
     # =========================================================================
     # SUMMARY GENERATION
     # =========================================================================
 
-    def _generate_summary(self, text: str, metadata: Dict) -> str:
+    def _generate_summary(self, text: str, metadata: Dict[str, Any]) -> str:
         """Generate a short one-line summary from the source text."""
-        lines = text.split('\n')
-        content = '\n'.join(lines[1:]) if len(lines) > 1 else text
+        lines = text.split("\n")
+        content = "\n".join(lines[1:]) if len(lines) > 1 else text
         section_name = metadata.get("section_name", "").lower()
 
         # Special handling for known sections
@@ -362,20 +386,22 @@ class RAGPipeline:
             return "Domain terminology definitions"
 
         # Look for "Important:" rules
-        match = re.search(r'Important:\s*(.+?)(?:\.|$)', content, re.IGNORECASE)
+        match = re.search(r"Important:\s*(.+?)(?:\.|$)", content, re.IGNORECASE)
         if match:
-            summary = re.sub(r'\s+', ' ', match.group(1).strip())
-            return summary[:self.max_summary_length]
+            summary = re.sub(r"\s+", " ", match.group(1).strip())
+            return summary[: self.max_summary_length]
 
         # Look for "should NOT be used" patterns
-        match = re.search(r'(Terms?\s+like\s+.+?should\s+NOT\s+be\s+used)', content, re.IGNORECASE)
+        match = re.search(
+            r"(Terms?\s+like\s+.+?should\s+NOT\s+be\s+used)", content, re.IGNORECASE
+        )
         if match:
-            return match.group(1).strip()[:self.max_summary_length]
+            return match.group(1).strip()[: self.max_summary_length]
 
         # Look for "must be used" / "must not" patterns
-        match = re.search(r'(.+?must\s+(?:be\s+used|not)[^.]*)', content, re.IGNORECASE)
+        match = re.search(r"(.+?must\s+(?:be\s+used|not)[^.]*)", content, re.IGNORECASE)
         if match:
-            return match.group(1).strip()[:self.max_summary_length]
+            return match.group(1).strip()[: self.max_summary_length]
 
         # Fall back to bounded context description
         context = metadata.get("bounded_context", "")
@@ -383,10 +409,10 @@ class RAGPipeline:
             return f"DDD rule from {context}"
 
         # Last resort: first meaningful sentence
-        for line in content.split('\n'):
+        for line in content.split("\n"):
             line = line.strip()
-            if line and len(line) > 10 and not line.startswith('-'):
-                return line[:self.max_summary_length]
+            if line and len(line) > 10 and not line.startswith("-"):
+                return line[: self.max_summary_length]
 
         return "Source reference"
 
@@ -440,10 +466,7 @@ class RAGPipeline:
     def _delete_document(self, doc_id: str):
         """Delete all chunks for a document (for re-indexing)."""
         try:
-            results = self.collection.get(
-                where={"doc_id": doc_id},
-                include=[]
-            )
+            results = self.collection.get(where={"doc_id": doc_id}, include=[])
             if results["ids"]:
                 self.collection.delete(ids=results["ids"])
         except Exception:
