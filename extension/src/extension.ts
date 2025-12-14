@@ -191,9 +191,14 @@ async function validateCode(
     const data = response.data;
 
     if (data.is_violation && data.violations) {
-      const diagnostics = data.violations.map((violation) =>
-        createDiagnostic(document, violation)
-      );
+      const diagnostics: vscode.Diagnostic[] = [];
+
+      data.violations.forEach((violation) => {
+        // Use createDiagnostic to properly handle sources
+        const diagnostic = createDiagnostic(document, violation);
+        diagnostics.push(diagnostic);
+      });
+
       collection.set(document.uri, diagnostics);
     }
   } catch (error) {

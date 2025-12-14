@@ -101,15 +101,16 @@ async def lifespan(app: FastAPI):
     print(f"[FILE] Model path: {DOMAIN_MODEL_PATH}")
     print(f"[DIR] Inputs: {INPUTS_DIR}")
 
-    srs_files = find_srs_files()
+    # Find all supported SRS files
+    possible_srs_files = find_srs_files()
 
     # Generate or load domain model
     if not DOMAIN_MODEL_PATH.exists():
         print("[WARN] Domain Model not found. Searching for SRS files...")
-        if srs_files:
-            print(f"[FILE] Found SRS file: {srs_files[0]}")
+        if possible_srs_files:
+            print(f"[FILE] Found SRS file: {possible_srs_files[0]}")
             try:
-                app_state["domain_rules"] = generate_domain_model(srs_files[0])
+                app_state["domain_rules"] = generate_domain_model(possible_srs_files[0])
                 print("[OK] Domain Model generated and saved!")
             except Exception as e:
                 print(f"[ERROR] Generation failed: {e}")
@@ -135,8 +136,12 @@ async def lifespan(app: FastAPI):
     # Initialize RAG pipeline
     print("[RAG] Initializing RAG pipeline...")
     try:
-        app_state["rag"] = initialize_rag(srs_files)
-        print("[RAG] RAG pipeline ready!")
+        if possible_srs_files:
+            app_state["rag"] = initialize_rag(possible_srs_files)
+            print("[RAG] RAG pipeline ready!")
+        else:
+            print("[RAG] No SRS files found. Skipping RAG initialization.")
+            app_state["rag"] = None
     except Exception as e:
         print(f"[RAG] Warning: RAG initialization failed: {e}")
         app_state["rag"] = None
@@ -184,8 +189,8 @@ def validate_code(submission: CodeSubmission):
             }],
         }
 
-    # Parse code to AST
-    ast_data = parser.parse_code(submission.content)
+    # Parse code to AST with filename
+    ast_data = parser.parse_code(submission.content, submission.filename)
 
     if "error" in ast_data:
         return {
