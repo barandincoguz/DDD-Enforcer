@@ -85,7 +85,7 @@ class RAGConfig:
 class LLMConfig:
     """Configuration for the LLM (Large Language Model) client."""
 
-    MODEL_NAME: str = "gemini-2.5-flash-lite"
+    MODEL_NAME: str = "gemini-2.5-flash"
     RESPONSE_MIME_TYPE: str = "application/json"
     TEMPERATURE: float = 0.0
     MAX_OUTPUT_TOKENS: int = 2048

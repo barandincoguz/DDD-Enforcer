@@ -22,14 +22,15 @@ from google import genai
 from google.genai import types
 
 from core.schemas import DomainModel, GlobalRules, ProjectMetadata
-
+from config import LLMConfig
 load_dotenv()
 
 
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
+    LLMConfig = LLMConfig()
 
-    def __init__(self, model: str = "gemini-2.5-flash"):
+    def __init__(self, model: str = LLMConfig.MODEL_NAME):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
@@ -227,18 +228,33 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        max_output_tokens=800
+                        max_output_tokens=3000  # Increased for complete response
                     ),
                 )
+                
+                # DEBUG: Log FULL response
+                print(f"\n[DEBUG ARCHITECT] Full response ({len(response.text)} chars):")
+                print(response.text)
+                print("[DEBUG END]\n")
+                
                 result = self._parse_json_response(response.text)
 
                 if result.get("error") == "json_parse_failed":
+                    print(f"      [WARN] Retrying due to parse failure (attempt {retry + 1}/5)")
+                    if retry < 4:
+                        continue
                     return ["CoreDomain"]
 
                 if isinstance(result, dict) and "contexts" in result:
-                    return result["contexts"]
-                elif isinstance(result, list):
+                    contexts = result["contexts"]
+                    if contexts and len(contexts) > 0:
+                        return contexts
+                elif isinstance(result, list) and len(result) > 0:
                     return result
+                
+                print(f"      [WARN] Empty result, retrying (attempt {retry + 1}/5)")
+                if retry < 4:
+                    continue
                 return ["CoreDomain"]
 
             except Exception as e:
@@ -396,9 +412,39 @@ RESPOND WITH JSON matching this schema:
                         max_output_tokens=4000
                     ),
                 )
+                
+                # DEBUG: Log raw response
+                print("\n" + "="*60)
+                print("[DEBUG] RAW LLM RESPONSE:")
+                print(response.text[:1000])  # İlk 1000 karakter
+                print("="*60 + "\n")
+                
                 result = self._parse_json_response(response.text)
+                
+                # DEBUG: Log parsed result
+                print("\n" + "="*60)
+                print("[DEBUG] PARSED JSON RESULT:")
+                print(json.dumps(result, indent=2)[:1000])
+                print("="*60 + "\n")
 
                 if result.get("error") == "json_parse_failed":
+                    print(f"   [WARN] JSON parse failed, retrying (attempt {retry + 1}/5)")
+                    if retry < 4:
+                        time.sleep(2)  # Brief pause before retry
+                        continue
+                    print("   [ERROR] All retries failed, using fallback")
+                    return self._create_fallback_model()
+
+                # Verify required fields exist
+                required = ["project_name", "project_metadata", "bounded_contexts"]
+                missing = [f for f in required if f not in result]
+                
+                if missing:
+                    print(f"   [WARN] Missing required fields: {missing}, retrying (attempt {retry + 1}/5)")
+                    if retry < 4:
+                        time.sleep(2)
+                        continue
+                    print("   [ERROR] Incomplete response after retries, using fallback")
                     return self._create_fallback_model()
 
                 return result
@@ -415,7 +461,28 @@ RESPOND WITH JSON matching this schema:
         """Create validated DomainModel from analyses."""
         try:
             json_data = self.synthesize(analyses)
+            
+            # DEBUG: Log data before cleanup
+            print("\n" + "="*60)
+            print("[DEBUG] JSON DATA BEFORE CLEANUP:")
+            print(json.dumps(json_data, indent=2)[:1000])
+            print("="*60 + "\n")
+            
             cleaned_data = self._cleanup_domain_data(json_data)
+            
+            # DEBUG: Log data after cleanup
+            print("\n" + "="*60)
+            print("[DEBUG] JSON DATA AFTER CLEANUP:")
+            print(json.dumps(cleaned_data, indent=2)[:1000])
+            print("="*60 + "\n")
+            
+            # DEBUG: Log required fields
+            print("[DEBUG] Checking required fields:")
+            print(f"   - project_name: {'✓' if 'project_name' in cleaned_data else '✗ MISSING'}")
+            print(f"   - project_metadata: {'✓' if 'project_metadata' in cleaned_data else '✗ MISSING'}")
+            print(f"   - bounded_contexts: {'✓' if 'bounded_contexts' in cleaned_data else '✗ MISSING'}")
+            print(f"   - global_rules: {'✓' if 'global_rules' in cleaned_data else '✗ MISSING'}")
+            
             return DomainModel(**cleaned_data)
         except Exception as e:
             print(f"   [WARN] Model creation error: {e}")
@@ -547,40 +614,43 @@ RESPOND WITH JSON matching this schema:
 
     def _parse_json_response(self, response_text: str) -> Dict:
         """Parse JSON from LLM response with multiple fallback strategies."""
-        # Strategy 1: Direct parse after markdown cleanup
+        # Strategy 1: Direct parse (most responses are already valid JSON)
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 2: Remove markdown code blocks
         try:
             cleaned = response_text.replace("```json", "").replace("```", "").strip()
             return json.loads(cleaned)
         except json.JSONDecodeError:
             pass
 
-        # Strategy 2: Extract JSON object with regex
+        # Strategy 3: Find outermost JSON object
         try:
-            pattern = r"\{(?:[^{}]|{[^{}]*})*\}"
-            matches = re.findall(pattern, response_text, re.DOTALL)
-            for match in matches:
-                try:
-                    parsed = json.loads(match)
-                    if isinstance(parsed, dict) and len(parsed) > 1:
-                        return parsed
-                except json.JSONDecodeError:
-                    continue
-        except Exception:
+            start = response_text.find("{")
+            end = response_text.rfind("}")
+            if start != -1 and end > start:
+                candidate = response_text[start:end + 1]
+                return json.loads(candidate)
+        except json.JSONDecodeError:
             pass
 
-        # Strategy 3: Find JSON boundaries and fix common issues
+        # Strategy 4: Fix common JSON issues and retry
         try:
             text = re.sub(r"```[a-zA-Z]*\n?", "", response_text)
             start = text.find("{")
             end = text.rfind("}")
-
             if start != -1 and end > start:
                 candidate = text[start:end + 1]
-                candidate = re.sub(r",(\s*[}\]])", r"\1", candidate)  # Fix trailing commas
+                # Fix trailing commas
+                candidate = re.sub(r",(\s*[}\]])", r"\1", candidate)
                 return json.loads(candidate)
         except Exception:
             pass
 
         # Fallback: Return error marker
-        print(f"      [WARN] JSON parse failed: {response_text[:100]}...")
+        print(f"      [ERROR] All JSON parse strategies failed")
+        print(f"      [RAW] {response_text[:200]}...")
         return {"error": "json_parse_failed", "raw_response": response_text[:500]}

@@ -28,9 +28,15 @@ load_dotenv()
 
 class Violation(BaseModel):
     """Single DDD violation detected in code."""
-    type: Literal["NamingViolation", "ContextViolation", "SystemError"] = Field(
-        description="Type of violation"
-    )
+    type: Literal[
+        "SynonymViolation",
+        "BannedTermViolation",
+        "NamingConventionViolation",
+        "ContextBoundaryViolation",
+        "ValueObjectViolation",
+        "DomainEventViolation",
+        "SystemError"
+    ] = Field(description="Type of violation")
     message: str = Field(description="Detailed explanation of the violation")
     suggestion: str = Field(description="Actionable suggestion to fix the code")
 
@@ -88,65 +94,139 @@ class LLMClient:
 
     def _build_prompt(self, ast_data: dict, domain_rules: dict) -> str:
         """Build the analysis prompt."""
-        return f"""You are a Domain-Driven Design (DDD) violation detector. Your job is VERY specific and LIMITED.
+        filename = ast_data.get("filename", "unknown.py")
+        
+        return f"""You are a Domain-Driven Design (DDD) violation detector for enterprise software.
 
-=== YOU CAN ONLY FLAG TWO TYPES OF VIOLATIONS ===
+=== VIOLATION TYPES YOU MUST DETECT ===
 
-TYPE 1 - SYNONYM VIOLATIONS:
-- Look at 'synonyms_to_avoid' arrays in the domain rules
-- If a class/function name contains a word from 'synonyms_to_avoid', flag it
-- Example: synonyms_to_avoid: ["Client", "User", "Buyer"]
-  - "ClientManager" contains "Client" -> VIOLATION
-  - "UserService" contains "User" -> VIOLATION
-  - "CustomerService" does NOT contain any synonym -> NO VIOLATION
+📌 TYPE 1 - SYNONYM VIOLATIONS (SynonymViolation)
+- Check 'synonyms_to_avoid' arrays in each entity
+- Flag class/function names containing avoided synonyms
+- Example: synonyms_to_avoid: ["Client", "User"] for Customer
+  - "ClientManager" -> VIOLATION (use CustomerManager)
+  - "get_user_info" -> VIOLATION (use get_customer_info)
 
-TYPE 2 - BANNED GLOBAL TERM VIOLATIONS:
-- Look at 'global_rules.banned_global_terms' array
-- If a class/function name contains a banned term, flag it
-- Example: banned_global_terms: ["Manager", "Util", "Helper"]
-  - "OrderManager" contains "Manager" -> VIOLATION
-  - "StringUtil" contains "Util" -> VIOLATION
-  - "OrderService" does NOT contain any banned term -> NO VIOLATION
+📌 TYPE 2 - BANNED TERM VIOLATIONS (BannedTermViolation)
+- Check 'global_rules.banned_global_terms'
+- Flag any class/function/file name containing these terms
+- **IMPORTANT: Check the filename first!**
+- Example: banned_global_terms: ["Manager", "Util"]
+  - File "payment_util.py" -> VIOLATION
+  - Class "paymentUtil" -> VIOLATION
+  - "OrderManager" -> VIOLATION
 
-=== THINGS YOU MUST NOT FLAG (ALLOWED PATTERNS) ===
+📌 TYPE 3 - NAMING CONVENTION VIOLATIONS (NamingConventionViolation)
+- Check 'global_rules.naming_convention'
+- Python standard: Classes use PascalCase, functions use snake_case
+- Example: naming_convention: "PascalCase"
+  - "paymentUtil" -> VIOLATION (should be PaymentUtil)
+  - "CustomerService" -> CORRECT
 
-These are STANDARD DDD patterns and are ALWAYS allowed:
-- Repository (CustomerRepository, OrderRepository, ProductRepository)
-- Service (OrderService, PaymentService, CustomerService)
-- Factory (OrderFactory, CustomerFactory)
-- Gateway (PaymentGateway, EmailGateway)
-- Aggregate (OrderAggregate)
-- Specification (CustomerSpecification)
-- Event (OrderPlaced, PaymentCompleted, CustomerCreated)
-- ValueObject, Entity names from the domain model
+📌 TYPE 4 - CONTEXT BOUNDARY VIOLATIONS (ContextBoundaryViolation)
+- Check 'allowed_dependencies' for each bounded context
+- Extract context name from import module path
+- Module path format: context_name.entity (e.g., inventory_management.product)
+- Convert snake_case to PascalCase: inventory_management -> InventoryManagement
+- Flag imports/usage of entities from forbidden contexts
+- Example: PaymentProcessing context with allowed_dependencies: ["CustomerManagement", "OrderManagement"]
+  - Import "from inventory_management.product import Product" -> VIOLATION
+  - Using Product entity in payment code -> VIOLATION
+  - Payment can ONLY import from customer_management, order_management, payment_processing
 
-=== CORRECT ENTITY NAMES ARE NEVER VIOLATIONS ===
+📌 TYPE 5 - VALUE OBJECT VIOLATIONS (ValueObjectViolation)
+- Check if primitive types are used instead of defined Value Objects
+- Look for 'value_objects' in domain rules
+- Check function parameters and assignments
+- Example: Money Value Object with ["amount", "currency"]
+  - Parameter "amount: float" -> VIOLATION (use Money Value Object)
+  - Assignment "order.status = \\"CONFIRMED\\"" -> VIOLATION (use OrderStatus Value Object)
+  - Using primitive 'str' for status -> VIOLATION
 
-The 'name' field in entities defines the CORRECT term:
-- {{"name": "Customer", "synonyms_to_avoid": ["Client"]}}
-- "Customer" is CORRECT -> NEVER flag it
-- "Client" is WRONG -> flag it
+📌 TYPE 6 - DOMAIN EVENT VIOLATIONS (DomainEventViolation)
+- Check if domain_events are used in wrong context
+- Events should only be emitted in their defining context
+- Look for function calls like emit_event, publish, trigger with event names
+- Example: PaymentCompleted event defined in PaymentProcessing context
+  - Emitting "PaymentCompleted" in OrderManagement -> VIOLATION
+  - Emitting "OrderPlaced" in PaymentProcessing -> VIOLATION
+
+=== ALLOWED DDD PATTERNS (NEVER FLAG THESE) ===
+✅ Repository, Service, Factory, Gateway, Aggregate, Specification suffixes
+✅ Entity names from domain model (Customer, Order, Product, Payment)
+✅ Value Object names (Address, Money, OrderStatus, StockLevel)
+✅ Domain events in their own context
+✅ Proper dependency relationships per allowed_dependencies
+
+=== FILE BEING ANALYZED ===
+Filename: {filename}
 
 === DOMAIN RULES ===
 {json.dumps(domain_rules, indent=2)}
 
-=== CODE TO ANALYZE ===
+=== CODE STRUCTURE ===
 {json.dumps(ast_data, indent=2)}
 
-=== YOUR TASK ===
-1. Check each CLASS name: Does it contain a word from ANY 'synonyms_to_avoid' list? If yes -> violation
-2. Check each CLASS name: Does it contain a word from 'banned_global_terms'? If yes -> violation
-3. Check each FUNCTION name: Does it contain a word from ANY 'synonyms_to_avoid' list? If yes -> violation
-4. Check each FUNCTION name: Does it contain a word from 'banned_global_terms'? If yes -> violation
-5. If NO violations found, return is_violation: false with empty violations array
-6. DO NOT invent new rules. ONLY use the rules provided above.
-7. When in doubt, DO NOT flag it as a violation.
+=== ANALYSIS CHECKLIST ===
+1. ✓ **Check filename**: Does "{filename}" contain any banned_global_terms?
+2. ✓ **Check each class**:
+   - Contains synonym from any entity's synonyms_to_avoid?
+   - Contains any banned_global_terms?
+   - Follows naming_convention (PascalCase)?
+3. ✓ **Check each import**:
+   - Extract context from module path (e.g., inventory_management -> InventoryManagement)
+   - Is this context in allowed_dependencies?
+   - Which entity is being imported? Is it used illegally?
+4. ✓ **Check function parameters**:
+   - Are primitive types (float, str, int) used instead of Value Objects?
+   - Compare parameter types with value_objects definitions
+   - Example: "amount: float" should be "amount: Money"
+5. ✓ **Check assignments**:
+   - Are strings assigned to fields that should use Value Objects?
+   - Example: order.status = "CONFIRMED" should use OrderStatus Value Object
+6. ✓ **Check function calls**:
+   - Are domain events emitted in correct context?
+   - Match event names with domain_events in each context
 
-=== FUNCTION NAME EXAMPLES ===
-- synonyms_to_avoid for Customer: ["Client", "User", "Buyer"]
-  - "get_buyer_info" contains "buyer" -> VIOLATION (should be get_customer_info)
-  - "add_client" contains "client" -> VIOLATION (should be add_customer)
-  - "get_customer_info" -> NO VIOLATION (uses correct term)"""
+=== CONTEXT MATCHING RULES ===
+- Convert module paths to context names:
+  - customer_management -> CustomerManagement
+  - order_management -> OrderManagement  
+  - inventory_management -> InventoryManagement
+  - payment_processing -> PaymentProcessing
+  - product_catalog -> ProductCatalog
+
+=== OUTPUT RULES ===
+- Report ALL violations found, not just the first one
+- Be specific: mention exact class/function/parameter names
+- Provide actionable suggestions with correct names from domain model
+- If NO violations: return is_violation: false with empty violations array
+- Use correct violation type for each issue
+
+=== EXAMPLES ===
+
+Example 1: File "payment_util.py"
+Violations:
+  - BannedTermViolation: Filename contains banned term "Util"
+
+Example 2: class paymentUtil:
+Violations:
+  - BannedTermViolation: Class name contains banned term "Util"
+  - NamingConventionViolation: Should be "PaymentUtil" (PascalCase)
+
+Example 3: from inventory_management.product import Product (in PaymentProcessing context)
+Violation: ContextBoundaryViolation - PaymentProcessing context cannot depend on InventoryManagement. Allowed: ["CustomerManagement", "OrderManagement"]
+
+Example 4: def process_payment(order: Order, amount: float):
+Violation: ValueObjectViolation - Parameter 'amount' uses primitive type 'float'. Use Money Value Object instead (attributes: amount, currency)
+
+Example 5: order.status = "CONFIRMED"
+Violation: ValueObjectViolation - Assignment uses string literal instead of OrderStatus Value Object
+
+Example 6: self.emit_event("PaymentCompleted") in OrderManagement context
+Violation: DomainEventViolation - "PaymentCompleted" is defined in PaymentProcessing context, not OrderManagement
+
+Now analyze the code thoroughly and report ALL violations."""
 
 
 # =============================================================================
