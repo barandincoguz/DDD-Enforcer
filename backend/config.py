@@ -88,8 +88,7 @@ class LLMConfig:
     MODEL_NAME: str = "gemini-2.5-flash"
     RESPONSE_MIME_TYPE: str = "application/json"
     TEMPERATURE: float = 0.0
-    MAX_OUTPUT_TOKENS: int = 2048
-
+    MAX_OUTPUT_TOKENS: int = 8000  # Increased for complex responses (domain model generation)
 
 # =============================================================================
 # SERVER CONFIGURATION
