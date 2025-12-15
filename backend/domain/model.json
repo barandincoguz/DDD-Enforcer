@@ -1,0 +1,223 @@
+{
+  "project_name": "ECommercePlatformDomainModel",
+  "project_metadata": {
+    "version": "1.0",
+    "generated_at": "2024-04-23",
+    "description": "A cohesive Domain Model synthesizing bounded context analyses for an e-commerce platform, focusing on customer, inventory, order, and payment management. It defines ubiquitous language, entities, value objects, and domain events across distinct bounded contexts."
+  },
+  "bounded_contexts": [
+    {
+      "context_name": "SharedKernel",
+      "description": "Contains fundamental, universally understood domain concepts (value objects) that are shared across multiple bounded contexts without ambiguity or conflict. These are often primitive concepts with rich behavior.",
+      "allowed_dependencies": [],
+      "ubiquitous_language": {
+        "entities": [],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "Amount",
+              "Currency"
+            ],
+            "description": "Represents a monetary value with a specific currency, ensuring consistency in financial calculations and preventing precision errors."
+          }
+        ],
+        "domain_events": []
+      }
+    },
+    {
+      "context_name": "CustomerManagement",
+      "description": "Manages all aspects of customer data, including personal information, contact details, addresses, wishlists, and stored payment method references. Focuses on customer identity and preferences.",
+      "allowed_dependencies": [
+        "SharedKernel",
+        "InventoryManagement"
+      ],
+      "ubiquitous_language": {
+        "entities": [
+          {
+            "name": "Customer",
+            "description": "The central entity representing a user of the platform, holding core personal and contact details, along with associated addresses and stored payment methods. A Customer must have a unique CustomerId and a valid EmailAddress. Can have multiple Addresses and PaymentMethods.",
+            "synonyms_to_avoid": [
+              "User",
+              "Account"
+            ]
+          },
+          {
+            "name": "Wishlist",
+            "description": "A curated list of products a customer desires, allowing them to save items for future purchase. Each customer has one wishlist.",
+            "synonyms_to_avoid": []
+          },
+          {
+            "name": "WishlistItem",
+            "description": "An individual product entry within a customer's wishlist, referencing a product without storing its full details.",
+            "synonyms_to_avoid": []
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Address",
+            "attributes": [
+              "Street",
+              "City",
+              "PostalCode",
+              "Country"
+            ],
+            "description": "A standard physical address used for shipping, billing, or customer residence."
+          },
+          {
+            "name": "EmailAddress",
+            "attributes": [
+              "Value"
+            ],
+            "description": "A valid electronic mail address, enforced with validation rules, for customer communication."
+          },
+          {
+            "name": "PaymentMethod",
+            "attributes": [
+              "Type",
+              "Details"
+            ],
+            "description": "Represents a customer's stored payment method (e.g., credit card last 4 digits, PayPal ID token). Sensitive details are tokenized/encrypted, complying with PCI-DSS standards."
+          }
+        ],
+        "domain_events": [
+          "CustomerRegistered",
+          "CustomerInformationUpdated",
+          "PaymentMethodAdded",
+          "PaymentMethodRemoved",
+          "WishlistCreated",
+          "WishlistItemAdded",
+          "WishlistItemRemoved"
+        ]
+      }
+    },
+    {
+      "context_name": "InventoryManagement",
+      "description": "Manages product catalog information, stock levels, and product categories. Ensures accurate inventory counts and availability for order processing.",
+      "allowed_dependencies": [
+        "SharedKernel"
+      ],
+      "ubiquitous_language": {
+        "entities": [
+          {
+            "name": "Product",
+            "description": "An item available for sale, including its descriptive attributes, pricing, and current stock status. A Product must have a unique ProductId (SKU), Name, and Price.",
+            "synonyms_to_avoid": [
+              "Item"
+            ]
+          },
+          {
+            "name": "Category",
+            "description": "A classification group for products, helping with organization and discoverability within the product catalog.",
+            "synonyms_to_avoid": []
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "StockLevel",
+            "attributes": [
+              "CurrentQuantity",
+              "ReservedQuantity",
+              "ReorderThreshold"
+            ],
+            "description": "Tracks the available, reserved, and reorder threshold quantities for a product, ensuring inventory levels don't fall below zero. Enforces ReservedQuantity for Order processing."
+          }
+        ],
+        "domain_events": [
+          "ProductCreated",
+          "ProductUpdated",
+          "StockDepleted",
+          "StockReplenished",
+          "ProductDiscontinued"
+        ]
+      }
+    },
+    {
+      "context_name": "OrderProcessing",
+      "description": "Handles the complete lifecycle of customer orders, from creation and confirmation to shipping and cancellation. Coordinates with inventory and payment systems to fulfill orders.",
+      "allowed_dependencies": [
+        "SharedKernel",
+        "CustomerManagement",
+        "InventoryManagement",
+        "PaymentProcessing"
+      ],
+      "ubiquitous_language": {
+        "entities": [
+          {
+            "name": "Order",
+            "description": "A customer's request to purchase one or more products, encapsulating all details required for fulfillment. An Order must have a unique OrderId, be associated with a CustomerId, and cannot be confirmed until payment is processed.",
+            "synonyms_to_avoid": [
+              "Purchase"
+            ]
+          },
+          {
+            "name": "OrderItem",
+            "description": "A specific product and its quantity within an order. The UnitPrice is immutable for this OrderItem at the time of order placement.",
+            "synonyms_to_avoid": []
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "OrderStatus",
+            "attributes": [
+              "Status"
+            ],
+            "description": "The current state of an order in its lifecycle (e.g., Pending, Confirmed, Shipped, Delivered, Cancelled). Orders transition only through defined states."
+          }
+        ],
+        "domain_events": [
+          "OrderCreated",
+          "OrderPending",
+          "OrderConfirmed",
+          "OrderShipped",
+          "OrderDelivered",
+          "OrderCancelled",
+          "OrderRefundInitiated"
+        ]
+      }
+    },
+    {
+      "context_name": "PaymentProcessing",
+      "description": "Manages financial transactions, handling payment authorization, capture, and refunds. Ensures compliance with payment industry standards (PCI-DSS) and secure processing of funds.",
+      "allowed_dependencies": [
+        "SharedKernel",
+        "CustomerManagement",
+        "OrderProcessing"
+      ],
+      "ubiquitous_language": {
+        "entities": [
+          {
+            "name": "Payment",
+            "description": "A record of a financial transaction attempt or completion for an order. A Payment must have a unique PaymentId, be linked to an OrderId and CustomerId, and its Amount must be positive.",
+            "synonyms_to_avoid": [
+              "Transaction"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "PaymentStatus",
+            "attributes": [
+              "Status"
+            ],
+            "description": "The current state of a payment transaction (e.g., Initiated, Authorized, Captured, Failed, Refunded). Payments transition only through defined states."
+          }
+        ],
+        "domain_events": [
+          "PaymentInitiated",
+          "PaymentAuthorized",
+          "PaymentCompleted",
+          "PaymentFailed",
+          "PaymentRefunded"
+        ]
+      }
+    }
+  ],
+  "global_rules": {
+    "naming_convention": "PascalCase",
+    "banned_global_terms": [
+      "Manager",
+      "Util"
+    ]
+  }
+}
