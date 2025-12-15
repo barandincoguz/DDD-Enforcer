@@ -82,13 +82,22 @@ class RAGConfig:
 # LLM CONFIGURATION
 # =============================================================================
 
-class LLMConfig:
-    """Configuration for the LLM (Large Language Model) client."""
+class AnalyzerConfig:
+    """Configuration for the Code Analyzer LLM client (violation detection)."""
+
+    MODEL_NAME: str = "gemini-2.5-flash-lite"
+    RESPONSE_MIME_TYPE: str = "application/json"
+    TEMPERATURE: float = 0.0
+    MAX_OUTPUT_TOKENS: int = 8000
+
+
+class ArchitectConfig:
+    """Configuration for the Domain Architect LLM client (domain model generation)."""
 
     MODEL_NAME: str = "gemini-2.5-flash"
     RESPONSE_MIME_TYPE: str = "application/json"
     TEMPERATURE: float = 0.0
-    MAX_OUTPUT_TOKENS: int = 8000  # Increased for complex responses (domain model generation)
+    MAX_OUTPUT_TOKENS: int = 8000
 
 # =============================================================================
 # SERVER CONFIGURATION

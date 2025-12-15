@@ -17,7 +17,7 @@ from google.genai import types
 from pydantic import BaseModel, Field
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import LLMConfig
+from config import AnalyzerConfig
 
 load_dotenv()
 
@@ -58,12 +58,12 @@ class ValidationResponse(BaseModel):
 class LLMClient:
     """Client for DDD violation detection using Google Gemini."""
 
-    def __init__(self, config: Optional[LLMConfig] = None):
+    def __init__(self, config: Optional[AnalyzerConfig] = None):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
 
-        self.config = config or LLMConfig()
+        self.config = config or AnalyzerConfig()
         self.client = genai.Client(api_key=api_key)
 
     def analyze_violation(

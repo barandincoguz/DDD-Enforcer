@@ -22,7 +22,7 @@ from google import genai
 from google.genai import types
 
 from core.schemas import DomainModel, GlobalRules, ProjectMetadata
-from config import LLMConfig
+from config import ArchitectConfig
 
 load_dotenv()
 
@@ -30,7 +30,7 @@ load_dotenv()
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
 
-    LLMConfig = LLMConfig()
+    LLMConfig = ArchitectConfig()
 
     def __init__(self, model: str = LLMConfig.MODEL_NAME):
         api_key = os.getenv("GEMINI_API_KEY")
