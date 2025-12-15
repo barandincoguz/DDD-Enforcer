@@ -22,6 +22,7 @@ from google import genai
 from google.genai import types
 
 from core.schemas import DomainModel, GlobalRules, ProjectMetadata
+from core.token_tracker import TokenTracker
 from config import ArchitectConfig
 
 load_dotenv()
@@ -42,6 +43,7 @@ class DomainArchitect:
         self.last_request_time = 0
         self.min_delay = 6.0
         self.request_count = 0
+        self.token_tracker = TokenTracker.get_instance()
 
         print("\n" + "="*70)
         print("🏗️  DOMAIN ARCHITECT INITIALIZED")
@@ -173,6 +175,7 @@ Extract ALL relevant sentences, no limit."""
                         max_output_tokens=self.LLMConfig.MAX_OUTPUT_TOKENS,
                     ),
                 )
+                
                 result = self._parse_json_response(response.text)
 
                 if (
@@ -186,6 +189,13 @@ Extract ALL relevant sentences, no limit."""
                     return [s.strip() for s in chunk.split(".") if len(s.strip()) > 20][
                         :50
                     ]
+
+                # Track token usage only for successful responses
+                self.token_tracker.track_api_call(
+                    response, 
+                    stage="Scout",
+                    operation=f"extract_sentences_chunk_{chunk_num}"
+                )
 
                 if isinstance(result, dict) and "sentences" in result:
                     return result["sentences"]
@@ -265,6 +275,13 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
                         continue
                     print("  ⚠️  Max retries reached, using fallback context")
                     return ["CoreDomain"]
+
+                # Track token usage only for successful responses
+                self.token_tracker.track_api_call(
+                    response,
+                    stage="Architect",
+                    operation="identify_contexts"
+                )
 
                 if isinstance(result, dict) and "contexts" in result:
                     contexts = result["contexts"]
@@ -346,6 +363,7 @@ RESPOND WITH JSON:
                         max_output_tokens=self.LLMConfig.MAX_OUTPUT_TOKENS,
                     ),
                 )
+                
                 result = self._parse_json_response(response.text)
 
                 if (
@@ -361,6 +379,13 @@ RESPOND WITH JSON:
                         {"context": ctx, "analysis": {"error": "parse_failed"}}
                         for ctx in contexts
                     ]
+
+                # Track token usage only for successful responses
+                self.token_tracker.track_api_call(
+                    response,
+                    stage="Specialist",
+                    operation="analyze_all_contexts"
+                )
 
                 if isinstance(result, dict) and "analyses" in result:
                     return [
@@ -480,6 +505,13 @@ RESPOND WITH JSON matching this schema:
                         continue
                     print("  ❌ Incomplete response - Using fallback model")
                     return self._create_fallback_model()
+
+                # Track token usage only for successful, valid responses
+                self.token_tracker.track_api_call(
+                    response,
+                    stage="Synthesizer",
+                    operation="synthesize_final_model"
+                )
 
                 return result
 

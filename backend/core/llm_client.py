@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import AnalyzerConfig
+from core.token_tracker import TokenTracker
 
 load_dotenv()
 
@@ -65,6 +66,7 @@ class LLMClient:
 
         self.config = config or AnalyzerConfig()
         self.client = genai.Client(api_key=api_key)
+        self.token_tracker = TokenTracker.get_instance()
 
     def analyze_violation(
         self, ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
@@ -86,6 +88,14 @@ class LLMClient:
                     response_schema=ValidationResponse,
                 ),
             )
+            
+            # Track token usage
+            self.token_tracker.track_api_call(
+                response,
+                stage="Validator",
+                operation="validate_code"
+            )
+            
             return json.loads(response.text)
 
         except Exception as e:

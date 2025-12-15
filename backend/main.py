@@ -30,6 +30,7 @@ from core.llm_client import LLMClient
 from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel
+from core.token_tracker import TokenTracker
 
 app_state: Dict[str, Any] = {}
 rag_config = RAGConfig()
@@ -111,6 +112,11 @@ async def lifespan(app: FastAPI):
             try:
                 app_state["domain_rules"] = generate_domain_model(possible_srs_files[0])
                 print("[OK] Domain Model generated and saved!")
+                
+                # Print token usage report
+                tracker = TokenTracker.get_instance()
+                tracker.print_summary()
+                tracker.export_to_json(str(BASE_DIR / "token_usage_report.json"), detailed=True)
             except Exception as e:
                 print(f"[ERROR] Generation failed: {e}")
                 import traceback
@@ -244,6 +250,58 @@ def get_rag_stats():
 
 @app.get("/rag/search")
 def search_documents(query: str, n_results: int = 5):
+    """Search indexed documents by query."""
+    rag = app_state.get("rag")
+    if not rag:
+        return {"status": "not_initialized", "message": "RAG pipeline not available"}
+    return rag.search(query, top_k=n_results)
+
+
+# =============================================================================
+# TOKEN USAGE & COST TRACKING ENDPOINTS
+# =============================================================================
+
+
+@app.get("/tokens/stats")
+def get_token_stats():
+    """
+    Get comprehensive token usage statistics and cost estimation.
+    
+    Returns:
+        - Total tokens used (prompt + completion)
+        - Per-stage breakdown
+        - Cost estimation based on Gemini 2.5 Flash pricing
+        - Detailed call history
+    """
+    tracker = TokenTracker.get_instance()
+    return tracker.get_report(detailed=True)
+
+
+@app.get("/tokens/summary")
+def get_token_summary():
+    """Get concise token usage summary without detailed call history."""
+    tracker = TokenTracker.get_instance()
+    return tracker.get_report(detailed=False)
+
+
+@app.post("/tokens/reset")
+def reset_token_tracker():
+    """Reset token tracker (for testing purposes)."""
+    TokenTracker.reset()
+    return {"status": "success", "message": "Token tracker has been reset"}
+
+
+@app.get("/tokens/export")
+def export_token_report():
+    """Export detailed token report to JSON file."""
+    tracker = TokenTracker.get_instance()
+    export_path = str(BASE_DIR / "token_usage_export.json")
+    tracker.export_to_json(export_path, detailed=True)
+    return {
+        "status": "success", 
+        "message": f"Report exported to {export_path}",
+        "file_path": export_path
+    }
     """Search indexed documents (for debugging)."""
     rag = app_state.get("rag")
     if not rag:
