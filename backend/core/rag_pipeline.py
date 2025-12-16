@@ -109,51 +109,70 @@ class RAGPipeline:
         Returns list of source references with document, section, page,
         summary, and file_path.
         """
-        if self.collection.count() == 0:
+        import time
+        start_time = time.time()
+        
+        try:
+            if self.collection.count() == 0:
+                print(f"[RAG] Collection is empty, returning no sources")
+                return []
+
+            n_results = n_results or self.top_k
+            query = self._build_query(violation_type, violation_message)
+            print(f"[RAG] Built query: '{query[:100]}...' (top_k={n_results})")
+
+            print(f"[RAG] Querying ChromaDB...")
+            query_start = time.time()
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=n_results,
+                include=["documents", "metadatas", "distances"],
+            )
+            query_time = (time.time() - query_start) * 1000
+            print(f"[RAG] ChromaDB query completed in {query_time:.2f}ms")
+
+            sources: List[Dict[str, Any]] = []
+            documents = results.get("documents")
+            metadatas = results.get("metadatas")
+            distances = results.get("distances")
+
+            if documents and documents[0] and metadatas and distances:
+                print(f"[RAG] Processing {len(documents[0])} results...")
+                for i, doc in enumerate(documents[0]):
+                    metadata = metadatas[0][i] if i < len(metadatas[0]) else {}
+                    distance = distances[0][i] if i < len(distances[0]) else 0.0
+                    doc_name = (
+                        metadata.get("doc_name", "unknown")
+                        if isinstance(metadata, dict)
+                        else "unknown"
+                    )
+
+                    sources.append(
+                        {
+                            "document": doc_name,
+                            "section": metadata.get("section_name", "unknown")
+                            if isinstance(metadata, dict)
+                            else "unknown",
+                            "page": metadata.get("page_number", 0)
+                            if isinstance(metadata, dict)
+                            else 0,
+                            "summary": self._generate_summary(
+                                doc, metadata if isinstance(metadata, dict) else {}
+                            ),
+                            "file_path": str(Path(self.inputs_directory) / doc_name),
+                            "relevance_score": round(1 - distance, 3),
+                        }
+                    )
+
+            total_time = (time.time() - start_time) * 1000
+            print(f"[RAG] Retrieve completed in {total_time:.2f}ms, found {len(sources)} sources")
+            return sources
+            
+        except Exception as e:
+            print(f"[RAG] ERROR in retrieve_source: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return []
-
-        n_results = n_results or self.top_k
-        query = self._build_query(violation_type, violation_message)
-
-        results = self.collection.query(
-            query_texts=[query],
-            n_results=n_results,
-            include=["documents", "metadatas", "distances"],
-        )
-
-        sources: List[Dict[str, Any]] = []
-        documents = results.get("documents")
-        metadatas = results.get("metadatas")
-        distances = results.get("distances")
-
-        if documents and documents[0] and metadatas and distances:
-            for i, doc in enumerate(documents[0]):
-                metadata = metadatas[0][i] if i < len(metadatas[0]) else {}
-                distance = distances[0][i] if i < len(distances[0]) else 0.0
-                doc_name = (
-                    metadata.get("doc_name", "unknown")
-                    if isinstance(metadata, dict)
-                    else "unknown"
-                )
-
-                sources.append(
-                    {
-                        "document": doc_name,
-                        "section": metadata.get("section_name", "unknown")
-                        if isinstance(metadata, dict)
-                        else "unknown",
-                        "page": metadata.get("page_number", 0)
-                        if isinstance(metadata, dict)
-                        else 0,
-                        "summary": self._generate_summary(
-                            doc, metadata if isinstance(metadata, dict) else {}
-                        ),
-                        "file_path": str(Path(self.inputs_directory) / doc_name),
-                        "relevance_score": round(1 - distance, 3),
-                    }
-                )
-
-        return sources
 
     def search(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """Direct search for debugging."""

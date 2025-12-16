@@ -1,226 +1,204 @@
 {
-  "project_name": "E-commerce Domain Model",
+  "project_name": "FactSphere Claim Verification",
   "project_metadata": {
     "version": "1.0",
-    "generated_at": "2023-10-27",
-    "description": "A synthesized Domain Model for an E-commerce system, derived from multiple bounded context analyses. This model aims to maintain consistency, resolve duplicates, and define clear responsibilities across different business areas."
+    "generated_at": "2024-07-29",
+    "description": "A robust system for automated claim verification and fact-checking, encompassing claim submission, evidence retrieval, natural language inference analysis, and comprehensive report generation."
   },
   "bounded_contexts": [
     {
-      "context_name": "Customer Management",
-      "description": "Responsible for managing customer profiles, contact information, addresses, and personal preferences such as wishlists. It ensures consistent customer identity across the system.",
-      "allowed_dependencies": [],
-      "ubiquitous_language": {
-        "entities": [
-          {
-            "name": "Customer",
-            "description": "Represents an individual customer with a unique identifier, profile details, multiple addresses, and wishlists. All customer data must be encrypted at rest.",
-            "synonyms_to_avoid": [
-              "Client",
-              "User",
-              "Buyer",
-              "Shopper"
-            ]
-          },
-          {
-            "name": "Wishlist",
-            "description": "A personalized collection of product SKUs maintained by a Customer, allowing them to save desired items for future consideration.",
-            "synonyms_to_avoid": []
-          }
-        ],
-        "value_objects": [
-          {
-            "name": "Address",
-            "attributes": [
-              "street",
-              "city",
-              "postalCode",
-              "country"
-            ],
-            "description": "Represents a specific physical location, used for shipping or billing purposes."
-          },
-          {
-            "name": "ProfileInformation",
-            "attributes": [
-              "firstName",
-              "lastName",
-              "phoneNumber"
-            ],
-            "description": "Encapsulates the core personal details of a Customer."
-          }
-        ],
-        "domain_events": []
-      }
-    },
-    {
-      "context_name": "Order Processing",
-      "description": "Manages the entire lifecycle of a customer order, from initiation to delivery, coordinating with Inventory Management for product availability and Payment Processing for financial transactions. Direct dependencies between Inventory Management and Payment Processing are strictly prohibited, all communication must flow through Order Processing.",
+      "context_name": "VerificationDashboard",
+      "description": "Manages the user interface for submitting claims, displaying the final verification reports, and interacting with the system's outputs.",
       "allowed_dependencies": [
-        "Customer Management",
-        "Inventory Management",
-        "Payment Processing"
+        "ClaimAnalysis"
       ],
       "ubiquitous_language": {
         "entities": [
           {
-            "name": "Order",
-            "description": "Represents a customer's request to purchase one or more products, identified by a unique order number, including its status, customer reference, shipping address, and payment method.",
-            "synonyms_to_avoid": [
-              "Purchase",
-              "Transaction",
-              "Sale",
-              "Acquisition"
-            ]
+            "name": "ClaimSubmission",
+            "description": "Represents a user's initial input of a claim to be verified.",
+            "synonyms_to_avoid": []
           },
           {
-            "name": "OrderItem",
-            "description": "A specific line item within an Order, detailing the product (by ID), quantity, and unit price at the time of order.",
+            "name": "VerificationReport",
+            "description": "The comprehensive output of the claim verification process, presented to the user.",
             "synonyms_to_avoid": []
           }
         ],
         "value_objects": [
           {
-            "name": "OrderStatus",
+            "name": "ClaimText",
             "attributes": [
-              "value"
+              "value (string, max 500 chars)"
             ],
-            "description": "The current state of an order, following defined transitions: OrderPlaced, Pending, Confirmed, Shipped, Delivered, Cancelled."
+            "description": "The literal text of the claim provided by the user, with length constraints."
           },
           {
-            "name": "Money",
+            "name": "SubmissionTimestamp",
             "attributes": [
-              "amount",
-              "currency"
+              "value (datetime)"
             ],
-            "description": "Represents a monetary value with its associated currency."
+            "description": "The exact date and time when the claim was submitted."
           },
           {
-            "name": "Address",
+            "name": "VerdictLabel",
             "attributes": [
-              "street",
-              "city",
-              "postalCode",
-              "country"
+              "value (enum: \"True\", \"Fake\", \"Unverified\")"
             ],
-            "description": "Represents a specific physical location, used for shipping or billing purposes."
+            "description": "A categorical label indicating the final truthfulness assessment of a claim."
+          },
+          {
+            "name": "SourceLink",
+            "attributes": [
+              "url (string)",
+              "displayText (string)",
+              "logoUrl (string, optional)"
+            ],
+            "description": "A clickable reference to an external information source, displayed to the user."
           }
         ],
         "domain_events": [
-          "OrderPlaced",
-          "OrderConfirmed",
-          "OrderShipped",
-          "OrderDelivered",
-          "OrderCancelled"
+          "ClaimSubmitted",
+          "VerificationReportGenerated"
         ]
       }
     },
     {
-      "context_name": "Inventory Management",
-      "description": "Manages all product-related information, including unique identifiers (SKUs), descriptions, pricing, stock levels, and categorization. It tracks product availability and triggers events based on stock changes.",
-      "allowed_dependencies": [],
-      "ubiquitous_language": {
-        "entities": [
-          {
-            "name": "Product",
-            "description": "A distinct item available for sale, uniquely identified by its SKU, with detailed information including name, description, price, stock level, and category.",
-            "synonyms_to_avoid": [
-              "Item",
-              "Good",
-              "Merchandise",
-              "Article"
-            ]
-          }
-        ],
-        "value_objects": [
-          {
-            "name": "StockLevel",
-            "attributes": [
-              "currentQuantity",
-              "reservedQuantity",
-              "reorderThreshold"
-            ],
-            "description": "Encapsulates the various quantities representing a product's inventory status, including available, reserved, and threshold for reordering."
-          },
-          {
-            "name": "Money",
-            "attributes": [
-              "amount",
-              "currency"
-            ],
-            "description": "Represents a monetary value with its associated currency."
-          },
-          {
-            "name": "Category",
-            "attributes": [
-              "name"
-            ],
-            "description": "A classification label used to group similar products."
-          }
-        ],
-        "domain_events": [
-          "StockDepleted",
-          "StockReplenished",
-          "ProductCreated",
-          "ProductDiscontinued"
-        ]
-      }
-    },
-    {
-      "context_name": "Payment Processing",
-      "description": "Handles all financial transactions, including initiating payments, processing successful transactions, managing failures, and processing refunds. It also manages stored payment methods for customers, ensuring PCI-DSS compliance.",
+      "context_name": "EvidenceRetrieval",
+      "description": "Specializes in automatically searching for and retrieving relevant external evidence to evaluate claims.",
       "allowed_dependencies": [
-        "Customer Management"
+        "VerificationDashboard"
       ],
       "ubiquitous_language": {
         "entities": [
           {
-            "name": "Payment",
-            "description": "Represents a unique financial transaction for a specific order and customer, including its amount, status, and the payment method used.",
-            "synonyms_to_avoid": [
-              "Transaction",
-              "Charge",
-              "Bill",
-              "Invoice"
-            ]
+            "name": "EvidenceRequest",
+            "description": "An orchestration unit responsible for executing searches and gathering evidence for a specific claim.",
+            "synonyms_to_avoid": []
           },
           {
-            "name": "PaymentMethod",
-            "description": "Details about a customer's stored payment instrument, such as credit card tokens, type, and expiry, linked to a Customer.",
+            "name": "SearchTool",
+            "description": "Configuration and access details for an external search API or data source.",
+            "synonyms_to_avoid": []
+          },
+          {
+            "name": "TrustedDomainList",
+            "description": "A curated and strictly managed collection of web domains considered reliable for evidence retrieval.",
             "synonyms_to_avoid": []
           }
         ],
         "value_objects": [
           {
-            "name": "Money",
+            "name": "SearchQuery",
             "attributes": [
-              "amount",
-              "currency"
+              "queryTerm (string)"
             ],
-            "description": "Represents a monetary value with its associated currency."
+            "description": "A specific phrase or term used to search for evidence."
           },
           {
-            "name": "PaymentStatus",
+            "name": "EvidenceItem",
             "attributes": [
-              "value"
+              "snippetText (string)",
+              "sourceUrl (string)",
+              "publicationDate (date)"
             ],
-            "description": "The current state of a payment transaction (e.g., Initiated, Completed, Failed)."
+            "description": "A single piece of retrieved information, typically a text snippet, along with its source."
           },
           {
-            "name": "PaymentMethodDetails",
+            "name": "DomainName",
             "attributes": [
-              "token",
-              "cardType",
-              "lastFourDigits",
-              "expiryDate"
+              "value (string)"
             ],
-            "description": "Sensitive details of a payment instrument, typically tokenized for security and PCI-DSS compliance."
+            "description": "A string representing a web domain, used for filtering trusted sources."
           }
         ],
         "domain_events": [
-          "PaymentInitiated",
-          "PaymentCompleted",
-          "PaymentFailed",
-          "RefundProcessed"
+          "EvidenceRequested",
+          "EvidenceRetrieved"
+        ]
+      }
+    },
+    {
+      "context_name": "ClaimAnalysis",
+      "description": "Houses the core logic for natural language inference (NLI), evaluating claims against evidence, and generating truth scores and reasoning.",
+      "allowed_dependencies": [
+        "EvidenceRetrieval"
+      ],
+      "ubiquitous_language": {
+        "entities": [
+          {
+            "name": "ClaimVerificationEvaluation",
+            "description": "The process of analyzing a claim and its supporting evidence to produce an NLI result, confidence, truth score, and reasoning.",
+            "synonyms_to_avoid": []
+          },
+          {
+            "name": "FineTunedInferenceEngine",
+            "description": "An operational instance of a specialized NLI model configured for real-time claim assessment.",
+            "synonyms_to_avoid": []
+          },
+          {
+            "name": "NLIModelDeployment",
+            "description": "Manages the lifecycle, configuration, and performance monitoring of deployed NLI models.",
+            "synonyms_to_avoid": []
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "EvidenceText",
+            "attributes": [
+              "value (string, concatenated snippets)"
+            ],
+            "description": "The aggregated and concatenated textual content from multiple evidence snippets, used for NLI input."
+          },
+          {
+            "name": "NLIResult",
+            "attributes": [
+              "classification (enum: \"Supported\", \"Refuted\", \"Not Enough Info\")"
+            ],
+            "description": "The primary classification output from the Natural Language Inference model."
+          },
+          {
+            "name": "ConfidenceScore",
+            "attributes": [
+              "value (float, 0-1)"
+            ],
+            "description": "A numerical score indicating the NLI model's certainty in its classification."
+          },
+          {
+            "name": "TruthScore",
+            "attributes": [
+              "value (integer, 0-100)"
+            ],
+            "description": "A percentage score representing the assessed truthfulness of a claim."
+          },
+          {
+            "name": "ReasoningText",
+            "attributes": [
+              "value (string)"
+            ],
+            "description": "A generated textual explanation justifying the claim's truth score and verdict."
+          },
+          {
+            "name": "F1Score",
+            "attributes": [
+              "value (float, 0-1)"
+            ],
+            "description": "A metric used to evaluate the performance of the NLI model, combining precision and recall."
+          },
+          {
+            "name": "ModelConfiguration",
+            "attributes": [
+              "modelType (string)",
+              "fineTuningMethod (string)",
+              "datasetUsed (string)"
+            ],
+            "description": "Details describing the architecture, training methodology, and dataset used for an NLI model."
+          }
+        ],
+        "domain_events": [
+          "ClaimEvaluationInitiated",
+          "NLIEvaluationCompleted",
+          "TruthScoreCalculated"
         ]
       }
     }
@@ -229,10 +207,7 @@
     "naming_convention": "PascalCase",
     "banned_global_terms": [
       "Manager",
-      "Service",
-      "Repository",
-      "Util",
-      "Helper"
+      "Util"
     ]
   }
 }

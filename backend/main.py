@@ -9,6 +9,7 @@ import glob
 import json
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from typing import Any, Dict, List
@@ -31,6 +32,7 @@ from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel
 from core.token_tracker import TokenTracker
+from core.validation_metrics import ValidationMetricsTracker
 
 app_state: Dict[str, Any] = {}
 rag_config = RAGConfig()
@@ -183,12 +185,24 @@ def validate_code(submission: CodeSubmission):
     Validate Python code against DDD rules.
 
     Returns violation report with source references from RAG.
+    Tracks metrics for UBMK presentation.
     """
+    import time
+    start_time = time.time()
+    
+    print(f"\n{'='*70}")
+    print(f"🔍 VALIDATION REQUEST")
+    print(f"{'='*70}")
+    print(f"  File: {submission.filename}")
+    print(f"  Size: {len(submission.content)} chars")
+    
     parser = app_state.get("parser")
     llm = app_state.get("llm")
     rules = app_state.get("domain_rules")
+    validation_tracker = ValidationMetricsTracker.get_instance()
 
     if not rules:
+        print("  ❌ ERROR: Domain model not loaded")
         return {
             "is_violation": True,
             "violations": [
@@ -204,6 +218,7 @@ def validate_code(submission: CodeSubmission):
     ast_data = parser.parse_code(submission.content, submission.filename)
 
     if "error" in ast_data:
+        print(f"  ❌ SYNTAX ERROR: {ast_data['error']}")
         return {
             "is_violation": True,
             "violations": [
@@ -216,20 +231,63 @@ def validate_code(submission: CodeSubmission):
         }
 
     # Check for violations
+    print("  🤖 Analyzing with LLM...")
     result = llm.analyze_violation(ast_data, rules)
 
     # Add source references from RAG
     rag = app_state.get("rag")
+    has_sources = False
     if result.get("is_violation") and rag:
-        for violation in result.get("violations", []):
+        violations_list = result.get("violations", [])
+        print(f"  📚 Fetching RAG sources for {len(violations_list)} violation(s)...")
+        
+        for idx, violation in enumerate(violations_list):
+            print(f"     [{idx+1}/{len(violations_list)}] Processing: {violation.get('type', 'Unknown')}")
             try:
+                print(f"     🔍 Retrieving sources for: {violation.get('type', 'Unknown')}")
                 sources = rag.retrieve_source(
                     violation_type=violation.get("type", ""),
                     violation_message=violation.get("message", ""),
                 )
+                print(f"     ✅ Found {len(sources)} sources")
                 violation["sources"] = sources
-            except Exception:
+                if sources:
+                    has_sources = True
+            except Exception as e:
+                print(f"     ❌ RAG ERROR: {type(e).__name__}: {str(e)}")
+                import traceback
+                traceback.print_exc()
                 violation["sources"] = []
+            print(f"     ✔️  Violation [{idx+1}] completed")
+        
+        print(f"  ✅ All RAG sources fetched!")
+    
+    
+    # Track validation metrics
+    validation_time_ms = (time.time() - start_time) * 1000
+    violations_count = len(result.get("violations", []))
+    
+    validation_tracker.track_validation(
+        filename=submission.filename,
+        file_size_chars=len(submission.content),
+        validation_time_ms=validation_time_ms,
+        violations=result.get("violations", []),
+        has_sources=has_sources
+    )
+    
+    # Print result
+    if result.get("is_violation"):
+        print(f"  ⚠️  VIOLATIONS FOUND: {violations_count}")
+        for v in result.get("violations", []):
+            print(f"     - {v.get('type')}: {v.get('message', '')[:60]}...")
+            sources_count = len(v.get("sources", []))
+            print(f"       📚 Sources attached: {sources_count}")
+    else:
+        print("  ✅ NO VIOLATIONS - Code is clean!")
+    
+    print(f"  ⏱️  Time: {validation_time_ms:.2f}ms")
+    print(f"  📤 Returning response: is_violation={result.get('is_violation')}, violations={violations_count}")
+    print(f"{'='*70}\n")
 
     return result
 
@@ -302,8 +360,89 @@ def export_token_report():
         "message": f"Report exported to {export_path}",
         "file_path": export_path
     }
-    """Search indexed documents (for debugging)."""
+
+
+# =============================================================================
+# VALIDATION METRICS ENDPOINTS
+# =============================================================================
+
+
+@app.get("/metrics/validation")
+def get_validation_metrics():
+    """
+    Get comprehensive validation metrics.
+    
+    Returns:
+        - Total validations performed
+        - Violations found (total and breakdown by type)
+        - Performance metrics (avg latency)
+        - RAG usage statistics
+    """
+    tracker = ValidationMetricsTracker.get_instance()
+    return tracker.get_report(detailed=True)
+
+
+@app.get("/metrics/validation/summary")
+def get_validation_summary():
+    """Get concise validation summary without detailed history."""
+    tracker = ValidationMetricsTracker.get_instance()
+    return tracker.get_report(detailed=False)
+
+
+@app.get("/metrics/combined")
+def get_combined_metrics():
+    """
+    Get combined metrics for UBMK presentation.
+    
+    Returns both token usage and validation metrics with per-validation averages.
+    """
+    token_tracker = TokenTracker.get_instance()
+    validation_tracker = ValidationMetricsTracker.get_instance()
+    
+    token_report = token_tracker.get_report(detailed=False)
+    validation_report = validation_tracker.get_report(detailed=False)
+    
+    # Calculate per-validation averages
+    total_validations = validation_report.get("summary", {}).get("total_validations", 0)
+    per_validation_metrics = {}
+    
+    if total_validations > 0:
+        total_cost = token_report.get("cost_estimation", {}).get("total_cost", 0)
+        avg_latency = validation_report.get("performance", {}).get("avg_validation_time_ms", 0)
+        total_tokens = token_report.get("summary", {}).get("total_tokens", 0)
+        
+        per_validation_metrics = {
+            "avg_cost_per_validation": round(total_cost / total_validations, 6),
+            "avg_latency_ms": round(avg_latency, 2),
+            "avg_tokens_per_validation": round(total_tokens / total_validations, 2)
+        }
+    
+    return {
+        "token_usage": token_report,
+        "validation_metrics": validation_report,
+        "per_validation_averages": per_validation_metrics
+    }
+
+
+# =============================================================================
+# RAG DIAGNOSTIC ENDPOINTS
+# =============================================================================
+
+
+@app.get("/rag/stats")
+def get_rag_stats():
+    """Get RAG index statistics."""
     rag = app_state.get("rag")
     if not rag:
-        return {"error": "RAG pipeline not initialized"}
-    return {"query": query, "results": rag.search(query, n_results)}
+        return {"status": "not_initialized", "message": "RAG pipeline not available"}
+    return rag.get_stats()
+
+
+@app.get("/rag/search")
+def search_documents(query: str, n_results: int = 5):
+    """Search indexed documents by query."""
+    rag = app_state.get("rag")
+    if not rag:
+        return {"status": "not_initialized", "message": "RAG pipeline not available"}
+    return rag.search(query, top_k=n_results)
+
