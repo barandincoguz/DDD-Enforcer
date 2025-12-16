@@ -85,7 +85,7 @@ class RAGConfig:
 class AnalyzerConfig:
     """Configuration for the Code Analyzer LLM client (violation detection)."""
 
-    MODEL_NAME: str = "gemini-2.5-flash"
+    MODEL_NAME: str = "gemini-2.5-flash-lite"
     RESPONSE_MIME_TYPE: str = "application/json"
     TEMPERATURE: float = 0.0
     MAX_OUTPUT_TOKENS: int = 8000

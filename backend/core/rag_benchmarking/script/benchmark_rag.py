@@ -14,8 +14,8 @@ from typing import Any, Dict, List
 
 # Add parent directories to path for imports
 script_dir = Path(__file__).parent
-benchmarking_dir = script_dir.parent
-core_dir = benchmarking_dir.parent
+rag_benchmarking_dir = script_dir.parent
+core_dir = rag_benchmarking_dir.parent
 backend_dir = core_dir.parent
 
 sys.path.insert(0, str(core_dir))  # For rag_pipeline

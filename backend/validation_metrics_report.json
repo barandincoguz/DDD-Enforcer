@@ -1,60 +1,54 @@
 {
-  "session_start": "2025-12-16T22:04:20.495874",
-  "session_end": "2025-12-16T22:05:55.737545",
+  "session_start": "2025-12-16T23:47:31.000503",
+  "session_end": "2025-12-16T23:47:38.282917",
   "summary": {
-    "total_validations": 3,
-    "files_with_violations": 3,
+    "total_validations": 1,
+    "files_with_violations": 1,
     "files_without_violations": 0,
     "violation_rate_percent": 100.0,
-    "total_violations_found": 5,
-    "avg_violations_per_file": 1.67
+    "total_violations_found": 18,
+    "avg_violations_per_file": 18.0
   },
   "performance": {
-    "avg_validation_time_ms": 11884.83,
-    "total_validation_time_ms": 35654.5,
-    "avg_code_size_chars": 292.0,
-    "total_code_size_chars": 876
+    "avg_validation_time_ms": 7282.32,
+    "total_validation_time_ms": 7282.32,
+    "avg_code_size_chars": 1974.0,
+    "total_code_size_chars": 1974
   },
   "rag_integration": {
-    "validations_with_sources": 3,
+    "validations_with_sources": 1,
     "source_attachment_rate_percent": 100.0
   },
   "violation_breakdown": {
-    "ContextBoundaryViolation": 1,
-    "BannedTermViolation": 2,
-    "ValueObjectViolation": 2
+    "SynonymViolation": 5,
+    "BannedTermViolation": 4,
+    "NamingConventionViolation": 5,
+    "ValueObjectViolation": 4
   },
   "validation_history": [
     {
-      "timestamp": "2025-12-16T22:04:37.706387",
-      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
-      "file_size_chars": 486,
-      "validation_time_ms": 9156.761169433594,
-      "violations_count": 1,
+      "timestamp": "2025-12-16T23:47:38.282550",
+      "filename": "c:\\Users\\alike\\Desktop\\code-stuff\\DDD-Enforcer\\misc\\test_files\\violations_example.py",
+      "file_size_chars": 1974,
+      "validation_time_ms": 7282.317876815796,
+      "violations_count": 18,
       "violation_types": [
-        "ContextBoundaryViolation"
-      ],
-      "has_sources": true
-    },
-    {
-      "timestamp": "2025-12-16T22:05:27.870210",
-      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
-      "file_size_chars": 230,
-      "validation_time_ms": 10548.77519607544,
-      "violations_count": 2,
-      "violation_types": [
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
         "BannedTermViolation",
-        "BannedTermViolation"
-      ],
-      "has_sources": true
-    },
-    {
-      "timestamp": "2025-12-16T22:05:55.737417",
-      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
-      "file_size_chars": 160,
-      "validation_time_ms": 15948.96411895752,
-      "violations_count": 2,
-      "violation_types": [
+        "NamingConventionViolation",
+        "BannedTermViolation",
+        "BannedTermViolation",
+        "NamingConventionViolation",
+        "BannedTermViolation",
+        "NamingConventionViolation",
+        "NamingConventionViolation",
+        "NamingConventionViolation",
+        "ValueObjectViolation",
+        "ValueObjectViolation",
         "ValueObjectViolation",
         "ValueObjectViolation"
       ],
