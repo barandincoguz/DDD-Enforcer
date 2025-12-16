@@ -69,6 +69,7 @@ yarn-error.log*
 # ----------------------------------------------------------------------
 # ChromaDB yerel veritabanı klasörleri (GitHub'a şişkinlik yapmasın)
 chroma_db/
+benchmark_chroma/
 *.sqlite3
 *.db
 
