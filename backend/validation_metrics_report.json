@@ -1,0 +1,64 @@
+{
+  "session_start": "2025-12-16T22:04:20.495874",
+  "session_end": "2025-12-16T22:05:55.737545",
+  "summary": {
+    "total_validations": 3,
+    "files_with_violations": 3,
+    "files_without_violations": 0,
+    "violation_rate_percent": 100.0,
+    "total_violations_found": 5,
+    "avg_violations_per_file": 1.67
+  },
+  "performance": {
+    "avg_validation_time_ms": 11884.83,
+    "total_validation_time_ms": 35654.5,
+    "avg_code_size_chars": 292.0,
+    "total_code_size_chars": 876
+  },
+  "rag_integration": {
+    "validations_with_sources": 3,
+    "source_attachment_rate_percent": 100.0
+  },
+  "violation_breakdown": {
+    "ContextBoundaryViolation": 1,
+    "BannedTermViolation": 2,
+    "ValueObjectViolation": 2
+  },
+  "validation_history": [
+    {
+      "timestamp": "2025-12-16T22:04:37.706387",
+      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
+      "file_size_chars": 486,
+      "validation_time_ms": 9156.761169433594,
+      "violations_count": 1,
+      "violation_types": [
+        "ContextBoundaryViolation"
+      ],
+      "has_sources": true
+    },
+    {
+      "timestamp": "2025-12-16T22:05:27.870210",
+      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
+      "file_size_chars": 230,
+      "validation_time_ms": 10548.77519607544,
+      "violations_count": 2,
+      "violation_types": [
+        "BannedTermViolation",
+        "BannedTermViolation"
+      ],
+      "has_sources": true
+    },
+    {
+      "timestamp": "2025-12-16T22:05:55.737417",
+      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
+      "file_size_chars": 160,
+      "validation_time_ms": 15948.96411895752,
+      "violations_count": 2,
+      "violation_types": [
+        "ValueObjectViolation",
+        "ValueObjectViolation"
+      ],
+      "has_sources": true
+    }
+  ]
+}

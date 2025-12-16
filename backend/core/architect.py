@@ -176,6 +176,12 @@ Extract ALL relevant sentences, no limit."""
                     ),
                 )
                 
+                # Check if response was truncated
+                if not self._check_response_completion(response, retry):
+                    if retry < 4:
+                        time.sleep(2)
+                        continue
+                
                 result = self._parse_json_response(response.text)
 
                 if (
@@ -264,6 +270,12 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
                     ),
                 )
 
+                # Check if response was truncated
+                if not self._check_response_completion(response, retry):
+                    if retry < 4:
+                        time.sleep(2)
+                        continue
+                
                 result = self._parse_json_response(response.text)
 
                 if (
@@ -363,6 +375,12 @@ RESPOND WITH JSON:
                         max_output_tokens=self.LLMConfig.MAX_OUTPUT_TOKENS,
                     ),
                 )
+                
+                # Check if response was truncated
+                if not self._check_response_completion(response, retry):
+                    if retry < 4:
+                        time.sleep(2)
+                        continue
                 
                 result = self._parse_json_response(response.text)
 
@@ -481,6 +499,12 @@ RESPOND WITH JSON matching this schema:
                     ),
                 )
 
+                # Check if response was truncated
+                if not self._check_response_completion(response, retry):
+                    if retry < 4:
+                        time.sleep(2)
+                        continue
+                
                 result = self._parse_json_response(response.text)
 
                 if (
@@ -661,6 +685,43 @@ RESPOND WITH JSON matching this schema:
                 "banned_global_terms": ["Manager", "Util"],
             },
         }
+    
+    def _check_response_completion(self, response, retry: int) -> bool:
+        """
+        Check if API response was complete or truncated.
+        
+        Returns:
+            True if response is complete and valid
+            False if truncated (needs retry)
+        """
+        if not response.candidates:
+            print(f"      ⚠️  No candidates in response")
+            return False
+            
+        finish_reason = response.candidates[0].finish_reason
+        
+        if finish_reason == "STOP":
+            return True  # Normal completion
+            
+        # Response was cut off
+        print(f"      ⚠️  Response incomplete: finish_reason={finish_reason}")
+        
+        if finish_reason == "MAX_TOKENS":
+            print(f"      💡 Hit token limit ({self.LLMConfig.MAX_OUTPUT_TOKENS})")
+            print(f"      💡 Response was cut mid-generation")
+        elif finish_reason == "SAFETY":
+            print(f"      🛡️  Response blocked by safety filters")
+        elif finish_reason == "RECITATION":
+            print(f"      📝 Response blocked due to citation/recitation")
+        elif finish_reason == "OTHER":
+            print(f"      ❓ Response stopped for unknown reason")
+            
+        if retry < 4:
+            print(f"      🔄 Retrying ({retry + 1}/5)...")
+            return False
+        else:
+            print(f"      ❌ Max retries reached")
+            return False
 
     def _parse_json_response(self, response_text: str) -> Dict[str, Any]:
         """Parse JSON from LLM response. Simple strategy since we use response_mime_type='application/json'."""
