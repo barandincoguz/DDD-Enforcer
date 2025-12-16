@@ -193,61 +193,9 @@ class RAGPipeline:
             import traceback
             traceback.print_exc()
             return []
-<<<<<<< HEAD
-        
-        n_results = n_results or self.top_k
-        
-        # Build search query (minimal processing)
-        query = self._build_query(violation_type, violation_message)
-        
-        # Query ChromaDB
-        results = self.collection.query(
-            query_texts=[query],
-            n_results=n_results,
-            include=["documents", "metadatas", "distances"]
-        )
-        
-        # Format results
-        sources = []
-        if results["documents"] and results["documents"][0]:
-            for i, doc_text in enumerate(results["documents"][0]):
-                metadata = results["metadatas"][0][i]
-                distance = results["distances"][0][i]
-                
-                sources.append({
-                    "document": metadata.get("doc_name", "unknown"),
-                    "section": metadata.get("section_name", "unknown"),
-                    "page": metadata.get("page_number", 0),
-                    "summary": self._generate_summary(doc_text),
-                    "file_path": metadata.get("file_path", ""),
-                    "relevance_score": round(1 - distance, 3),
-                    "full_text": doc_text
-                })
-        
-        return sources
-    
-    def search(
-        self, 
-        query: str, 
-        n_results: int = RAGConfig.TOP_K,
-        filter_metadata: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Direct search interface for debugging and testing.
-        
-        Args:
-            query: Search query
-            n_results: Number of results
-            filter_metadata: Optional metadata filters (e.g., {"doc_type": "SRS"})
-            
-        Returns:
-            List of search results
-        """
-=======
 
     def search(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """Direct search for debugging."""
->>>>>>> f54890b766af2b35c8a69ab305d167c222e15b5e
         if self.collection.count() == 0:
             return []
         
