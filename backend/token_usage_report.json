@@ -1,0 +1,80 @@
+{
+  "session_start": "2025-12-17T13:54:49.230481",
+  "session_end": "2025-12-17T13:56:27.699637",
+  "summary": {
+    "total_api_calls": 4,
+    "total_prompt_tokens": 7325,
+    "total_completion_tokens": 5963,
+    "total_tokens": 13288
+  },
+  "cost_estimation": {
+    "input_cost": 0.002197,
+    "output_cost": 0.014908,
+    "total_cost": 0.017105,
+    "currency": "USD"
+  },
+  "stage_breakdown": {
+    "Scout": {
+      "call_count": 1,
+      "prompt_tokens": 2204,
+      "completion_tokens": 1631,
+      "total_tokens": 3835,
+      "estimated_cost": 0.004739
+    },
+    "Architect": {
+      "call_count": 1,
+      "prompt_tokens": 1559,
+      "completion_tokens": 45,
+      "total_tokens": 1604,
+      "estimated_cost": 0.00058
+    },
+    "Specialist": {
+      "call_count": 1,
+      "prompt_tokens": 1636,
+      "completion_tokens": 1502,
+      "total_tokens": 3138,
+      "estimated_cost": 0.004246
+    },
+    "Synthesizer": {
+      "call_count": 1,
+      "prompt_tokens": 1926,
+      "completion_tokens": 2785,
+      "total_tokens": 4711,
+      "estimated_cost": 0.00754
+    }
+  },
+  "call_history": [
+    {
+      "timestamp": "2025-12-17T13:55:08.077947",
+      "stage": "Scout",
+      "operation": "extract_sentences_chunk_1",
+      "prompt_tokens": 2204,
+      "completion_tokens": 1631,
+      "total_tokens": 3835
+    },
+    {
+      "timestamp": "2025-12-17T13:55:23.283501",
+      "stage": "Architect",
+      "operation": "identify_contexts",
+      "prompt_tokens": 1559,
+      "completion_tokens": 45,
+      "total_tokens": 1604
+    },
+    {
+      "timestamp": "2025-12-17T13:55:46.426257",
+      "stage": "Specialist",
+      "operation": "analyze_all_contexts",
+      "prompt_tokens": 1636,
+      "completion_tokens": 1502,
+      "total_tokens": 3138
+    },
+    {
+      "timestamp": "2025-12-17T13:56:27.697258",
+      "stage": "Synthesizer",
+      "operation": "synthesize_final_model",
+      "prompt_tokens": 1926,
+      "completion_tokens": 2785,
+      "total_tokens": 4711
+    }
+  ]
+}
