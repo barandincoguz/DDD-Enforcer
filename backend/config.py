@@ -88,7 +88,6 @@ class AnalyzerConfig:
     MODEL_NAME: str = "gemini-2.5-flash-lite"
     RESPONSE_MIME_TYPE: str = "application/json"
     TEMPERATURE: float = 0.05
-    MAX_OUTPUT_TOKENS: int = 8000
 
 
 class ArchitectConfig:
@@ -97,7 +96,7 @@ class ArchitectConfig:
     MODEL_NAME: str = "gemini-2.5-flash"
     RESPONSE_MIME_TYPE: str = "application/json"
     TEMPERATURE: float = 0.10 # Slight randomness for better naming choices, still highly consistent
-    MAX_OUTPUT_TOKENS: int =10000 
+ 
 
 # =============================================================================
 # SERVER CONFIGURATION

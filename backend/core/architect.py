@@ -172,7 +172,6 @@ Extract ALL relevant sentences, no limit."""
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        max_output_tokens=self.LLMConfig.MAX_OUTPUT_TOKENS,
                     ),
                 )
                 
@@ -256,7 +255,7 @@ RESPOND WITH JSON:
   "contexts": ["ContextName1", "ContextName2", ...]
 }}
 
-Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
+Identify ALL contexts. Use business-meaningful names (e.g., OrderManagement)."""
 
         for retry in range(5):
             try:
@@ -266,7 +265,6 @@ Identify 2-8 contexts. Use business-meaningful names (e.g., OrderManagement)."""
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        max_output_tokens=self.LLMConfig.MAX_OUTPUT_TOKENS,
                     ),
                 )
 
@@ -372,7 +370,6 @@ RESPOND WITH JSON:
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        max_output_tokens=self.LLMConfig.MAX_OUTPUT_TOKENS,
                     ),
                 )
                 
@@ -495,7 +492,7 @@ RESPOND WITH JSON matching this schema:
                     model=self.model_name,
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                        response_mime_type="application/json", max_output_tokens=self.LLMConfig.MAX_OUTPUT_TOKENS
+                        response_mime_type="application/json",
                     ),
                 )
 
@@ -597,11 +594,6 @@ RESPOND WITH JSON matching this schema:
             # Stage 2: Identify contexts
             contexts = self.identify_contexts(domain_sentences)
             print(f"  ✅ Identified {len(contexts)} contexts: {', '.join(contexts)}\n")
-
-            # Limit to 5 contexts max
-            if len(contexts) > 5:
-                print(f"  ⚠️  Limiting to first 5 contexts (found {len(contexts)})")
-                contexts = contexts[:5]
 
             # Stage 3: Analyze contexts
             results = self.extract_all_contexts_details(contexts, domain_sentences)

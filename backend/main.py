@@ -140,6 +140,24 @@ async def lifespan(app: FastAPI):
     # Initialize tools
     app_state["parser"] = CodeParser()
     app_state["llm"] = LLMClient()
+    
+    # Calculate domain model token size for metrics
+    if app_state.get("domain_rules"):
+        try:
+            from google import genai
+            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+            domain_model_text = json.dumps(app_state["domain_rules"])
+            token_count_response = client.models.count_tokens(
+                model="gemini-2.5-flash-lite",
+                contents=domain_model_text
+            )
+            app_state["domain_model_tokens"] = token_count_response.total_tokens
+            print(f"[METRICS] Domain model size: {app_state['domain_model_tokens']:,} tokens")
+        except Exception as e:
+            print(f"[METRICS] Could not calculate domain model tokens: {e}")
+            app_state["domain_model_tokens"] = 0
+    else:
+        app_state["domain_model_tokens"] = 0
 
     # Initialize RAG pipeline
     print("[RAG] Initializing RAG pipeline...")
@@ -188,13 +206,29 @@ def validate_code(submission: CodeSubmission):
     Tracks metrics for UBMK presentation.
     """
     import time
-    start_time = time.time()
     
     print(f"\n{'='*70}")
     print(f"🔍 VALIDATION REQUEST")
     print(f"{'='*70}")
     print(f"  File: {submission.filename}")
     print(f"  Size: {len(submission.content)} chars")
+    
+    # Count code file tokens for metrics (BEFORE latency measurement)
+    code_file_tokens = 0
+    try:
+        from google import genai
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        token_count_response = client.models.count_tokens(
+            model="gemini-2.0-flash-exp",
+            contents=submission.content
+        )
+        code_file_tokens = token_count_response.total_tokens
+        print(f"  📊 Code tokens: {code_file_tokens:,}")
+    except Exception as e:
+        print(f"  ⚠️  Token counting failed: {e}")
+    
+    # START LATENCY MEASUREMENT - only actual validation logic
+    start_time = time.time()
     
     parser = app_state.get("parser")
     llm = app_state.get("llm")
@@ -270,6 +304,7 @@ def validate_code(submission: CodeSubmission):
     validation_tracker.track_validation(
         filename=submission.filename,
         file_size_chars=len(submission.content),
+        code_file_tokens=code_file_tokens,
         validation_time_ms=validation_time_ms,
         violations=result.get("violations", []),
         has_sources=has_sources
@@ -394,7 +429,8 @@ def get_combined_metrics():
     """
     Get combined metrics for UBMK presentation.
     
-    Returns both token usage and validation metrics with per-validation averages.
+    Returns both token usage and validation metrics with per-validation averages
+    and monthly cost projections.
     """
     token_tracker = TokenTracker.get_instance()
     validation_tracker = ValidationMetricsTracker.get_instance()
@@ -405,17 +441,49 @@ def get_combined_metrics():
     # Calculate per-validation averages
     total_validations = validation_report.get("summary", {}).get("total_validations", 0)
     per_validation_metrics = {}
+    monthly_projections = {}
     
     if total_validations > 0:
         total_cost = token_report.get("cost_estimation", {}).get("total_cost", 0)
         avg_latency = validation_report.get("performance", {}).get("avg_validation_time_ms", 0)
         total_tokens = token_report.get("summary", {}).get("total_tokens", 0)
+        avg_input_tokens = token_report.get("summary", {}).get("total_prompt_tokens", 0) / total_validations
+        avg_output_tokens = token_report.get("summary", {}).get("total_completion_tokens", 0) / total_validations
         
         per_validation_metrics = {
             "avg_cost_per_validation": round(total_cost / total_validations, 6),
             "avg_latency_ms": round(avg_latency, 2),
-            "avg_tokens_per_validation": round(total_tokens / total_validations, 2)
+            "avg_tokens_per_validation": round(total_tokens / total_validations, 2),
+            "avg_input_tokens": round(avg_input_tokens, 2),
+            "avg_output_tokens": round(avg_output_tokens, 2)
         }
+        
+        # Monthly projections (1000 validations/day * 30 days)
+        validations_per_month = 1000 * 30  # 30,000 validations
+        monthly_cost = (total_cost / total_validations) * validations_per_month
+        
+        monthly_projections = {
+            "validations_per_day": 1000,
+            "validations_per_month": validations_per_month,
+            "estimated_monthly_cost": round(monthly_cost, 2),
+            "estimated_monthly_input_tokens": round(avg_input_tokens * validations_per_month, 0),
+            "estimated_monthly_output_tokens": round(avg_output_tokens * validations_per_month, 0),
+            "currency": "USD"
+        }
+    
+    # Domain model information
+    domain_info = {
+        "domain_model_tokens": app_state.get("domain_model_tokens", 0),
+        "domain_model_path": str(DOMAIN_MODEL_PATH) if DOMAIN_MODEL_PATH.exists() else None
+    }
+    
+    return {
+        "domain_model": domain_info,
+        "token_usage": token_report,
+        "validation_metrics": validation_report,
+        "per_validation_averages": per_validation_metrics,
+        "monthly_projections": monthly_projections
+    }
     
     return {
         "token_usage": token_report,

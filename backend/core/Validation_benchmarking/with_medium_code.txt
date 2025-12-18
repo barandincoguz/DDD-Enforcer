@@ -1,0 +1,16 @@
+
+  Size: 1110 chars
+  📊 Code tokens: 309
+
+"input_cost": 0.001184,
+"output_cost": 0.002358,
+"total_cost": 0.003542,
+"validator_total_tokens": 4890,
+        "performance": {
+            "avg_validation_time_ms": 4892.81,
+            "total_validation_time_ms": 4892.81,
+            "avg_code_size_chars": 1110.0,
+            "total_code_size_chars": 1110,
+            "avg_code_tokens": 309.0,
+            "total_code_tokens": 309
+},

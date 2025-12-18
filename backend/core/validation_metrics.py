@@ -19,6 +19,7 @@ class ValidationRecord:
     timestamp: str
     filename: str
     file_size_chars: int
+    code_file_tokens: int  # Token count of the validated code file
     validation_time_ms: float
     violations_count: int
     violation_types: List[str]
@@ -47,6 +48,10 @@ class ValidationStats:
     # File metrics
     total_code_size_chars: int = 0
     avg_code_size_chars: float = 0.0
+    
+    # Token metrics
+    total_code_tokens: int = 0
+    avg_code_tokens: float = 0.0
     
     # Detailed history
     validation_history: List[ValidationRecord] = field(default_factory=list)
@@ -86,6 +91,7 @@ class ValidationMetricsTracker:
         self,
         filename: str,
         file_size_chars: int,
+        code_file_tokens: int,
         validation_time_ms: float,
         violations: List[Dict],
         has_sources: bool = False
@@ -96,6 +102,7 @@ class ValidationMetricsTracker:
         Args:
             filename: Name of the validated file
             file_size_chars: Size of code in characters
+            code_file_tokens: Token count of the code file
             validation_time_ms: Time taken for validation
             violations: List of violations found
             has_sources: Whether RAG sources were attached
@@ -109,6 +116,7 @@ class ValidationMetricsTracker:
                 timestamp=datetime.now().isoformat(),
                 filename=filename,
                 file_size_chars=file_size_chars,
+                code_file_tokens=code_file_tokens,
                 validation_time_ms=validation_time_ms,
                 violations_count=violations_count,
                 violation_types=violation_types,
@@ -138,6 +146,11 @@ class ValidationMetricsTracker:
             self.stats.total_code_size_chars += file_size_chars
             self.stats.avg_code_size_chars = \
                 self.stats.total_code_size_chars / self.stats.total_validations
+            
+            # Update token metrics
+            self.stats.total_code_tokens += code_file_tokens
+            self.stats.avg_code_tokens = \
+                self.stats.total_code_tokens / self.stats.total_validations
             
             # Update RAG metrics
             if has_sources:
@@ -207,6 +220,8 @@ class ValidationMetricsTracker:
                     "total_validation_time_ms": round(self.stats.total_validation_time_ms, 2),
                     "avg_code_size_chars": round(self.stats.avg_code_size_chars, 2),
                     "total_code_size_chars": self.stats.total_code_size_chars,
+                    "avg_code_tokens": round(self.stats.avg_code_tokens, 2),
+                    "total_code_tokens": self.stats.total_code_tokens,
                 },
                 "rag_integration": {
                     "validations_with_sources": self.stats.validations_with_sources,
@@ -225,6 +240,7 @@ class ValidationMetricsTracker:
                         "timestamp": rec.timestamp,
                         "filename": rec.filename,
                         "file_size_chars": rec.file_size_chars,
+                        "code_file_tokens": rec.code_file_tokens,
                         "validation_time_ms": rec.validation_time_ms,
                         "violations_count": rec.violations_count,
                         "violation_types": rec.violation_types,

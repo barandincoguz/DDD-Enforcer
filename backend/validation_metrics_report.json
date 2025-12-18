@@ -1,58 +1,105 @@
 {
-  "session_start": "2025-12-16T23:47:31.000503",
-  "session_end": "2025-12-16T23:47:38.282917",
+  "session_start": "2025-12-18T21:36:27.039870",
+  "session_end": "2025-12-18T21:38:50.146327",
   "summary": {
-    "total_validations": 1,
-    "files_with_violations": 1,
+    "total_validations": 3,
+    "files_with_violations": 3,
     "files_without_violations": 0,
     "violation_rate_percent": 100.0,
-    "total_violations_found": 18,
-    "avg_violations_per_file": 18.0
+    "total_violations_found": 39,
+    "avg_violations_per_file": 13.0
   },
   "performance": {
-    "avg_validation_time_ms": 7282.32,
-    "total_validation_time_ms": 7282.32,
-    "avg_code_size_chars": 1974.0,
-    "total_code_size_chars": 1974
+    "avg_validation_time_ms": 4487.01,
+    "total_validation_time_ms": 13461.02,
+    "avg_code_size_chars": 1245.67,
+    "total_code_size_chars": 3737,
+    "avg_code_tokens": 358.33,
+    "total_code_tokens": 1075
   },
   "rag_integration": {
-    "validations_with_sources": 1,
-    "source_attachment_rate_percent": 100.0
+    "validations_with_sources": 0,
+    "source_attachment_rate_percent": 0.0
   },
   "violation_breakdown": {
-    "SynonymViolation": 5,
-    "BannedTermViolation": 4,
-    "NamingConventionViolation": 5,
-    "ValueObjectViolation": 4
+    "SynonymViolation": 15,
+    "BannedTermViolation": 10,
+    "NamingConventionViolation": 3,
+    "ContextBoundaryViolation": 1,
+    "ValueObjectViolation": 10
   },
   "validation_history": [
     {
-      "timestamp": "2025-12-16T23:47:38.282550",
-      "filename": "c:\\Users\\alike\\Desktop\\code-stuff\\DDD-Enforcer\\misc\\test_files\\violations_example.py",
-      "file_size_chars": 1974,
-      "validation_time_ms": 7282.317876815796,
-      "violations_count": 18,
+      "timestamp": "2025-12-18T21:36:56.996969",
+      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
+      "file_size_chars": 2019,
+      "code_file_tokens": 583,
+      "validation_time_ms": 5958.860158920288,
+      "violations_count": 19,
       "violation_types": [
         "SynonymViolation",
         "SynonymViolation",
+        "BannedTermViolation",
         "SynonymViolation",
         "SynonymViolation",
         "SynonymViolation",
         "BannedTermViolation",
-        "NamingConventionViolation",
-        "BannedTermViolation",
         "BannedTermViolation",
         "NamingConventionViolation",
         "BannedTermViolation",
+        "ContextBoundaryViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "ValueObjectViolation",
+        "ValueObjectViolation"
+      ],
+      "has_sources": false
+    },
+    {
+      "timestamp": "2025-12-18T21:38:39.394751",
+      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
+      "file_size_chars": 608,
+      "code_file_tokens": 183,
+      "validation_time_ms": 4275.934219360352,
+      "violations_count": 9,
+      "violation_types": [
+        "SynonymViolation",
+        "BannedTermViolation",
         "NamingConventionViolation",
-        "NamingConventionViolation",
-        "NamingConventionViolation",
+        "ValueObjectViolation",
+        "ValueObjectViolation",
         "ValueObjectViolation",
         "ValueObjectViolation",
         "ValueObjectViolation",
         "ValueObjectViolation"
       ],
-      "has_sources": true
+      "has_sources": false
+    },
+    {
+      "timestamp": "2025-12-18T21:38:50.145758",
+      "filename": "/Users/barandincoguz/Desktop/SampleTest.py",
+      "file_size_chars": 1110,
+      "code_file_tokens": 309,
+      "validation_time_ms": 3226.2251377105713,
+      "violations_count": 11,
+      "violation_types": [
+        "BannedTermViolation",
+        "BannedTermViolation",
+        "NamingConventionViolation",
+        "BannedTermViolation",
+        "BannedTermViolation",
+        "BannedTermViolation",
+        "ValueObjectViolation",
+        "ValueObjectViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation"
+      ],
+      "has_sources": false
     }
   ]
 }
