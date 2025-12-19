@@ -3,9 +3,9 @@
   📊 Code tokens: 183
 
 
-"input_cost": 0.0011,
-"output_cost": 0.00159,
-"total_cost": 0.00269,
+"input_cost": 0.000367,
+"output_cost": 0.000254,
+"total_cost": 0.000621,
 "validator_total_tokens": 4302,
 
 "performance": {

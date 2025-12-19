@@ -6,9 +6,9 @@
         },
 
         "cost_estimation": {
-            "input_cost": 0.00364,
-            "output_cost": 0.00663,
-            "total_cost": 0.01027,
+            "input_cost": 0.001213,
+            "output_cost": 0.001061,
+            "total_cost": 0.002274,
             "currency": "USD"
         },
 
@@ -31,13 +31,13 @@
             "ValueObjectViolation": 10
         }
         "per_validation_averages": {
-        "avg_cost_per_validation": 0.003423,
+        "avg_cost_per_validation": 0.000758,
         "avg_latency_ms": 4487.01,
         "avg_tokens_per_validation": 4928.67,
         "avg_input_tokens": 4044.67,
         "avg_output_tokens": 884.0
     },
     
-    "estimated_monthly_cost": 102.7,
+    "estimated_monthly_cost": 22.74,
     "estimated_monthly_input_tokens": 121340000.0,
     "estimated_monthly_output_tokens": 26520000.0,

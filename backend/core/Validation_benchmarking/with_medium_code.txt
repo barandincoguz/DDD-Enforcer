@@ -2,9 +2,9 @@
   Size: 1110 chars
   📊 Code tokens: 309
 
-"input_cost": 0.001184,
-"output_cost": 0.002358,
-"total_cost": 0.003542,
+"input_cost": 0.000395,
+"output_cost": 0.000377,
+"total_cost": 0.000772,
 "validator_total_tokens": 4890,
         "performance": {
             "avg_validation_time_ms": 4892.81,

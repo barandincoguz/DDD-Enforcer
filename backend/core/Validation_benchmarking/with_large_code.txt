@@ -1,8 +1,8 @@
   Size: 2019 chars
   📊 Code tokens: 583
-"input_cost": 0.001356,
-"output_cost": 0.003288,
-"total_cost": 0.004644,
+"input_cost": 0.000452,
+"output_cost": 0.000526,
+"total_cost": 0.000978,
 "validator_total_tokens": 5836,
 "performance": {
             "avg_validation_time_ms": 5958.86,
