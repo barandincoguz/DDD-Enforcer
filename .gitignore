@@ -69,6 +69,7 @@ yarn-error.log*
 # ----------------------------------------------------------------------
 # ChromaDB yerel veritabanı klasörleri (GitHub'a şişkinlik yapmasın)
 chroma_db/
+chromaDB/
 *.sqlite3
 *.db
 
@@ -106,3 +107,4 @@ Desktop.ini
 # Buraya proje özelinde istemediğin dosyaları ekleyebilirsin
 audit_logs/
 temp/
+misc/

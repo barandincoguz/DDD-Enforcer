@@ -1,0 +1,43 @@
+        "summary": {
+            "total_api_calls": 3,
+            "total_prompt_tokens": 12134,
+            "total_completion_tokens": 2652,
+            "total_tokens": 14786
+        },
+
+        "cost_estimation": {
+            "input_cost": 0.001213,
+            "output_cost": 0.001061,
+            "total_cost": 0.002274,
+            "currency": "USD"
+        },
+
+        "validator_total_tokens": 14786,
+
+        "performance": {
+            "avg_validation_time_ms": 4487.01,
+            "total_validation_time_ms": 13461.02,
+            "avg_code_size_chars": 1245.67,
+            "total_code_size_chars": 3737,
+            "avg_code_tokens": 358.33,
+            "total_code_tokens": 1075
+        },
+
+        "violation_breakdown": {
+            "SynonymViolation": 15,
+            "BannedTermViolation": 10,
+            "NamingConventionViolation": 3,
+            "ContextBoundaryViolation": 1,
+            "ValueObjectViolation": 10
+        }
+        "per_validation_averages": {
+        "avg_cost_per_validation": 0.000758,
+        "avg_latency_ms": 4487.01,
+        "avg_tokens_per_validation": 4928.67,
+        "avg_input_tokens": 4044.67,
+        "avg_output_tokens": 884.0
+    },
+    
+    "estimated_monthly_cost": 22.74,
+    "estimated_monthly_input_tokens": 121340000.0,
+    "estimated_monthly_output_tokens": 26520000.0,

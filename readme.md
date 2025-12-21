@@ -322,10 +322,10 @@ DDD-Enforcer/
 
 <div align="center">
 
-| <img src="https://github.com/identicons/jasonlong.png" width="100" height="100" style="border-radius:50%"/> | <img src="https://github.com/identicons/jasonlong.png" width="100" height="100" style="border-radius:50%"/> |
-| :---------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------: |
-|                                               **Ali Kendir**                                                |                                          **Ahmet Baran Dinçoğuz**                                           |
-|                                                  Developer                                                  |                                                  Developer                                                  |
+| <img src="https://github.com/identicons/alikendir0.png" width="100" height="100" style="border-radius:50%"/> | <img src="https://github.com/identicons/barandincoguz.png" width="100" height="100" style="border-radius:50%"/> |
+| :----------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------: |
+|                                                **Ali Kendir**                                                |                                            **Ahmet Baran Dinçoğuz**                                             |
+|                                                  Developer                                                   |                                                    Developer                                                    |
 
 </div>
 

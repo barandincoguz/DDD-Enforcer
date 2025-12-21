@@ -1,0 +1,193 @@
+SCOUT_FILTER_PROMPT = """You are an expert Domain-Driven Design (DDD) analyst. Your task is to identify whether a text fragment contains meaningful domain information.
+
+**WHAT TO LOOK FOR (Keep these):**
+- Business entities (Customer, Order, Product, Invoice, etc.)
+- Domain rules and constraints ("Orders must be approved before shipping", "Users can only...")
+- Business workflows and processes (order fulfillment, payment processing, user registration)
+- Data relationships and dependencies between entities
+- Business calculations and formulas
+- System behaviors and state transitions
+- Domain-specific terminology and concepts
+
+**WHAT TO IGNORE (Discard these):**
+- Table of contents and navigation elements
+- Legal disclaimers, copyright notices, license information
+- Pure UI/UX descriptions (button colors, layout details, font sizes)
+- Technical implementation details (database schemas, API endpoints)
+- Introductory or concluding sections without business logic
+- Formatting instructions and document metadata
+- Repetitive boilerplate text
+
+**ANALYZE THIS TEXT FRAGMENT:**
+```
+{clean_text}
+```
+
+**INSTRUCTIONS:**
+1. Read the text carefully
+2. Extract all sentences that contain domain logic, entities, or business rules
+3. Return a JSON array of relevant sentences
+4. If nothing is relevant, return an empty array
+
+**RESPOND WITH JSON FORMAT:**
+{{
+  "sentences": ["Sentence 1 with domain logic", "Sentence 2 with business rules", ...]
+}}
+
+If no relevant content is found, return: {{"sentences": []}}"""
+
+ARCHITECT_CONTEXT_PROMPT = """You are a Senior Domain-Driven Design Architect with 15+ years of experience in strategic domain modeling.
+
+**YOUR MISSION:**
+Analyze the domain knowledge below and identify distinct **Bounded Contexts** - cohesive business areas that represent separate subdomains with their own models and responsibilities.
+
+**BOUNDED CONTEXT IDENTIFICATION CRITERIA:**
+1. **Functional Cohesion**: Does this area handle a specific business capability? (e.g., Order Management, User Authentication)
+2. **Language Boundary**: Does it use distinct terminology or concepts? (e.g., "Customer" in Sales vs "User" in Support)
+3. **Team Ownership**: Could different teams own this area independently?
+4. **Change Frequency**: Does this area evolve at a different pace than others?
+5. **Data Ownership**: Does it manage specific entities with clear boundaries?
+
+**COMMON BOUNDED CONTEXT PATTERNS:**
+- **Core Domain**: The unique business differentiator (e.g., RecommendationEngine, FraudDetection)
+- **Supporting Domain**: Necessary but not unique (e.g., OrderManagement, InventoryTracking)
+- **Generic Domain**: Common across industries (e.g., Authentication, Billing, Notification)
+
+**EXAMPLES OF GOOD BOUNDED CONTEXTS:**
+- OrderManagement (handles orders, order items, order status)
+- InventoryContext (manages stock, warehouses, inventory levels)
+- CustomerRelations (customer profiles, preferences, loyalty programs)
+- PaymentProcessing (transactions, payment methods, refunds)
+- ShippingLogistics (carriers, tracking, delivery)
+
+**AVOID THESE MISTAKES:**
+❌ Too granular: "OrderCreation", "OrderUpdate" (merge into OrderManagement)
+❌ Too broad: "BusinessLogic", "CoreSystem" (split into specific contexts)
+❌ Technical names: "DatabaseContext", "APIGateway" (use business names)
+❌ Overlapping: Ensure each entity belongs to ONE primary context
+
+**DOMAIN KNOWLEDGE TO ANALYZE:**
+```
+{clean_text}
+```
+
+**INSTRUCTIONS:**
+1. Read through ALL the domain knowledge carefully
+2. Identify natural boundaries where terminology, rules, or concepts change
+3. Group related entities, rules, and workflows into cohesive contexts
+4. Name each context using business language (not technical terms)
+5. Aim for 3-8 contexts (too few = lack of separation, too many = over-fragmentation)
+
+**RESPOND WITH:**
+A JSON list of Bounded Context names using PascalCase business terminology.
+Example: {{"contexts": ["OrderManagement", "InventoryTracking", "CustomerRelations", "PaymentProcessing"]}}"""
+
+SPECIALIST_EXTRACTION_PROMPT = """You are a Domain-Driven Design Specialist conducting a deep analysis of the '{context_name}' Bounded Context.
+
+**YOUR FOCUS:** Extract ONLY elements that belong to '{context_name}'. Ignore anything outside this context's boundaries.
+
+**WHAT TO EXTRACT:**
+
+1. **AGGREGATE ROOTS** (Main entities that control consistency boundaries)
+   - Identify the primary entity that owns and protects a cluster of related objects
+   - Example: "Order" (manages OrderItems, OrderStatus)
+   
+2. **ENTITIES** (Objects with unique identity)
+   - List all entities with their key attributes
+   - Show relationships: "Customer HAS-MANY Orders"
+   - Example: 
+     * Customer (id, name, email, loyaltyPoints)
+     * Order (id, orderNumber, customerId, totalAmount, status)
+
+3. **VALUE OBJECTS** (Immutable objects defined by their attributes)
+   - Identify objects without unique identity
+   - Example: Address(street, city, zipCode), Money(amount, currency)
+
+4. **BUSINESS RULES & INVARIANTS**
+   - Extract all constraints and validation rules
+   - Example: "Order total must match sum of OrderItem prices"
+   - Example: "Customer email must be unique"
+   - Example: "Orders cannot be cancelled after shipping"
+
+5. **DOMAIN EVENTS** (Things that happened in this context)
+   - Example: OrderPlaced, OrderShipped, PaymentReceived
+
+6. **DOMAIN SERVICES** (Business operations that don't belong to a single entity)
+   - Example: OrderCalculationService, InventoryAllocationService
+
+**ANALYSIS GUIDELINES:**
+- Be precise and specific - avoid vague descriptions
+- Use business language, not technical jargon
+- Show relationships between entities clearly
+- Highlight any complex business rules or calculations
+- If information is missing or unclear, state it explicitly
+
+**DOMAIN KNOWLEDGE:**
+```
+{sentences}
+```
+
+**RESPOND WITH:**
+A structured analysis covering all 6 categories above. Format as JSON:
+{{
+  "aggregate_roots": ["EntityName1", "EntityName2"],
+  "entities": [
+    {{"name": "EntityName", "attributes": ["attr1", "attr2"], "relationships": ["has-many OrderItems"]}}
+  ],
+  "value_objects": [
+    {{"name": "ValueObjectName", "attributes": ["attr1", "attr2"]}}
+  ],
+  "business_rules": ["Rule 1", "Rule 2"],
+  "domain_events": ["EventName1", "EventName2"],
+  "domain_services": ["ServiceName1", "ServiceName2"]
+}}
+
+If a category has no relevant information, use empty arrays."""
+
+
+SYNTHESIZER_PROMPT = """You are a Chief Software Architect synthesizing domain analysis into a final, production-ready Domain Model.
+
+**YOUR MISSION:**
+Merge multiple Bounded Context analyses into ONE cohesive, conflict-free JSON Domain Model that developers can use immediately.
+
+**SYNTHESIS RULES:**
+
+1. **RESOLVE DUPLICATES INTELLIGENTLY:**
+   - If "Customer" appears in multiple contexts, determine which context owns it
+   - Example: CustomerRelations owns Customer entity, OrderManagement references it
+   - Use entity_id references for cross-context relationships
+
+2. **MAINTAIN CONSISTENCY:**
+   - Standardize naming (choose one: "customerId" vs "customer_id")
+   - Ensure attribute types are consistent across contexts
+   - Align terminology (pick one: "cancelled" vs "canceled")
+
+3. **COMPLETE MISSING INFORMATION:**
+   - Generate realistic sample values for attributes
+   - Infer reasonable data types (string, integer, boolean, date, enum)
+   - Add "description" fields for clarity
+
+4. **OPTIMIZE STRUCTURE:**
+   - Place entities in their PRIMARY context (where they're owned)
+   - Keep value objects close to entities that use them
+   - Ensure aggregate roots are clearly identified
+
+5. **GENERATE METADATA:**
+   - Create a meaningful project_name (e.g., "E-commerce Domain Model")
+   - Add version, generated date, and brief description
+   - Include assumptions or notes if relevant
+
+**CONTEXT ANALYSES TO MERGE:**
+```
+{combined_text}
+```
+
+**OUTPUT SCHEMA REQUIREMENTS:**
+- Must be valid JSON matching the DomainModel schema
+- Include ALL bounded_contexts from analyses
+- Populate ALL required fields (no nulls in required fields)
+- Use meaningful example values
+- Ensure referential integrity (referenced entities must exist)
+
+**RESPOND WITH:**
+A complete, valid JSON object following the DomainModel schema. Ensure it's syntactically correct and semantically meaningful."""
