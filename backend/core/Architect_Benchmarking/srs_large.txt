@@ -1,0 +1,115 @@
+Hospital Management Information System (HMIS)
+1. Introduction
+
+This Software Requirements Specification (SRS) defines the requirements for a Hospital Management Information System (HMIS). The system aims to digitize and integrate hospital operations including patient management, clinical workflows, billing, and reporting.
+
+2. Purpose
+
+The purpose of this document is to provide a comprehensive description of system behavior, constraints, and requirements for developers, healthcare administrators, medical staff, and regulatory bodies.
+
+3. Scope
+
+The HMIS will support patient registration, appointment scheduling, electronic medical records (EMR), laboratory management, pharmacy management, billing, and reporting.
+
+4. Definitions and Acronyms
+
+EMR: Electronic Medical Record
+
+HMIS: Hospital Management Information System
+
+5. Overall Description
+5.1 Product Perspective
+
+The HMIS is a centralized, web-based system that replaces manual and fragmented hospital processes.
+
+5.2 User Classes
+
+Patients
+
+Doctors
+
+Nurses
+
+Administrative Staff
+
+System Administrators
+
+5.3 Operating Environment
+
+Web browsers (Chrome, Firefox, Edge)
+
+Secure hospital network and cloud servers
+
+6. Functional Requirements
+6.1 Patient Management
+
+The system shall register new patients with unique identifiers.
+
+The system shall store patient demographics and medical history.
+
+6.2 Appointment Scheduling
+
+Patients shall request appointments online.
+
+Doctors shall manage their availability schedules.
+
+6.3 Electronic Medical Records
+
+Doctors shall create and update EMRs.
+
+EMRs shall include diagnoses, prescriptions, and test results.
+
+6.4 Laboratory Module
+
+Lab staff shall record test results electronically.
+
+Doctors shall view lab results in patient records.
+
+6.5 Pharmacy Module
+
+Pharmacists shall manage medication inventory.
+
+Prescriptions shall be digitally issued and tracked.
+
+6.6 Billing and Payments
+
+The system shall generate invoices automatically.
+
+The system shall support insurance and self-pay billing.
+
+7. Non-Functional Requirements
+7.1 Performance
+
+The system shall support 5,000 concurrent users.
+
+Response time shall not exceed 2 seconds for critical operations.
+
+7.2 Security
+
+Role-based access control shall be enforced.
+
+All sensitive data shall be encrypted at rest and in transit.
+
+7.3 Reliability and Availability
+
+System uptime shall be at least 99.9%.
+
+Automated backups shall be performed daily.
+
+7.4 Compliance
+
+The system shall comply with healthcare data regulations (e.g., HIPAA-like standards).
+
+8. Constraints
+
+Integration with existing hospital hardware systems.
+
+Regulatory approval requirements.
+
+9. Future Enhancements
+
+AI-assisted diagnostics
+
+Telemedicine integration
+
+Mobile patient applications

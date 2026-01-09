@@ -1,0 +1,266 @@
+{
+  "document": "ecommerce_srs_extremely_poluted_data.txt",
+  "chunks": 40,
+  "iterations": 5,
+  "summary": {
+    "avg_time_ms": 134.53,
+    "avg_relevance": 0.56,
+    "top1_accuracy_pct": 76.0,
+    "top3_accuracy_pct": 92.0,
+    "top1_correct": 19,
+    "top3_correct": 23,
+    "total": 25
+  },
+  "results": [
+    {
+      "test_id": 1,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.1",
+      "retrieved_section": "3.1 Customer Management Context",
+      "avg_time_ms": 152.12,
+      "relevance_score": 0.494,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 2,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.1",
+      "retrieved_section": "3.1 Customer Management Context",
+      "avg_time_ms": 135.24,
+      "relevance_score": 0.58,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 3,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.1",
+      "retrieved_section": "3.1 Customer Management Context",
+      "avg_time_ms": 133.95,
+      "relevance_score": 0.412,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 4,
+      "violation_type": "MissingEntity",
+      "expected_section": "3.1",
+      "retrieved_section": "3.1 Customer Management Context",
+      "avg_time_ms": 134.76,
+      "relevance_score": 0.492,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 5,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.2",
+      "retrieved_section": "5.1 Naming Convention",
+      "avg_time_ms": 138.67,
+      "relevance_score": 0.572,
+      "top1_correct": false,
+      "top3_correct": true
+    },
+    {
+      "test_id": 6,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.2",
+      "retrieved_section": "3.2 Order Processing Context",
+      "avg_time_ms": 133.64,
+      "relevance_score": 0.492,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 7,
+      "violation_type": "MissingEntity",
+      "expected_section": "3.2",
+      "retrieved_section": "3.2 Order Processing Context",
+      "avg_time_ms": 135.62,
+      "relevance_score": 0.521,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 8,
+      "violation_type": "MissingDomainEvent",
+      "expected_section": "3.2",
+      "retrieved_section": "3.2 Order Processing Context",
+      "avg_time_ms": 142.06,
+      "relevance_score": 0.51,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 9,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.3",
+      "retrieved_section": "3.3 Inventory Management Context",
+      "avg_time_ms": 138.86,
+      "relevance_score": 0.623,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 10,
+      "violation_type": "MissingValueObject",
+      "expected_section": "3.3",
+      "retrieved_section": "3.3 Inventory Management Context",
+      "avg_time_ms": 140.78,
+      "relevance_score": 0.622,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 11,
+      "violation_type": "MissingDomainEvent",
+      "expected_section": "3.3",
+      "retrieved_section": "3.3 Inventory Management Context",
+      "avg_time_ms": 132.96,
+      "relevance_score": 0.536,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 12,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.3",
+      "retrieved_section": "5.2 Banned Global Terms",
+      "avg_time_ms": 134.07,
+      "relevance_score": 0.47,
+      "top1_correct": false,
+      "top3_correct": false
+    },
+    {
+      "test_id": 13,
+      "violation_type": "NamingViolation",
+      "expected_section": "3.4",
+      "retrieved_section": "3.4 Payment Processing Context",
+      "avg_time_ms": 130.93,
+      "relevance_score": 0.615,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 14,
+      "violation_type": "MissingValueObject",
+      "expected_section": "3.4",
+      "retrieved_section": "3.4 Payment Processing Context",
+      "avg_time_ms": 132.46,
+      "relevance_score": 0.73,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 15,
+      "violation_type": "MissingDomainEvent",
+      "expected_section": "3.4",
+      "retrieved_section": "3.4 Payment Processing Context",
+      "avg_time_ms": 129.31,
+      "relevance_score": 0.522,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 16,
+      "violation_type": "ContextViolation",
+      "expected_section": "4",
+      "retrieved_section": "3.4 Payment Processing Context",
+      "avg_time_ms": 131.28,
+      "relevance_score": 0.714,
+      "top1_correct": false,
+      "top3_correct": true
+    },
+    {
+      "test_id": 17,
+      "violation_type": "ContextViolation",
+      "expected_section": "4",
+      "retrieved_section": "3.4 Payment Processing Context",
+      "avg_time_ms": 132.24,
+      "relevance_score": 0.605,
+      "top1_correct": false,
+      "top3_correct": false
+    },
+    {
+      "test_id": 18,
+      "violation_type": "NamingViolation",
+      "expected_section": "5.2",
+      "retrieved_section": "5.2 Banned Global Terms",
+      "avg_time_ms": 135.19,
+      "relevance_score": 0.538,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 19,
+      "violation_type": "NamingViolation",
+      "expected_section": "5.2",
+      "retrieved_section": "5.2 Banned Global Terms",
+      "avg_time_ms": 129.27,
+      "relevance_score": 0.519,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 20,
+      "violation_type": "NamingViolation",
+      "expected_section": "5.2",
+      "retrieved_section": "3.4 Payment Processing Context",
+      "avg_time_ms": 133.65,
+      "relevance_score": 0.516,
+      "top1_correct": false,
+      "top3_correct": true
+    },
+    {
+      "test_id": 21,
+      "violation_type": "NamingViolation",
+      "expected_section": "5.2",
+      "retrieved_section": "3.2 Order Processing Context",
+      "avg_time_ms": 131.42,
+      "relevance_score": 0.393,
+      "top1_correct": false,
+      "top3_correct": true
+    },
+    {
+      "test_id": 22,
+      "violation_type": "NamingViolation",
+      "expected_section": "5.2",
+      "retrieved_section": "5.2 Banned Global Terms",
+      "avg_time_ms": 127.9,
+      "relevance_score": 0.512,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 23,
+      "violation_type": "PerformanceViolation",
+      "expected_section": "6.1",
+      "retrieved_section": "6.1 Performance",
+      "avg_time_ms": 136.44,
+      "relevance_score": 0.704,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 24,
+      "violation_type": "SecurityViolation",
+      "expected_section": "6.2",
+      "retrieved_section": "6.2 Security",
+      "avg_time_ms": 130.12,
+      "relevance_score": 0.57,
+      "top1_correct": true,
+      "top3_correct": true
+    },
+    {
+      "test_id": 25,
+      "violation_type": "SecurityViolation",
+      "expected_section": "6.2",
+      "retrieved_section": "6.2 Security",
+      "avg_time_ms": 130.25,
+      "relevance_score": 0.727,
+      "top1_correct": true,
+      "top3_correct": true
+    }
+  ]
+}
