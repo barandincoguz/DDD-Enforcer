@@ -1,0 +1,48 @@
+{
+  "session_start": "2026-01-21T02:02:03.190786",
+  "session_end": "2026-01-21T02:02:05.035627",
+  "summary": {
+    "total_validations": 1,
+    "files_with_violations": 1,
+    "files_without_violations": 0,
+    "violation_rate_percent": 100.0,
+    "total_violations_found": 6,
+    "avg_violations_per_file": 6.0
+  },
+  "performance": {
+    "avg_validation_time_ms": 1844.47,
+    "total_validation_time_ms": 1844.47,
+    "avg_code_size_chars": 141.0,
+    "total_code_size_chars": 141,
+    "avg_code_tokens": 41.0,
+    "total_code_tokens": 41
+  },
+  "rag_integration": {
+    "validations_with_sources": 0,
+    "source_attachment_rate_percent": 0.0
+  },
+  "violation_breakdown": {
+    "SynonymViolation": 2,
+    "BannedTermViolation": 2,
+    "NamingConventionViolation": 2
+  },
+  "validation_history": [
+    {
+      "timestamp": "2026-01-21T02:02:05.035234",
+      "filename": "test.py",
+      "file_size_chars": 141,
+      "code_file_tokens": 41,
+      "validation_time_ms": 1844.4700241088867,
+      "violations_count": 6,
+      "violation_types": [
+        "SynonymViolation",
+        "BannedTermViolation",
+        "NamingConventionViolation",
+        "SynonymViolation",
+        "BannedTermViolation",
+        "NamingConventionViolation"
+      ],
+      "has_sources": false
+    }
+  ]
+}

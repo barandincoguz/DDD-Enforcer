@@ -1,0 +1,215 @@
+{
+  "timestamp": "2026-01-21 01:59:57",
+  "contexts_analyzed": 4,
+  "analyses": [
+    {
+      "context": "Customer Management",
+      "analysis": {
+        "context": "Customer Management",
+        "aggregate_roots": [
+          "Customer"
+        ],
+        "entities": [
+          {
+            "name": "Customer",
+            "attributes": [
+              "CustomerId",
+              "EmailAddress",
+              "ProfileInformation",
+              "Addresses (List<Address>)",
+              "Wishlists (List<Wishlist>)"
+            ]
+          },
+          {
+            "name": "Wishlist",
+            "attributes": [
+              "WishlistId",
+              "Name",
+              "ProductIds (List<ProductId>)"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Address",
+            "attributes": [
+              "Street",
+              "City",
+              "PostalCode",
+              "Country"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Each Customer must have a unique identifier and email address.",
+          "A Customer can have multiple Addresses.",
+          "Addresses store street, city, postal code, and country information.",
+          "The term 'Customer' must be used consistently, banning 'Client', 'User', 'Buyer', or 'Shopper'."
+        ]
+      }
+    },
+    {
+      "context": "Order Processing",
+      "analysis": {
+        "context": "Order Processing",
+        "aggregate_roots": [
+          "Order"
+        ],
+        "entities": [
+          {
+            "name": "Order",
+            "attributes": [
+              "OrderNumber",
+              "CreationDate",
+              "OrderStatus",
+              "CustomerId",
+              "OrderItems (List<OrderItem>)"
+            ]
+          },
+          {
+            "name": "OrderItem",
+            "attributes": [
+              "ProductId",
+              "Quantity",
+              "Price (Money)"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "OrderStatus",
+            "attributes": [
+              "Value (Pending, Confirmed, Shipped, Delivered, Cancelled)"
+            ]
+          }
+        ],
+        "business_rules": [
+          "An Order must have a unique order number, creation date, and status.",
+          "An Order must contain one or more OrderItems.",
+          "Each OrderItem must specify a product and its quantity.",
+          "The OrderStatus transitions through Pending, Confirmed, Shipped, Delivered, or Cancelled.",
+          "Order creation triggers an OrderPlaced event.",
+          "Successful payment processing triggers an OrderConfirmed event.",
+          "Order dispatch triggers an OrderShipped event.",
+          "Delivery confirmation triggers an OrderDelivered event.",
+          "Order cancellation triggers an OrderCancelled event.",
+          "The term 'Order' must be used consistently, banning 'Purchase', 'Transaction', 'Sale', or 'Acquisition'.",
+          "Order Processing depends on Customer Management to retrieve customer information.",
+          "Order Processing depends on Inventory Management to check product availability.",
+          "Order Processing depends on Payment Processing to process payments."
+        ]
+      }
+    },
+    {
+      "context": "Inventory Management",
+      "analysis": {
+        "context": "Inventory Management",
+        "aggregate_roots": [
+          "Product"
+        ],
+        "entities": [
+          {
+            "name": "Product",
+            "attributes": [
+              "SKU",
+              "Name",
+              "Description",
+              "Price (Money)",
+              "Stock (StockLevel)",
+              "CategoryId"
+            ]
+          },
+          {
+            "name": "Category",
+            "attributes": [
+              "CategoryId",
+              "Name"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "StockLevel",
+            "attributes": [
+              "CurrentQuantity",
+              "ReservedQuantity",
+              "ReorderThreshold"
+            ]
+          },
+          {
+            "name": "Money",
+            "attributes": [
+              "Amount",
+              "Currency"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Each Product must have a unique SKU, name, description, and price.",
+          "The StockLevel must track current quantity, reserved quantity, and a reorder threshold for each product.",
+          "A Product's stock falling below its reorder threshold triggers a StockDepleted event.",
+          "New inventory arrival triggers a StockReplenished event.",
+          "Adding a new product triggers a ProductCreated event.",
+          "Removing a product from sale triggers a ProductDiscontinued event.",
+          "The term 'Product' must be used consistently, banning 'Item', 'Good', 'Merchandise', or 'Article'."
+        ]
+      }
+    },
+    {
+      "context": "Payment Processing",
+      "analysis": {
+        "context": "Payment Processing",
+        "aggregate_roots": [
+          "Payment"
+        ],
+        "entities": [
+          {
+            "name": "Payment",
+            "attributes": [
+              "TransactionId",
+              "OrderId",
+              "CustomerId",
+              "Amount (Money)",
+              "PaymentMethodInfo",
+              "PaymentStatus"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "Amount",
+              "Currency"
+            ]
+          },
+          {
+            "name": "PaymentMethodInfo",
+            "attributes": [
+              "Type",
+              "Details"
+            ]
+          },
+          {
+            "name": "PaymentStatus",
+            "attributes": [
+              "Value (Initiated, Completed, Failed, Refunded)"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Each Payment must have a unique transaction ID, amount, currency, and status.",
+          "The Money value object must represent monetary values with an amount and currency.",
+          "Payment method information is used for processing payments.",
+          "Payment processing initiation triggers a PaymentInitiated event.",
+          "Successful payment processing triggers a PaymentCompleted event.",
+          "Declined payments trigger a PaymentFailed event.",
+          "Issuing a refund triggers a RefundProcessed event.",
+          "The term 'Payment' must be used consistently, banning 'Transaction', 'Charge', 'Bill', or 'Invoice' for payment operations.",
+          "Payment Processing requires customer payment methods from Customer Management.",
+          "Payment Processing must not directly depend on Inventory Management."
+        ]
+      }
+    }
+  ]
+}

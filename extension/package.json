@@ -1,27 +1,80 @@
 {
   "name": "ddd-enforcer",
-  "displayName": "extension",
-  "description": "DDD validator",
-  "version": "0.0.1",
+  "displayName": "DDD Enforcer",
+  "description": "Validate your code against Domain-Driven Design rules extracted from SRS documents",
+  "version": "1.0.0",
+  "publisher": "ddd-enforcer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/barandincoguz/DDD-Enforcer"
+  },
   "engines": {
     "vscode": "^1.106.1"
   },
   "categories": [
-    "Other",
-    "Linters"
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "ddd",
+    "domain-driven-design",
+    "validation",
+    "python",
+    "architecture"
   ],
   "activationEvents": [
-    "onLanguage:python",
-    "onStartupFinished"
+    "onLanguage:python"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "ddd-enforcer.validate",
-        "title": "DDD Enforcer Validate Code"
+        "command": "ddd-enforcer.initializeDomainModel",
+        "title": "DDD Enforcer: Initialize Domain Model"
+      },
+      {
+        "command": "ddd-enforcer.validateCurrentFile",
+        "title": "DDD Enforcer: Validate Current File"
+      },
+      {
+        "command": "ddd-enforcer.showStatus",
+        "title": "DDD Enforcer: Show Status"
+      },
+      {
+        "command": "ddd-enforcer.restartBackend",
+        "title": "DDD Enforcer: Restart Backend Server"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "DDD Enforcer",
+      "properties": {
+        "ddd-enforcer.geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Gemini API Key for AI-powered domain model generation and validation"
+        },
+        "ddd-enforcer.backendPort": {
+          "type": "number",
+          "default": 8000,
+          "description": "Preferred port for the backend server (will find available port if occupied)"
+        },
+        "ddd-enforcer.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Path to Python executable"
+        },
+        "ddd-enforcer.validateOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically validate Python files on save"
+        },
+        "ddd-enforcer.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show DDD Enforcer status in the status bar"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -29,7 +82,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -37,11 +91,13 @@
     "@types/vscode": "^1.106.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.0.0",
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.3"
   },
   "dependencies": {
-    "axios": "^1.13.2"
+    "axios": "^1.13.2",
+    "get-port": "^7.0.0"
   }
 }

@@ -16,12 +16,26 @@ vsc-extension-quickstart.md
 .env
 .env.*
 
-# --- Python Artıkları ---
-# Extension klasöründe yanlışlıkla Python çalıştırırsan diye
-__pycache__/
-*.py[cod]
-venv/
-env/
+# --- Python Artıkları (Backend için) ---
+**/__pycache__/
+**/*.py[cod]
+**/venv/
+**/env/
+**/*.egg-info/
+**/.pytest_cache/
+
+# --- Backend Gereksiz Dosyaları ---
+backend/data/**
+backend/domain/**
+backend/inputs/**
+backend/tests/**
+backend/services/**
+backend/core/intermediate/**
+backend/core/*_benchmarking/**
+backend/core/rag_benchmarking/**
+backend/*.json
+backend/*.md
+!backend/requirements.txt
 
 # --- Gereksiz Loglar ---
 npm-debug.log
