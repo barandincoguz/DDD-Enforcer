@@ -145,10 +145,11 @@ async def lifespan(app: FastAPI):
     if app_state.get("domain_rules"):
         try:
             from google import genai
+            from config import AnalyzerConfig
             client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
             domain_model_text = json.dumps(app_state["domain_rules"])
             token_count_response = client.models.count_tokens(
-                model="gemini-2.5-flash-lite",
+                model=AnalyzerConfig.MODEL_NAME,
                 contents=domain_model_text
             )
             app_state["domain_model_tokens"] = token_count_response.total_tokens
@@ -370,9 +371,10 @@ def validate_code(submission: CodeSubmission):
     code_file_tokens = 0
     try:
         from google import genai
+        from config import AnalyzerConfig
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         token_count_response = client.models.count_tokens(
-            model="gemini-2.0-flash-exp",
+            model=AnalyzerConfig.MODEL_NAME,
             contents=submission.content
         )
         code_file_tokens = token_count_response.total_tokens
@@ -583,7 +585,9 @@ def get_combined_metrics():
     Get combined metrics for UBMK presentation.
     
     Returns both token usage and validation metrics with per-validation averages
-    and monthly cost projections.
+    and monthly cost projections. Now supports multi-model pricing:
+    - gemini-2.5-flash for Domain Model Generation
+    - gemini-2.5-flash-lite for Validation
     """
     token_tracker = TokenTracker.get_instance()
     validation_tracker = ValidationMetricsTracker.get_instance()
@@ -591,43 +595,70 @@ def get_combined_metrics():
     token_report = token_tracker.get_report(detailed=False)
     validation_report = validation_tracker.get_report(detailed=False)
     
-    # Calculate per-validation averages
+    # Calculate per-validation averages (using flash-lite pricing for validation)
     total_validations = validation_report.get("summary", {}).get("total_validations", 0)
     per_validation_metrics = {}
     monthly_projections = {}
     
-    if total_validations > 0:
-        total_cost = token_report.get("cost_estimation", {}).get("total_cost", 0)
+    if total_validations > 0 and total_validations is not None:
+        # Get flash-lite specific costs (validation model)
+        flash_lite_cost = token_report.get("cost_estimation", {}).get("flash_lite_model", {}).get("total_cost", 0)
+        flash_lite_input = token_report.get("model_usage", {}).get("gemini-2.5-flash-lite", {}).get("prompt_tokens", 0)
+        flash_lite_output = token_report.get("model_usage", {}).get("gemini-2.5-flash-lite", {}).get("completion_tokens", 0)
+        
         avg_latency = validation_report.get("performance", {}).get("avg_validation_time_ms", 0)
-        total_tokens = token_report.get("summary", {}).get("total_tokens", 0)
-        avg_input_tokens = token_report.get("summary", {}).get("total_prompt_tokens", 0) / total_validations
-        avg_output_tokens = token_report.get("summary", {}).get("total_completion_tokens", 0) / total_validations
         
         per_validation_metrics = {
-            "avg_cost_per_validation": round(total_cost / total_validations, 6),
+            "model": "gemini-2.5-flash-lite",
+            "avg_cost_per_validation": round(flash_lite_cost / total_validations, 8) if total_validations > 0 else 0,
             "avg_latency_ms": round(avg_latency, 2),
-            "avg_tokens_per_validation": round(total_tokens / total_validations, 2),
-            "avg_input_tokens": round(avg_input_tokens, 2),
-            "avg_output_tokens": round(avg_output_tokens, 2)
+            "avg_input_tokens": round(flash_lite_input / total_validations, 2) if total_validations > 0 else 0,
+            "avg_output_tokens": round(flash_lite_output / total_validations, 2) if total_validations > 0 else 0,
+            "avg_total_tokens": round((flash_lite_input + flash_lite_output) / total_validations, 2) if total_validations > 0 else 0
         }
         
-        # Monthly projections (1000 validations/day * 30 days)
+        # Monthly projections (1000 validations/day * 30 days) - using flash-lite pricing
         validations_per_month = 1000 * 30  # 30,000 validations
-        monthly_cost = (total_cost / total_validations) * validations_per_month
+        cost_per_validation = flash_lite_cost / total_validations if total_validations > 0 else 0
+        monthly_cost = cost_per_validation * validations_per_month
         
         monthly_projections = {
             "validations_per_day": 1000,
             "validations_per_month": validations_per_month,
-            "estimated_monthly_cost": round(monthly_cost, 2),
-            "estimated_monthly_input_tokens": round(avg_input_tokens * validations_per_month, 0),
-            "estimated_monthly_output_tokens": round(avg_output_tokens * validations_per_month, 0),
-            "currency": "USD"
+            "estimated_monthly_cost": round(monthly_cost, 4),
+            "estimated_monthly_input_tokens": round((flash_lite_input / total_validations) * validations_per_month, 0) if total_validations > 0 else 0,
+            "estimated_monthly_output_tokens": round((flash_lite_output / total_validations) * validations_per_month, 0) if total_validations > 0 else 0,
+            "currency": "USD",
+            "model": "gemini-2.5-flash-lite",
+            "pricing": {
+                "input_per_1m": 0.075,
+                "output_per_1m": 0.30
+            }
         }
     
-    # Domain model information
+    # Domain model information (generated with flash model)
     domain_info = {
         "domain_model_tokens": app_state.get("domain_model_tokens", 0),
-        "domain_model_path": str(DOMAIN_MODEL_PATH) if DOMAIN_MODEL_PATH.exists() else None
+        "domain_model_path": str(DOMAIN_MODEL_PATH) if DOMAIN_MODEL_PATH.exists() else None,
+        "generation_model": "gemini-2.5-flash"
+    }
+    
+    # Model pricing reference
+    pricing_reference = {
+        "gemini-2.5-flash": {
+            "use_case": "Domain Model Generation",
+            "stages": ["Scout", "Architect", "Specialist", "Synthesizer"],
+            "input_per_1m_tokens": 0.30,
+            "output_per_1m_tokens": 2.50,
+            "note": "Output price includes thinking tokens"
+        },
+        "gemini-2.5-flash-lite": {
+            "use_case": "Code Validation",
+            "stages": ["Validator"],
+            "input_per_1m_tokens": 0.10,
+            "output_per_1m_tokens": 0.40,
+            "note": "Output price includes thinking tokens"
+        }
     }
     
     return {
@@ -635,35 +666,15 @@ def get_combined_metrics():
         "token_usage": token_report,
         "validation_metrics": validation_report,
         "per_validation_averages": per_validation_metrics,
-        "monthly_projections": monthly_projections
-    }
-    
-    return {
-        "token_usage": token_report,
-        "validation_metrics": validation_report,
-        "per_validation_averages": per_validation_metrics
+        "monthly_projections": monthly_projections,
+        "pricing_reference": pricing_reference
     }
 
 
 # =============================================================================
-# RAG DIAGNOSTIC ENDPOINTS
+# MAIN ENTRY POINT
 # =============================================================================
 
-
-@app.get("/rag/stats")
-def get_rag_stats():
-    """Get RAG index statistics."""
-    rag = app_state.get("rag")
-    if not rag:
-        return {"status": "not_initialized", "message": "RAG pipeline not available"}
-    return rag.get_stats()
-
-
-@app.get("/rag/search")
-def search_documents(query: str, n_results: int = 5):
-    """Search indexed documents by query."""
-    rag = app_state.get("rag")
-    if not rag:
-        return {"status": "not_initialized", "message": "RAG pipeline not available"}
-    return rag.search(query, top_k=n_results)
-
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)

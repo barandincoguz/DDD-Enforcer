@@ -8,19 +8,38 @@ This system automatically tracks all LLM API calls and calculates cost estimatio
 
 - ✅ **Automatic Tracking**: Every Gemini API call is automatically tracked
 - ✅ **Stage Breakdown**: Token usage separated by pipeline stage (Scout, Architect, Specialist, Synthesizer, Validator)
-- ✅ **Cost Estimation**: Real-time cost calculation based on Gemini 2.5 Flash pricing
+- ✅ **Cost Estimation**: Real-time cost calculation based on multi-model pricing
 - ✅ **Detailed Logs**: Per-call timestamp, operation name, and token counts
 - ✅ **JSON Export**: Full reports exportable for analysis
 
-## Pricing (Gemini 2.5 Flash PAID Tier - December 12, 2025)
+## Model Configuration
+
+We use two different models for different purposes:
+
+| Model                 | Use Case                | Stages                                    |
+| --------------------- | ----------------------- | ----------------------------------------- |
+| gemini-2.5-flash      | Domain Model Generation | Scout, Architect, Specialist, Synthesizer |
+| gemini-2.5-flash-lite | Code Validation         | Validator                                 |
+
+## Pricing (PAID Tier - January 2026)
 
 **Official Source**: https://ai.google.dev/gemini-api/docs/pricing
 
-| Type                | Price per 1M tokens | Price per token | Notes                               |
-| ------------------- | ------------------- | --------------- | ----------------------------------- |
-| Input (Prompt)      | $0.30               | $0.000000300    | Text/Image/Video input              |
-| Output (Completion) | $2.50               | $0.000002500    | Generated text (includes reasoning) |
-| Context Caching     | $0.03               | $0.000000030    | Cached input reuse (10x cheaper)    |
+### Gemini 2.5 Flash (Domain Model Generation)
+
+| Type                | Price per 1M tokens | Price per token | Notes                    |
+| ------------------- | ------------------- | --------------- | ------------------------ |
+| Input (Prompt)      | $0.30               | $0.000000300    | Text/Image/Video input   |
+| Output (Completion) | $2.50               | $0.000002500    | Includes thinking tokens |
+| Context Caching     | $0.03               | $0.000000030    | Cached input reuse       |
+
+### Gemini 2.5 Flash-Lite (Validation)
+
+| Type                | Price per 1M tokens | Price per token | Notes                    |
+| ------------------- | ------------------- | --------------- | ------------------------ |
+| Input (Prompt)      | $0.10               | $0.000000100    | Text/Image/Video input   |
+| Output (Completion) | $0.40               | $0.000000400    | Includes thinking tokens |
+| Context Caching     | $0.01               | $0.000000010    | Cached input reuse       |
 
 ### Token Types
 
@@ -32,17 +51,21 @@ This system automatically tracks all LLM API calls and calculates cost estimatio
 ### Billing Formula
 
 ```python
-billable_input = prompt_tokens - cached_tokens
-input_cost = billable_input × $0.30 / 1M
-cache_cost = cached_tokens × $0.03 / 1M  # When caching is enabled
-output_cost = completion_tokens × $2.50 / 1M
-total_cost = input_cost + cache_cost + output_cost
+# For Flash model (Domain Model Generation)
+flash_input_cost = prompt_tokens × $0.30 / 1M
+flash_output_cost = completion_tokens × $2.50 / 1M
+
+# For Flash-Lite model (Validation)
+lite_input_cost = prompt_tokens × $0.10 / 1M
+lite_output_cost = completion_tokens × $0.40 / 1M
+
+total_cost = flash_total + lite_total
 ```
 
 ### Important Notes
 
-- ⚠️ **All reasoning is included in completion tokens** (no separate thinking tokens)
-- 💾 **Context caching is NOT free** - It's 10x cheaper ($0.03 vs $0.30) but still billed
+- ⚠️ **All reasoning/thinking is included in completion tokens** (output price covers thinking)
+- 💾 **Context caching is NOT free** - It's cheaper but still billed
 - 🔄 **Implicit caching** is enabled by default for prompts > 1024 tokens
 - 📊 **Cached tokens are INCLUDED in prompt_token_count** - Must subtract for billing accuracy
 

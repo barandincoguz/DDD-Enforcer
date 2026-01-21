@@ -1,48 +1,43 @@
 {
-  "session_start": "2026-01-21T02:02:03.190786",
-  "session_end": "2026-01-21T02:02:05.035627",
+  "session_start": "2026-01-21T15:23:29.085895",
+  "session_end": "2026-01-21T15:23:29.086247",
   "summary": {
     "total_validations": 1,
     "files_with_violations": 1,
     "files_without_violations": 0,
     "violation_rate_percent": 100.0,
-    "total_violations_found": 6,
-    "avg_violations_per_file": 6.0
+    "total_violations_found": 2,
+    "avg_violations_per_file": 2.0
   },
   "performance": {
-    "avg_validation_time_ms": 1844.47,
-    "total_validation_time_ms": 1844.47,
-    "avg_code_size_chars": 141.0,
-    "total_code_size_chars": 141,
-    "avg_code_tokens": 41.0,
-    "total_code_tokens": 41
+    "avg_validation_time_ms": 50.0,
+    "total_validation_time_ms": 50.0,
+    "avg_code_size_chars": 100.0,
+    "total_code_size_chars": 100,
+    "avg_code_tokens": 50.0,
+    "total_code_tokens": 50
   },
   "rag_integration": {
-    "validations_with_sources": 0,
-    "source_attachment_rate_percent": 0.0
+    "validations_with_sources": 1,
+    "source_attachment_rate_percent": 100.0
   },
   "violation_breakdown": {
-    "SynonymViolation": 2,
-    "BannedTermViolation": 2,
-    "NamingConventionViolation": 2
+    "SynonymViolation": 1,
+    "BannedTermViolation": 1
   },
   "validation_history": [
     {
-      "timestamp": "2026-01-21T02:02:05.035234",
+      "timestamp": "2026-01-21T15:23:29.086138",
       "filename": "test.py",
-      "file_size_chars": 141,
-      "code_file_tokens": 41,
-      "validation_time_ms": 1844.4700241088867,
-      "violations_count": 6,
+      "file_size_chars": 100,
+      "code_file_tokens": 50,
+      "validation_time_ms": 50.0,
+      "violations_count": 2,
       "violation_types": [
         "SynonymViolation",
-        "BannedTermViolation",
-        "NamingConventionViolation",
-        "SynonymViolation",
-        "BannedTermViolation",
-        "NamingConventionViolation"
+        "BannedTermViolation"
       ],
-      "has_sources": false
+      "has_sources": true
     }
   ]
 }

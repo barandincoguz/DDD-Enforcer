@@ -281,26 +281,23 @@ class ClientManager:
 ```
 DDD-Enforcer/
 │
-├── 🐍 backend/
-│   ├── 📂 core/
-│   │   ├── __init__.py
-│   │   ├── llm_client.py      # Gemini API integration
-│   │   └── parser.py          # AST parsing engine
-│   │
-│   ├── 📂 domain/
-│   │   ├── __init__.py
-│   │   └── model.json         # DDD rules configuration
-│   │
-│   ├── 📂 services/           # Business logic services
-│   ├── 📂 tests/              # Unit & integration tests
-│   │
-│   ├── main.py                # FastAPI entry point
-│   └── requirements.txt       # Python dependencies
-│
 ├── 🧩 extension/
 │   ├── 📂 src/
 │   │   ├── extension.ts       # Extension entry point
 │   │   └── test/              # Extension tests
+│   │
+│   ├── 📂 backend/            # Bundled FastAPI backend
+│   │   ├── 📂 core/
+│   │   │   ├── __init__.py
+│   │   │   ├── llm_client.py      # Gemini API integration
+│   │   │   ├── token_tracker.py   # Token usage & cost tracking
+│   │   │   └── parser.py          # AST parsing engine
+│   │   │
+│   │   ├── 📂 domain/
+│   │   │   └── model.json         # DDD rules configuration
+│   │   │
+│   │   ├── main.py                # FastAPI entry point
+│   │   └── requirements.txt       # Python dependencies
 │   │
 │   ├── package.json           # Extension manifest
 │   └── tsconfig.json          # TypeScript config

@@ -886,13 +886,18 @@ function getBackendPath(context: vscode.ExtensionContext): string {
     return bundledPath;
   }
 
-  // In development: use workspace backend
+  // In development: use extension/backend from workspace
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (workspaceFolders) {
     for (const folder of workspaceFolders) {
-      const devPath = path.join(folder.uri.fsPath, "backend");
-      if (fs.existsSync(devPath)) {
-        return devPath;
+      // First try extension/backend (new structure)
+      const extensionBackendPath = path.join(
+        folder.uri.fsPath,
+        "extension",
+        "backend",
+      );
+      if (fs.existsSync(extensionBackendPath)) {
+        return extensionBackendPath;
       }
     }
   }

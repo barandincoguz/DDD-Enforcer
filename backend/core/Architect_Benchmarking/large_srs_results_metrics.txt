@@ -1,9 +1,0 @@
-base_file_size : 2666 character
-    file_token_size : ~666 token
-    "latency": 149.035205 saniye 
-    "input_cost": 0.002172
-    "output_cost": 0.0307
-    "total_cost": 0.032872
-
-    
-    
