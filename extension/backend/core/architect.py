@@ -165,14 +165,20 @@ class DomainArchitect:
         self, chunk: str, chunk_num: int, total_chunks: int
     ) -> List[str]:
         """Extract domain sentences from a single chunk."""
-        prompt = f"""Extract ALL domain-relevant sentences from this SRS document chunk.
+        prompt = f"""Extract domain-relevant sentences from this SRS document chunk.
 
-Focus on:
-- Business entities and their attributes
-- Business rules, constraints, and validations
-- Workflows, processes, and use cases
-- Data relationships and dependencies
-- Business calculations and formulas
+INCLUDE sentences about:
+- Business entities and their attributes (Customer, Order, Product)
+- Business rules and constraints ("must", "cannot", "only if")
+- Workflows and processes (order fulfillment, payment processing)
+- Data relationships (Customer has Orders, Order contains Items)
+- Calculations and formulas
+
+EXCLUDE:
+- Table of contents, headers, page numbers
+- Legal text, disclaimers, copyright
+- UI/UX details (colors, fonts, layouts)
+- Technical implementation (database, API, code)
 
 TEXT CHUNK {chunk_num}/{total_chunks}:
 {chunk}
@@ -182,7 +188,7 @@ RESPOND WITH JSON:
   "sentences": ["sentence1", "sentence2", ...]
 }}
 
-Extract ALL relevant sentences, no limit."""
+Return empty array if no relevant content found. Maximum 100 sentences per chunk."""
 
         for retry in range(5):
             try:
@@ -259,23 +265,26 @@ Extract ALL relevant sentences, no limit."""
             print(f"  ✂️  Truncating input: {len(text):,} → {max_chars:,} chars")
             text = text[:max_chars]
 
-        prompt = f"""Analyze the domain knowledge below and identify distinct Bounded Contexts.
+        prompt = f"""Identify distinct Bounded Contexts from the domain knowledge below.
 
-A Bounded Context is a cohesive business area with its own:
-- Terminology and language
-- Entities and rules
-- Team ownership
-- Change frequency
+A Bounded Context is a cohesive business area with:
+- Its own terminology and ubiquitous language
+- Clear ownership of specific entities
+- Defined boundaries and responsibilities
 
 DOMAIN KNOWLEDGE:
 {text}
 
+CONSTRAINTS:
+- Identify 3-8 contexts (avoid over/under-fragmentation)
+- Use PascalCase business names (OrderManagement, not order_mgmt)
+- Each entity belongs to ONE primary context
+- Avoid generic names (CoreDomain, BusinessLogic, MainSystem)
+
 RESPOND WITH JSON:
 {{
   "contexts": ["ContextName1", "ContextName2", ...]
-}}
-
-Identify ALL contexts. Use business-meaningful names (e.g., OrderManagement)."""
+}}"""
 
         for retry in range(5):
             try:
@@ -378,13 +387,13 @@ Identify ALL contexts. Use business-meaningful names (e.g., OrderManagement)."""
             print(f"  ✂️  Truncating input: {len(sentences_text):,} → {max_chars:,} chars")
             sentences_text = sentences_text[:max_chars]
 
-        prompt = f"""You are a DDD Expert. Analyze the domain knowledge for ALL these contexts: {contexts_text}
+        prompt = f"""Analyze the domain knowledge for these Bounded Contexts: {contexts_text}
 
 For EACH context, extract:
-1. Aggregate Roots
-2. Entities (with attributes)
-3. Value Objects
-4. Business Rules
+1. Aggregate Roots - Primary entities that control consistency boundaries
+2. Entities - Objects with unique identity and their key attributes
+3. Value Objects - Immutable objects defined by attributes (Address, Money)
+4. Business Rules - Constraints, validations, invariants
 
 DOMAIN KNOWLEDGE:
 {sentences_text}
@@ -393,14 +402,16 @@ RESPOND WITH JSON:
 {{
   "analyses": [
     {{
-      "context": "ContextName1",
-      "aggregate_roots": ["Root1", "Root2"],
-      "entities": [{{"name": "Entity1", "attributes": ["attr1"]}}],
-      "value_objects": [{{"name": "VO1", "attributes": ["attr1"]}}],
-      "business_rules": ["Rule 1", "Rule 2"]
+      "context": "ContextName",
+      "aggregate_roots": ["Root1"],
+      "entities": [{{"name": "Entity1", "attributes": ["id", "name", "status"]}}],
+      "value_objects": [{{"name": "Money", "attributes": ["amount", "currency"]}}],
+      "business_rules": ["Orders must have at least one item"]
     }}
   ]
-}}"""
+}}
+
+If a category has no data, use empty arrays. Do not invent data."""
 
         for retry in range(5):
             try:
@@ -489,51 +500,52 @@ RESPOND WITH JSON:
         print("└─────────────────────────────────────────────────────────────────┘")
         print("  🔨 Merging analyses into cohesive model...")
 
-        prompt = f"""You are a Chief Software Architect. Synthesize the following Bounded Context analyses into ONE cohesive Domain Model JSON.
+        prompt = f"""Synthesize Bounded Context analyses into a cohesive Domain Model.
 
-RULES:
-1. Resolve duplicate entities intelligently
-2. Maintain naming consistency
-3. Generate realistic sample values
-4. Place entities in their primary context
-5. Create meaningful project metadata
+SYNTHESIS RULES:
+1. Resolve duplicates: Each entity belongs to ONE primary context
+2. Generate synonyms_to_avoid for each entity (common alternative names to flag)
+3. Define allowed_dependencies between contexts (which contexts can reference which)
+4. Ensure naming consistency: PascalCase for all names
 
 CONTEXT ANALYSES:
 {json.dumps(analyses, indent=2)}
 
-RESPOND WITH JSON matching this schema:
+OUTPUT SCHEMA (must match exactly):
 {{
-  "project_name": "ProjectName",
+  "project_name": "ProjectNameDomainModel",
   "project_metadata": {{
     "version": "1.0",
-    "generated_at": "2025-12-11",
-    "description": "Description"
+    "generated_at": "YYYY-MM-DD",
+    "description": "Brief description"
   }},
   "bounded_contexts": [
     {{
       "context_name": "ContextName",
-      "description": "What this context does",
+      "description": "What this context manages",
+      "allowed_dependencies": ["OtherContext1"],
       "ubiquitous_language": {{
         "entities": [{{
           "name": "EntityName",
-          "description": "Entity description",
-          "synonyms_to_avoid": ["Synonym1"]
+          "description": "Entity purpose",
+          "synonyms_to_avoid": ["Synonym1", "Synonym2"]
         }}],
         "value_objects": [{{
           "name": "ValueObjectName",
-          "attributes": ["attribute1", "attribute2"],
-          "description": "Value object description"
+          "attributes": ["attr1", "attr2"],
+          "description": "Value object purpose"
         }}],
-        "domain_events": ["EventName1", "EventName2"]
-      }},
-      "allowed_dependencies": []
+        "domain_events": ["EventName1"]
+      }}
     }}
   ],
   "global_rules": {{
     "naming_convention": "PascalCase",
-    "banned_global_terms": ["Manager", "Util"]
+    "banned_global_terms": ["Manager", "Util", "Helper", "Data", "Info"]
   }}
-}}"""
+}}
+
+CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."""
 
         for retry in range(5):
             try:

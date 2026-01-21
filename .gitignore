@@ -107,4 +107,5 @@ Desktop.ini
 # Buraya proje özelinde istemediğin dosyaları ekleyebilirsin
 audit_logs/
 temp/
-misc/
+misc/.DS_Store
+token_usage_report.json
