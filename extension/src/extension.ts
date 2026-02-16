@@ -117,6 +117,10 @@ let outputChannel: vscode.OutputChannel;
 let isBackendReady: boolean = false;
 let backendStarting: boolean = false;
 
+// Track last validated normalized content per document.
+// Normalization removes blank lines so empty-line-only edits won't trigger validation.
+const lastValidatedContentFingerprint = new Map<string, string>();
+
 // Store sources for code actions (keyed by document URI + line number)
 const violationSources = new Map<string, ViolationSource[]>();
 
@@ -204,6 +208,15 @@ export function activate(context: vscode.ExtensionContext) {
         if (shouldSkipValidation(document.uri.fsPath, context)) {
           return;
         }
+
+        // Skip if this save has no content change since last successful validation
+        if (!shouldValidateOnSave(document)) {
+          log(
+            `Validation skipped: no changes detected in file '${path.basename(document.fileName)}' (same document version).`,
+          );
+          return;
+        }
+
         await ensureBackendRunning(context);
         if (isBackendReady) {
           await validateCode(document, diagnosticCollection);
@@ -891,6 +904,12 @@ async function validateCode(
       { timeout: 30000 },
     );
 
+    // Mark this normalized content as validated after successful API call
+    lastValidatedContentFingerprint.set(
+      document.uri.toString(),
+      getValidationFingerprint(document.getText()),
+    );
+
     const data = response.data;
 
     // Log metrics if available
@@ -936,6 +955,32 @@ async function validateCode(
       );
     }
   }
+}
+
+/**
+ * Returns true when this save should trigger backend validation.
+ * Uses normalized content fingerprint (blank lines removed) so empty-line-only
+ * edits do not trigger backend validation.
+ */
+function shouldValidateOnSave(document: vscode.TextDocument): boolean {
+  const key = document.uri.toString();
+  const lastFingerprint = lastValidatedContentFingerprint.get(key);
+  const currentFingerprint = getValidationFingerprint(document.getText());
+
+  return (
+    lastFingerprint === undefined || lastFingerprint !== currentFingerprint
+  );
+}
+
+/**
+ * Creates a stable fingerprint for validation decisions.
+ * Blank/whitespace-only lines are ignored intentionally.
+ */
+function getValidationFingerprint(content: string): string {
+  return content
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0)
+    .join("\n");
 }
 
 /**

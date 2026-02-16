@@ -1,0 +1,84 @@
+{
+  "session_start": "2026-02-16T12:47:08.804171",
+  "session_end": "2026-02-16T12:47:39.248999",
+  "summary": {
+    "total_validations": 2,
+    "files_with_violations": 2,
+    "files_without_violations": 0,
+    "violation_rate_percent": 100.0,
+    "total_violations_found": 32,
+    "avg_violations_per_file": 16.0
+  },
+  "performance": {
+    "avg_validation_time_ms": 4955.16,
+    "total_validation_time_ms": 9910.33,
+    "avg_code_size_chars": 2829.5,
+    "total_code_size_chars": 5659,
+    "avg_code_tokens": 766.0,
+    "total_code_tokens": 1532
+  },
+  "rag_integration": {
+    "validations_with_sources": 0,
+    "source_attachment_rate_percent": 0.0
+  },
+  "violation_breakdown": {
+    "SynonymViolation": 26,
+    "BannedTermViolation": 6
+  },
+  "validation_history": [
+    {
+      "timestamp": "2026-02-16T12:47:12.963233",
+      "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
+      "file_size_chars": 2829,
+      "code_file_tokens": 766,
+      "validation_time_ms": 4159.072637557983,
+      "violations_count": 16,
+      "violation_types": [
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "BannedTermViolation",
+        "BannedTermViolation",
+        "BannedTermViolation"
+      ],
+      "has_sources": false
+    },
+    {
+      "timestamp": "2026-02-16T12:47:39.248527",
+      "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
+      "file_size_chars": 2830,
+      "code_file_tokens": 766,
+      "validation_time_ms": 5751.256227493286,
+      "violations_count": 16,
+      "violation_types": [
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "BannedTermViolation",
+        "BannedTermViolation",
+        "BannedTermViolation"
+      ],
+      "has_sources": false
+    }
+  ]
+}
