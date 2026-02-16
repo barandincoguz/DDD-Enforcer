@@ -17,7 +17,10 @@ env/
 .env
 .env.local
 .env.*
-
+./backend/.env
+./backend/.env.*
+/Users/barandincoguz/Desktop/DDD-Enforcer/extension/backend/.env
+/Users/barandincoguz/Desktop/DDD-Enforcer/extension/backend/.env.*
 # Distribution / Packaging
 build/
 develop-eggs/
