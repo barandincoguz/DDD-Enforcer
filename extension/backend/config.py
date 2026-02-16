@@ -99,7 +99,7 @@ class AnalyzerConfig:
 
     MODEL_NAME: str = "gemini-2.5-flash-lite"
     RESPONSE_MIME_TYPE: str = "application/json"
-    TEMPERATURE: float = 0.05
+    TEMPERATURE: float = 0.05  # Very low temperature for consistent validation results
 
 
 class ArchitectConfig:
@@ -107,7 +107,8 @@ class ArchitectConfig:
 
     MODEL_NAME: str = "gemini-2.5-flash"
     RESPONSE_MIME_TYPE: str = "application/json"
-    TEMPERATURE: float = 0.10 # Slight randomness for better naming choices, still highly consistent
+    TEMPERATURE: float = 0.05  # Fully deterministic for consistent results
+    SEED: int = 42  # Fixed seed for reproducibility
  
 
 # =============================================================================

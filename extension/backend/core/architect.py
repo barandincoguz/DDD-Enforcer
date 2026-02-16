@@ -15,7 +15,7 @@ import json
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from dotenv import load_dotenv
 from google import genai
@@ -30,13 +30,16 @@ load_dotenv()
 # Intermediate outputs directory
 INTERMEDIATE_DIR = os.path.join(os.path.dirname(__file__), "intermediate")
 
+# Type alias for progress callback
+ProgressCallback = Optional[Callable[[Dict[str, Any]], None]]
+
 
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
 
     LLMConfig = ArchitectConfig()
 
-    def __init__(self, model: str = LLMConfig.MODEL_NAME):
+    def __init__(self, model: str = LLMConfig.MODEL_NAME, progress_callback: ProgressCallback = None):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
@@ -47,6 +50,7 @@ class DomainArchitect:
         self.min_delay = 6.0
         self.request_count = 0
         self.token_tracker = TokenTracker.get_instance()
+        self.progress_callback = progress_callback
         
         # Ensure intermediate directory exists
         os.makedirs(INTERMEDIATE_DIR, exist_ok=True)
@@ -58,6 +62,16 @@ class DomainArchitect:
         print(f"  Model: {model}")
         print(f"  Rate Limit: {self.min_delay}s between requests")
         print("="*70 + "\n")
+
+    def _report_progress(self, stage: str, status: str, detail: str = "", progress: int = 0):
+        """Report progress to callback if available."""
+        if self.progress_callback:
+            self.progress_callback({
+                "stage": stage,
+                "status": status,
+                "detail": detail,
+                "progress": progress
+            })
 
     # =========================================================================
     # RATE LIMITING & ERROR HANDLING
@@ -113,6 +127,8 @@ class DomainArchitect:
         print("\n┌─────────────────────────────────────────────────────────────────┐")
         print("│ STAGE 1: SCOUT - Extracting Domain Knowledge                   │")
         print("└─────────────────────────────────────────────────────────────────┘")
+        
+        self._report_progress("Scout", "started", "Extracting domain sentences", 0)
 
         chunk_size = 10000
         chunks = self._split_text_into_chunks(clean_text, chunk_size)
@@ -122,12 +138,14 @@ class DomainArchitect:
         print(f"  🔪 Chunks: {len(chunks)} (max {chunk_size:,} chars each)")
 
         for i, chunk in enumerate(chunks):
-            progress = (i + 1) / len(chunks) * 100
-            print(f"  ▶️  Chunk {i + 1}/{len(chunks)} ({len(chunk):,} chars) [{progress:.0f}%]")
+            progress = int((i + 1) / len(chunks) * 100)
+            print(f"  ▶️  Chunk {i + 1}/{len(chunks)} ({len(chunk):,} chars) [{progress}%]")
+            self._report_progress("Scout", "in_progress", f"Processing chunk {i + 1}/{len(chunks)}", progress)
             sentences = self._extract_sentences_from_chunk(chunk, i + 1, len(chunks))
             all_sentences.extend(sentences)
 
         print(f"  ✅ Extracted {len(all_sentences)} domain-relevant sentences\n")
+        self._report_progress("Scout", "completed", f"Extracted {len(all_sentences)} sentences", 100)
         
         # Save intermediate output
         self._save_intermediate(
@@ -165,30 +183,37 @@ class DomainArchitect:
         self, chunk: str, chunk_num: int, total_chunks: int
     ) -> List[str]:
         """Extract domain sentences from a single chunk."""
-        prompt = f"""Extract domain-relevant sentences from this SRS document chunk.
+        prompt = f"""Extract EXACTLY the domain-relevant sentences from this SRS document chunk.
 
-INCLUDE sentences about:
-- Business entities and their attributes (Customer, Order, Product)
-- Business rules and constraints ("must", "cannot", "only if")
-- Workflows and processes (order fulfillment, payment processing)
-- Data relationships (Customer has Orders, Order contains Items)
-- Calculations and formulas
+STRICT INCLUSION CRITERIA (include ONLY if sentence matches):
+1. Defines a business entity with attributes (e.g., "Customer has name, email, address")
+2. States a business rule with keywords: "must", "shall", "cannot", "only if", "required"
+3. Describes a workflow step (e.g., "Order is placed", "Payment is processed")
+4. Defines a relationship (e.g., "Customer places Orders", "Order contains Items")
+5. Contains a formula or calculation rule
 
-EXCLUDE:
-- Table of contents, headers, page numbers
-- Legal text, disclaimers, copyright
-- UI/UX details (colors, fonts, layouts)
-- Technical implementation (database, API, code)
+STRICT EXCLUSION CRITERIA (NEVER include):
+- Headers, titles, section numbers
+- Legal/copyright text
+- UI descriptions (colors, buttons, layouts)
+- Technical details (database, API, code)
+- General descriptions without specific rules
+
+EXTRACTION RULES:
+- Extract sentences verbatim - do not paraphrase
+- One sentence = one array element
+- Skip duplicate or near-duplicate sentences
+- Minimum sentence length: 15 characters
 
 TEXT CHUNK {chunk_num}/{total_chunks}:
 {chunk}
 
 RESPOND WITH JSON:
 {{
-  "sentences": ["sentence1", "sentence2", ...]
+  "sentences": ["exact sentence 1", "exact sentence 2", ...]
 }}
 
-Return empty array if no relevant content found. Maximum 100 sentences per chunk."""
+Return empty array [] if no sentences match the criteria."""
 
         for retry in range(5):
             try:
@@ -198,6 +223,8 @@ Return empty array if no relevant content found. Maximum 100 sentences per chunk
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
+                        temperature=0.05,  # Fully deterministic
+                        seed=42,  # Fixed seed for reproducibility
                     ),
                 )
                 
@@ -258,6 +285,8 @@ Return empty array if no relevant content found. Maximum 100 sentences per chunk
         print("\n┌─────────────────────────────────────────────────────────────────┐")
         print("│ STAGE 2: ARCHITECT - Identifying Bounded Contexts              │")
         print("└─────────────────────────────────────────────────────────────────┘")
+        
+        self._report_progress("Architect", "started", "Identifying bounded contexts", 0)
 
         text = "\n".join(domain_sentences)
         max_chars = 50000
@@ -294,6 +323,8 @@ RESPOND WITH JSON:
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
+                        temperature=0.05,  # Fully deterministic
+                        seed=42,  # Fixed seed for reproducibility
                     ),
                 )
 
@@ -313,6 +344,7 @@ RESPOND WITH JSON:
                     if retry < 4:
                         continue
                     print("  ⚠️  Max retries reached, using fallback context")
+                    self._report_progress("Architect", "completed", "Using fallback context", 100)
                     return ["CoreDomain"]
 
                 # Track token usage only for successful responses
@@ -335,6 +367,7 @@ RESPOND WITH JSON:
                                 "input_sentences_count": len(domain_sentences)
                             }
                         )
+                        self._report_progress("Architect", "completed", f"Found {len(contexts)} contexts", 100)
                         return contexts
                 elif isinstance(result, list) and len(result) > 0:
                     # Save intermediate output
@@ -347,16 +380,19 @@ RESPOND WITH JSON:
                             "input_sentences_count": len(domain_sentences)
                         }
                     )
+                    self._report_progress("Architect", "completed", f"Found {len(result)} contexts", 100)
                     return result
 
                 print(f"  ⚠️  Empty response - Retry {retry + 1}/5")
                 if retry < 4:
                     continue
+                self._report_progress("Architect", "completed", "Using fallback context", 100)
                 return ["CoreDomain"]
 
             except Exception as e:
                 if self._handle_quota_error(e, retry) == 0:
                     print(f"   [WARN] Context identification error: {e}")
+                    self._report_progress("Architect", "error", str(e), 100)
                     return ["CoreDomain"]
 
         return ["CoreDomain"]
@@ -378,6 +414,8 @@ RESPOND WITH JSON:
         print("│ STAGE 3: SPECIALIST - Analyzing Context Details                │")
         print("└─────────────────────────────────────────────────────────────────┘")
         print(f"  🔍 Analyzing {len(contexts)} contexts in single request")
+        
+        self._report_progress("Specialist", "started", f"Analyzing {len(contexts)} contexts", 0)
 
         contexts_text = ", ".join(contexts)
         sentences_text = "\n".join(domain_sentences)
@@ -421,6 +459,8 @@ If a category has no data, use empty arrays. Do not invent data."""
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
+                        temperature=0.05,  # Fully deterministic
+                        seed=42,  # Fixed seed for reproducibility
                     ),
                 )
                 
@@ -467,18 +507,22 @@ If a category has no data, use empty arrays. Do not invent data."""
                             "analyses": analyses
                         }
                     )
+                    self._report_progress("Specialist", "completed", f"Analyzed {len(analyses)} contexts", 100)
                     return analyses
+                self._report_progress("Specialist", "completed", "Analysis completed", 100)
                 return [{"context": ctx, "analysis": {}} for ctx in contexts]
 
             except Exception as e:
                 if self._handle_quota_error(e, retry) == 0:
                     print(f"   [WARN] Analysis error: {e}")
                     if retry >= 4:
+                        self._report_progress("Specialist", "error", str(e), 100)
                         return [
                             {"context": ctx, "analysis": {"error": str(e)}}
                             for ctx in contexts
                         ]
 
+        self._report_progress("Specialist", "error", "Retries exhausted", 100)
         return [
             {"context": ctx, "analysis": {"error": "retries_exhausted"}}
             for ctx in contexts
@@ -499,6 +543,8 @@ If a category has no data, use empty arrays. Do not invent data."""
         print("│ STAGE 4: SYNTHESIZER - Creating Final Domain Model             │")
         print("└─────────────────────────────────────────────────────────────────┘")
         print("  🔨 Merging analyses into cohesive model...")
+        
+        self._report_progress("Synthesizer", "started", "Creating final domain model", 0)
 
         prompt = f"""Synthesize Bounded Context analyses into a cohesive Domain Model.
 
@@ -555,6 +601,8 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
+                        temperature=0.05,  # Fully deterministic
+                        seed=42,  # Fixed seed for reproducibility
                     ),
                 )
 
@@ -604,6 +652,8 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                         "final_model": result
                     }
                 )
+                
+                self._report_progress("Synthesizer", "completed", "Domain model created", 100)
 
                 return result
 
@@ -611,8 +661,10 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                 if self._handle_quota_error(e, retry) == 0:
                     print(f"   [WARN] Synthesis error: {e}")
                     if retry >= 4:
+                        self._report_progress("Synthesizer", "error", str(e), 100)
                         raise
 
+        self._report_progress("Synthesizer", "error", "Retries exhausted", 100)
         raise Exception("Failed to synthesize after all retries")
 
     def synthesize_final_model(self, analyses: List[Dict[str, Any]]) -> DomainModel:

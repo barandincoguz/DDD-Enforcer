@@ -15,6 +15,12 @@ vsc-extension-quickstart.md
 # .env dosyası asla paketin içine girmemeli!
 .env
 .env.*
+**/.env
+**/.env.*
+backend/.env
+backend/.env.*
+/Users/barandincoguz/Desktop/DDD-Enforcer/extension/backend/.env
+/Users/barandincoguz/Desktop/DDD-Enforcer/extension/backend/.env.*
 
 # --- Python Artıkları (Backend için) ---
 **/__pycache__/

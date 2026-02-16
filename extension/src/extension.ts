@@ -37,10 +37,22 @@ interface Violation {
   sources?: ViolationSource[];
 }
 
+/** Metrics from validation */
+interface ValidationMetrics {
+  validation_time_ms: number;
+  code_file_tokens: number;
+  llm_input_tokens: number;
+  llm_output_tokens: number;
+  llm_total_tokens: number;
+  cost_usd: number;
+  api_calls: number;
+}
+
 /** Response from the backend validation endpoint */
 interface ValidationResponse {
   is_violation: boolean;
   violations: Violation[];
+  metrics?: ValidationMetrics;
 }
 
 /** Response from the backend health endpoint */
@@ -57,6 +69,41 @@ interface GenerateModelResponse {
   model_path?: string;
   project_name?: string;
   bounded_contexts_count?: number;
+  metrics?: CombinedMetrics;
+}
+
+/** Progress update from streaming endpoint */
+interface PipelineProgress {
+  stage: string;
+  status: "started" | "in_progress" | "completed" | "error";
+  detail: string;
+  progress: number;
+}
+
+/** SSE event from streaming endpoint */
+interface SSEEvent {
+  type: "progress" | "complete" | "error" | "heartbeat";
+  data?: PipelineProgress | GenerateModelResponse;
+  error?: string;
+}
+
+/** Token usage metrics */
+interface CombinedMetrics {
+  total_tokens: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost_usd: number;
+  api_calls: number;
+  by_stage: Record<
+    string,
+    {
+      tokens: number;
+      input_tokens: number;
+      output_tokens: number;
+      cost_usd: number;
+      api_calls: number;
+    }
+  >;
 }
 
 // =============================================================================
@@ -439,7 +486,7 @@ async function getApiKey(
 
 /**
  * Command: Initialize Domain Model
- * Opens file picker for SRS documents and generates model.json
+ * Opens file picker for SRS documents and generates model.json with streaming progress.
  */
 async function initializeDomainModel(context: vscode.ExtensionContext) {
   log("Initializing domain model...");
@@ -478,7 +525,17 @@ async function initializeDomainModel(context: vscode.ExtensionContext) {
     return;
   }
 
-  // Show progress
+  const filePaths = files.map((f) => f.fsPath);
+  const outputPath = path.join(
+    workspaceFolder.uri.fsPath,
+    "domain",
+    "model.json",
+  );
+
+  log(`Generating model from: ${filePaths.join(", ")}`);
+  log(`Output path: ${outputPath}`);
+
+  // Show progress with streaming updates
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -486,71 +543,303 @@ async function initializeDomainModel(context: vscode.ExtensionContext) {
       cancellable: false,
     },
     async (progress) => {
-      progress.report({ message: "Analyzing documents..." });
-
-      try {
-        const filePaths = files.map((f) => f.fsPath);
-        const outputPath = path.join(
-          workspaceFolder.uri.fsPath,
-          "domain",
-          "model.json",
+      return new Promise<void>((resolve, reject) => {
+        // Try streaming endpoint first
+        generateModelWithStreaming(
+          filePaths,
+          outputPath,
+          progress,
+          resolve,
+          reject,
         );
-
-        log(`Generating model from: ${filePaths.join(", ")}`);
-        log(`Output path: ${outputPath}`);
-
-        const response = await axios.post<GenerateModelResponse>(
-          `http://127.0.0.1:${backendPort}/generate-model`,
-          {
-            file_paths: filePaths,
-            output_path: outputPath,
-          },
-          { timeout: 300000 }, // 5 minutes timeout for large documents
-        );
-
-        if (response.data.success) {
-          progress.report({ message: "Domain model created!" });
-
-          // Update status bar immediately
-          updateStatusBar("ready");
-
-          // Store for later use (outside withProgress)
-          const modelPath = response.data.model_path;
-          const projectName = response.data.project_name;
-          const boundedContextsCount = response.data.bounded_contexts_count;
-
-          // Show success message after progress completes (non-blocking)
-          setTimeout(async () => {
-            const openAction = "Open Model";
-            const result = await vscode.window.showInformationMessage(
-              `DDD Enforcer: Domain Model created successfully!\n` +
-                `Project: ${projectName}\n` +
-                `Bounded Contexts: ${boundedContextsCount}`,
-              openAction,
-            );
-
-            if (result === openAction && modelPath) {
-              const doc = await vscode.workspace.openTextDocument(modelPath);
-              await vscode.window.showTextDocument(doc);
-            }
-          }, 100);
-        } else {
-          vscode.window.showErrorMessage(
-            `DDD Enforcer: Failed to generate model - ${response.data.error}`,
-          );
-          updateStatusBar("error");
-        }
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        log(`Error generating model: ${errorMessage}`);
-        vscode.window.showErrorMessage(
-          `DDD Enforcer: Error generating model - ${errorMessage}`,
-        );
-        updateStatusBar("error");
-      }
+      });
     },
   );
+}
+
+/**
+ * Generate domain model using streaming endpoint for real-time progress.
+ */
+async function generateModelWithStreaming(
+  filePaths: string[],
+  outputPath: string,
+  progress: vscode.Progress<{ message?: string; increment?: number }>,
+  resolve: () => void,
+  reject: (error: Error) => void,
+) {
+  const stageEmojis: Record<string, string> = {
+    Scout: "🔍",
+    Architect: "🏛️",
+    Specialist: "🔬",
+    Synthesizer: "🔧",
+  };
+
+  const stageDescriptions: Record<string, string> = {
+    Scout: "Extracting domain sentences",
+    Architect: "Identifying bounded contexts",
+    Specialist: "Analyzing context details",
+    Synthesizer: "Creating final model",
+  };
+
+  let currentStage = "";
+  let finalResult: GenerateModelResponse | null = null;
+
+  try {
+    // Use fetch for SSE support
+    const response = await fetch(
+      `http://127.0.0.1:${backendPort}/generate-model-stream`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          file_paths: filePaths,
+          output_path: outputPath,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("No response body");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const event: SSEEvent = JSON.parse(line.slice(6));
+
+            if (event.type === "progress" && event.data) {
+              const progressData = event.data as PipelineProgress;
+              const emoji = stageEmojis[progressData.stage] || "⚙️";
+              const desc =
+                stageDescriptions[progressData.stage] || progressData.detail;
+
+              // Update status bar with current stage
+              if (progressData.stage !== currentStage) {
+                currentStage = progressData.stage;
+                updateStatusBarWithStage(
+                  progressData.stage,
+                  progressData.status,
+                );
+              }
+
+              // Update progress notification
+              if (progressData.status === "started") {
+                progress.report({
+                  message: `${emoji} ${progressData.stage}: ${desc}...`,
+                });
+                log(`Stage started: ${progressData.stage}`);
+              } else if (progressData.status === "in_progress") {
+                progress.report({
+                  message: `${emoji} ${progressData.stage}: ${progressData.detail}`,
+                });
+              } else if (progressData.status === "completed") {
+                progress.report({
+                  message: `${emoji} ${progressData.stage}: ✓ Complete`,
+                });
+                log(
+                  `Stage completed: ${progressData.stage} - ${progressData.detail}`,
+                );
+              }
+            } else if (event.type === "complete" && event.data) {
+              finalResult = event.data as GenerateModelResponse;
+            } else if (event.type === "error") {
+              throw new Error(event.error || "Unknown error");
+            }
+          } catch (parseError) {
+            // Ignore parse errors for non-JSON lines
+          }
+        }
+      }
+    }
+
+    // Handle completion
+    if (finalResult?.success) {
+      updateStatusBar("ready");
+
+      // Show success message with metrics
+      const metricsInfo = finalResult.metrics
+        ? `\n\n📊 Metrics:\n` +
+          `• Total Tokens: ${finalResult.metrics.total_tokens.toLocaleString()}\n` +
+          `• API Calls: ${finalResult.metrics.api_calls}\n` +
+          `• Cost: $${finalResult.metrics.total_cost_usd.toFixed(4)}`
+        : "";
+
+      setTimeout(async () => {
+        const openAction = "Open Model";
+        const viewMetrics = "View Details";
+        const actions = finalResult?.metrics
+          ? [openAction, viewMetrics]
+          : [openAction];
+
+        const result = await vscode.window.showInformationMessage(
+          `DDD Enforcer: Domain Model created successfully!\n` +
+            `Project: ${finalResult?.project_name}\n` +
+            `Bounded Contexts: ${finalResult?.bounded_contexts_count}` +
+            metricsInfo,
+          ...actions,
+        );
+
+        if (result === openAction && finalResult?.model_path) {
+          const doc = await vscode.workspace.openTextDocument(
+            finalResult.model_path,
+          );
+          await vscode.window.showTextDocument(doc);
+        } else if (result === viewMetrics && finalResult?.metrics) {
+          showMetricsDetails(finalResult.metrics);
+        }
+      }, 100);
+
+      resolve();
+    } else {
+      updateStatusBar("error");
+      vscode.window.showErrorMessage(
+        `DDD Enforcer: Failed to generate model - ${finalResult?.error || "Unknown error"}`,
+      );
+      resolve();
+    }
+  } catch (error) {
+    // Fallback to non-streaming endpoint
+    log(`Streaming failed, using fallback: ${error}`);
+    await generateModelFallback(
+      filePaths,
+      outputPath,
+      progress,
+      resolve,
+      reject,
+    );
+  }
+}
+
+/**
+ * Fallback to non-streaming endpoint if streaming fails.
+ */
+async function generateModelFallback(
+  filePaths: string[],
+  outputPath: string,
+  progress: vscode.Progress<{ message?: string; increment?: number }>,
+  resolve: () => void,
+  reject: (error: Error) => void,
+) {
+  progress.report({ message: "Analyzing documents..." });
+
+  try {
+    const response = await axios.post<GenerateModelResponse>(
+      `http://127.0.0.1:${backendPort}/generate-model`,
+      {
+        file_paths: filePaths,
+        output_path: outputPath,
+      },
+      { timeout: 300000 },
+    );
+
+    if (response.data.success) {
+      progress.report({ message: "Domain model created!" });
+      updateStatusBar("ready");
+
+      setTimeout(async () => {
+        const openAction = "Open Model";
+        const result = await vscode.window.showInformationMessage(
+          `DDD Enforcer: Domain Model created successfully!\n` +
+            `Project: ${response.data.project_name}\n` +
+            `Bounded Contexts: ${response.data.bounded_contexts_count}`,
+          openAction,
+        );
+
+        if (result === openAction && response.data.model_path) {
+          const doc = await vscode.workspace.openTextDocument(
+            response.data.model_path,
+          );
+          await vscode.window.showTextDocument(doc);
+        }
+      }, 100);
+      resolve();
+    } else {
+      vscode.window.showErrorMessage(
+        `DDD Enforcer: Failed to generate model - ${response.data.error}`,
+      );
+      updateStatusBar("error");
+      resolve();
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`Error generating model: ${errorMessage}`);
+    vscode.window.showErrorMessage(
+      `DDD Enforcer: Error generating model - ${errorMessage}`,
+    );
+    updateStatusBar("error");
+    resolve();
+  }
+}
+
+/**
+ * Update status bar to show current pipeline stage.
+ */
+function updateStatusBarWithStage(stage: string, status: string) {
+  const stageIcons: Record<string, string> = {
+    Scout: "$(search)",
+    Architect: "$(symbol-structure)",
+    Specialist: "$(microscope)",
+    Synthesizer: "$(tools)",
+  };
+
+  const icon = stageIcons[stage] || "$(sync~spin)";
+  const statusIcon = status === "completed" ? "$(check)" : "$(sync~spin)";
+
+  statusBarItem.text = `${icon} DDD: ${stage}`;
+  statusBarItem.tooltip = `DDD Enforcer: ${stage} - ${status}`;
+}
+
+/**
+ * Show detailed metrics in output channel.
+ */
+function showMetricsDetails(metrics: CombinedMetrics) {
+  outputChannel.show();
+  outputChannel.appendLine("\n" + "=".repeat(60));
+  outputChannel.appendLine("📊 DOMAIN MODEL GENERATION METRICS");
+  outputChannel.appendLine("=".repeat(60));
+  outputChannel.appendLine(`\n📈 Summary:`);
+  outputChannel.appendLine(
+    `   Total Tokens: ${metrics.total_tokens.toLocaleString()}`,
+  );
+  outputChannel.appendLine(
+    `   Input Tokens: ${metrics.total_input_tokens.toLocaleString()}`,
+  );
+  outputChannel.appendLine(
+    `   Output Tokens: ${metrics.total_output_tokens.toLocaleString()}`,
+  );
+  outputChannel.appendLine(`   API Calls: ${metrics.api_calls}`);
+  outputChannel.appendLine(
+    `   Total Cost: $${metrics.total_cost_usd.toFixed(4)} USD`,
+  );
+
+  outputChannel.appendLine(`\n📋 By Stage:`);
+  for (const [stage, data] of Object.entries(metrics.by_stage)) {
+    outputChannel.appendLine(`   ${stage}:`);
+    outputChannel.appendLine(`      Tokens: ${data.tokens.toLocaleString()}`);
+    outputChannel.appendLine(`      API Calls: ${data.api_calls}`);
+    outputChannel.appendLine(`      Cost: $${data.cost_usd.toFixed(4)}`);
+  }
+  outputChannel.appendLine("=".repeat(60) + "\n");
 }
 
 // =============================================================================
@@ -603,6 +892,18 @@ async function validateCode(
     );
 
     const data = response.data;
+
+    // Log metrics if available
+    if (data.metrics) {
+      const m = data.metrics;
+      log(`📊 Validation Metrics:`);
+      log(`   ⏱️  Time: ${m.validation_time_ms.toFixed(2)}ms`);
+      log(`   📝 Code tokens: ${m.code_file_tokens.toLocaleString()}`);
+      log(
+        `   🤖 LLM tokens: ${m.llm_total_tokens.toLocaleString()} (in: ${m.llm_input_tokens.toLocaleString()}, out: ${m.llm_output_tokens.toLocaleString()})`,
+      );
+      log(`   💰 Cost: $${m.cost_usd.toFixed(6)}`);
+    }
 
     if (data.is_violation && data.violations) {
       const diagnostics: vscode.Diagnostic[] = [];
@@ -662,7 +963,7 @@ function createDiagnostic(
   const diagnostic = new vscode.Diagnostic(
     range,
     message,
-    vscode.DiagnosticSeverity.Error,
+    vscode.DiagnosticSeverity.Warning, // Warning (yellow) - DDD violations are best practice suggestions, not errors
   );
 
   diagnostic.source = "DDD Enforcer";

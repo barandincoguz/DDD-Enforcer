@@ -8,13 +8,15 @@ Integrates with LLM for intelligent violation detection and RAG for source track
 import glob
 import json
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Generator
 
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from config import (
@@ -334,6 +336,137 @@ def generate_model_endpoint(request: GenerateModelRequest):
         }
 
 
+@app.post("/generate-model-stream")
+def generate_model_stream_endpoint(request: GenerateModelRequest):
+    """
+    Generate domain model with Server-Sent Events for real-time progress.
+    
+    This endpoint streams progress updates as the pipeline runs through:
+    1. Scout - Extracting domain sentences
+    2. Architect - Identifying bounded contexts
+    3. Specialist - Analyzing context details
+    4. Synthesizer - Creating final model
+    """
+    import queue
+    import threading
+    
+    progress_queue = queue.Queue()
+    result_holder = {"result": None, "error": None}
+    
+    def progress_callback(progress_data: Dict[str, Any]):
+        """Callback to receive progress updates from DomainArchitect."""
+        progress_queue.put({"type": "progress", "data": progress_data})
+    
+    def run_pipeline():
+        """Run the model generation pipeline in a separate thread."""
+        try:
+            if not request.file_paths:
+                result_holder["error"] = "No input files provided"
+                return
+            
+            # Parse and combine all documents
+            doc_parser = SRSDocumentParser()
+            combined_text = ""
+            
+            for file_path in request.file_paths:
+                try:
+                    raw_text = doc_parser.parse_file(file_path)
+                    combined_text += f"\n\n--- Document: {Path(file_path).name} ---\n\n"
+                    combined_text += raw_text
+                except Exception as e:
+                    result_holder["error"] = f"Failed to parse {Path(file_path).name}: {str(e)}"
+                    return
+            
+            if not combined_text.strip():
+                result_holder["error"] = "All documents are empty or could not be parsed"
+                return
+            
+            # Generate domain model with progress callback
+            architect = DomainArchitect(progress_callback=progress_callback)
+            analysis_results = architect.analyze_document(raw_text=combined_text)
+            final_model: DomainModel = architect.synthesize_final_model(analysis_results)
+            
+            # Save to specified output path
+            output_path = Path(request.output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(output_path, "w") as f:
+                f.write(final_model.model_dump_json(indent=2))
+            
+            # Update app state
+            app_state["domain_rules"] = final_model.model_dump(mode="json")
+            
+            # Initialize RAG
+            try:
+                rag = RAGPipeline()
+                for file_path in request.file_paths:
+                    raw_text = doc_parser.parse_file(file_path)
+                    if raw_text.strip():
+                        filename = Path(file_path).name
+                        ext = Path(file_path).suffix[1:]
+                        rag.index_document(
+                            raw_text=raw_text,
+                            doc_id=f"srs_{filename}",
+                            doc_name=filename,
+                            doc_type=ext,
+                        )
+                app_state["rag"] = rag
+            except Exception:
+                app_state["rag"] = None
+            
+            # Get final metrics
+            tracker = TokenTracker.get_instance()
+            metrics = tracker.get_combined_metrics()
+            
+            result_holder["result"] = {
+                "success": True,
+                "model_path": str(output_path),
+                "project_name": final_model.project_name,
+                "bounded_contexts_count": len(final_model.bounded_contexts),
+                "metrics": metrics
+            }
+            
+        except Exception as e:
+            result_holder["error"] = str(e)
+        finally:
+            progress_queue.put(None)  # Signal completion
+    
+    def event_generator() -> Generator[str, None, None]:
+        """Generate SSE events from progress queue."""
+        # Start pipeline in background thread
+        thread = threading.Thread(target=run_pipeline)
+        thread.start()
+        
+        # Stream progress events
+        while True:
+            try:
+                item = progress_queue.get(timeout=120)  # 2 minute timeout
+                if item is None:
+                    break
+                yield f"data: {json.dumps(item)}\n\n"
+            except queue.Empty:
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+        
+        # Wait for thread to finish
+        thread.join(timeout=5)
+        
+        # Send final result
+        if result_holder["error"]:
+            yield f"data: {json.dumps({'type': 'error', 'error': result_holder['error']})}\n\n"
+        elif result_holder["result"]:
+            yield f"data: {json.dumps({'type': 'complete', 'data': result_holder['result']})}\n\n"
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
 # =============================================================================
 # REQUEST/RESPONSE MODELS
 # =============================================================================
@@ -465,6 +598,24 @@ def validate_code(submission: CodeSubmission):
         has_sources=has_sources
     )
     
+    # Get token usage for this validation call
+    token_tracker = TokenTracker.get_instance()
+    cost_breakdown = token_tracker.calculate_cost()
+    
+    # Get validator-specific metrics (only flash-lite model used in validation)
+    validation_metrics = {
+        "validation_time_ms": round(validation_time_ms, 2),
+        "code_file_tokens": code_file_tokens,
+        "llm_input_tokens": cost_breakdown["flash_lite_model"]["input_tokens"],
+        "llm_output_tokens": cost_breakdown["flash_lite_model"]["output_tokens"],
+        "llm_total_tokens": (
+            cost_breakdown["flash_lite_model"]["input_tokens"] + 
+            cost_breakdown["flash_lite_model"]["output_tokens"]
+        ),
+        "cost_usd": cost_breakdown["flash_lite_model"]["total_cost"],
+        "api_calls": token_tracker.stats.total_api_calls,
+    }
+    
     # Print result
     if result.get("is_violation"):
         print(f"  ⚠️  VIOLATIONS FOUND: {violations_count}")
@@ -476,9 +627,13 @@ def validate_code(submission: CodeSubmission):
         print("  ✅ NO VIOLATIONS - Code is clean!")
     
     print(f"  ⏱️  Time: {validation_time_ms:.2f}ms")
+    print(f"  📊 Tokens: {validation_metrics['llm_total_tokens']:,} (in: {validation_metrics['llm_input_tokens']:,}, out: {validation_metrics['llm_output_tokens']:,})")
+    print(f"  💰 Cost: ${validation_metrics['cost_usd']:.6f}")
     print(f"  📤 Returning response: is_violation={result.get('is_violation')}, violations={violations_count}")
     print(f"{'='*70}\n")
 
+    # Add metrics to result
+    result["metrics"] = validation_metrics
     return result
 
 

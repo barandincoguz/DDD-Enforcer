@@ -1,0 +1,228 @@
+{
+  "timestamp": "2026-01-21 18:35:59",
+  "final_model": {
+    "project_name": "ECommerceDomainModel",
+    "project_metadata": {
+      "version": "1.0",
+      "generated_at": "2023-10-27",
+      "description": "A synthesized domain model for an e-commerce system, structured by Bounded Contexts."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "CustomerManagement",
+        "description": "Manages customer accounts, their personal information, loyalty programs, and wishlists.",
+        "allowed_dependencies": [
+          "ProductCatalog"
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Customer",
+              "description": "Represents a registered user of the system, including personal details, account information, and loyalty points.",
+              "synonyms_to_avoid": [
+                "Client",
+                "User",
+                "AccountHolder",
+                "Shopper",
+                "Member"
+              ]
+            },
+            {
+              "name": "Wishlist",
+              "description": "A collection of products saved by a customer for future consideration, referencing products from the Product Catalog.",
+              "synonyms_to_avoid": [
+                "Favorites",
+                "SavedItems",
+                "MyList",
+                "WishListCollection"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "Address",
+              "attributes": [
+                "Street",
+                "City",
+                "PostalCode",
+                "Country"
+              ],
+              "description": "Represents a postal address, typically used for customer shipping and billing, providing location details."
+            }
+          ],
+          "domain_events": []
+        }
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Manages product information, categories, and pricing for all items available for sale.",
+        "allowed_dependencies": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Product",
+              "description": "An item available for sale, characterized by its unique identifier (SKU), name, description, price, images, specifications, and categories.",
+              "synonyms_to_avoid": [
+                "Item",
+                "Goods",
+                "Merchandise",
+                "Offering",
+                "SKUItem"
+              ]
+            },
+            {
+              "name": "Category",
+              "description": "A classification for organizing products into a hierarchical taxonomy, allowing for nested categories.",
+              "synonyms_to_avoid": [
+                "Department",
+                "Section",
+                "Group",
+                "TaxonomyNode",
+                "ProductType"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "Money",
+              "attributes": [
+                "Amount",
+                "Currency"
+              ],
+              "description": "Represents a monetary amount with its associated currency, used consistently for pricing and financial transactions across the system."
+            }
+          ],
+          "domain_events": []
+        }
+      },
+      {
+        "context_name": "OrderManagement",
+        "description": "Handles the creation, processing, and lifecycle of customer orders, from placement to delivery.",
+        "allowed_dependencies": [
+          "CustomerManagement",
+          "ProductCatalog",
+          "InventoryManagement",
+          "PaymentProcessing"
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Order",
+              "description": "A customer's request to purchase one or more products, encapsulating details like items, total amount, customer reference, and shipping/billing addresses.",
+              "synonyms_to_avoid": [
+                "Purchase",
+                "Transaction",
+                "SalesOrder",
+                "Booking"
+              ]
+            },
+            {
+              "name": "OrderItem",
+              "description": "A specific product and its quantity included within an order, referencing the product by SKU and storing the unit price at the time of purchase.",
+              "synonyms_to_avoid": [
+                "LineItem",
+                "ProductInOrder",
+                "OrderProduct",
+                "ItemDetail"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "OrderStatus",
+              "attributes": [
+                "State"
+              ],
+              "description": "Defines the current lifecycle state of an order (e.g., Pending, Confirmed, Shipped, Delivered, Cancelled)."
+            }
+          ],
+          "domain_events": []
+        }
+      },
+      {
+        "context_name": "InventoryManagement",
+        "description": "Manages the stock levels, reservations, and availability of products across different warehouses.",
+        "allowed_dependencies": [
+          "ProductCatalog",
+          "OrderManagement"
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "StockItem",
+              "description": "Represents the current stock level, reserved quantity for pending orders, and reorder threshold for a specific product in a given warehouse.",
+              "synonyms_to_avoid": [
+                "InventoryRecord",
+                "ProductStock",
+                "WarehouseItem",
+                "ItemStock"
+              ]
+            }
+          ],
+          "value_objects": [],
+          "domain_events": []
+        }
+      },
+      {
+        "context_name": "PaymentProcessing",
+        "description": "Handles payment transactions, manages customer payment methods, and processes refunds, interacting with external payment gateways.",
+        "allowed_dependencies": [
+          "OrderManagement",
+          "CustomerManagement"
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Payment",
+              "description": "A record of a monetary transaction associated with an order, including status, amount, and the payment method used.",
+              "synonyms_to_avoid": [
+                "Transaction",
+                "MonetaryTransfer",
+                "FundsTransfer",
+                "InvoicePayment"
+              ]
+            },
+            {
+              "name": "PaymentMethod",
+              "description": "Details of how a customer prefers to pay (e.g., credit card, debit card, digital wallet), often saved for future use and associated with a customer.",
+              "synonyms_to_avoid": [
+                "Card",
+                "BillingInfo",
+                "FinancialInstrument",
+                "PayOption"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "PaymentStatus",
+              "attributes": [
+                "State"
+              ],
+              "description": "Defines the current lifecycle state of a payment (e.g., Initiated, Completed, Failed, Refunded)."
+            },
+            {
+              "name": "PaymentMethodInfo",
+              "attributes": [
+                "Type",
+                "MaskedDetails"
+              ],
+              "description": "Represents non-sensitive details of a payment method (e.g., card type, last four digits) for display or reference."
+            }
+          ],
+          "domain_events": []
+        }
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Manager",
+        "Util",
+        "Helper",
+        "Data",
+        "Info"
+      ]
+    }
+  }
+}

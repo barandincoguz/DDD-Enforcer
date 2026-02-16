@@ -403,6 +403,47 @@ class TokenTracker:
         
         print("="*70 + "\n")
     
+    def get_combined_metrics(self) -> Dict:
+        """
+        Get simplified combined metrics for API response.
+        
+        Returns:
+            Dict with total tokens, costs, and per-stage breakdown
+        """
+        cost = self.calculate_cost()
+        
+        by_stage = {}
+        for stage, stats in self.stats.stage_stats.items():
+            model = stats.get("model", self._get_model_for_stage(stage))
+            
+            if model == "flash":
+                stage_cost = (
+                    stats["prompt_tokens"] * FLASH_PRICING["input"] +
+                    stats["completion_tokens"] * FLASH_PRICING["output"]
+                )
+            else:
+                stage_cost = (
+                    stats["prompt_tokens"] * FLASH_LITE_PRICING["input"] +
+                    stats["completion_tokens"] * FLASH_LITE_PRICING["output"]
+                )
+            
+            by_stage[stage] = {
+                "tokens": stats["total_tokens"],
+                "input_tokens": stats["prompt_tokens"],
+                "output_tokens": stats["completion_tokens"],
+                "cost_usd": round(stage_cost, 6),
+                "api_calls": stats["call_count"]
+            }
+        
+        return {
+            "total_tokens": self.stats.total_tokens,
+            "total_input_tokens": self.stats.total_prompt_tokens,
+            "total_output_tokens": self.stats.total_completion_tokens,
+            "total_cost_usd": round(cost["total_cost"], 6),
+            "api_calls": self.stats.total_api_calls,
+            "by_stage": by_stage
+        }
+    
     def export_to_json(self, filepath: str, detailed: bool = True):
         """Export report to JSON file for analysis."""
         report = self.get_report(detailed=detailed)
