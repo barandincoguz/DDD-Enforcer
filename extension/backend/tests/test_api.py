@@ -325,6 +325,43 @@ class TestCodeValidation:
         updated = client.get("/metrics/validation/summary").json()
         assert updated.get("total_validations", 0) >= initial_count
 
+    def test_validate_comment_only_content_skips_llm(self, client):
+        """Comment-only content should short-circuit with zero LLM usage."""
+        response = client.post(
+            "/validate",
+            json={
+                "filename": "comment_only.py",
+                "content": "# comment\n# only\n",
+            },
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["is_violation"] is False
+        assert data.get("metrics", {}).get("api_calls", -1) == 0
+        assert data.get("metrics", {}).get("llm_total_tokens", -1) == 0
+
+    def test_validate_semantic_code_change_triggers_analysis(self, client):
+        """Real code should go through analysis path and return metrics."""
+        code = """
+class Order:
+    def confirm(self):
+        return False
+"""
+        response = client.post(
+            "/validate",
+            json={
+                "filename": "semantic_change.py",
+                "content": code,
+            },
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "is_violation" in data
+        assert "metrics" in data
+        assert data["metrics"].get("code_file_tokens", 0) > 0
+
 
 # =============================================================================
 # 4. RAG SEARCH & STATS TESTS

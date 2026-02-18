@@ -2,6 +2,7 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import { classifySaveForValidationFromContent } from "../extension";
 
 suite("Extension Test Suite", () => {
   vscode.window.showInformationMessage("Start all tests.");
@@ -164,5 +165,40 @@ suite("Extension Test Suite", () => {
     for (const file of nonPythonFiles) {
       assert.ok(!file.endsWith(".py"), `${file} is not Python`);
     }
+  });
+
+  // ==========================================================================
+  // SAVE-TRIGGER SEMANTIC CHANGE TESTS
+  // ==========================================================================
+
+  test("No-op save should skip validation", () => {
+    const code = "class Order:\n    pass\n";
+    const decision = classifySaveForValidationFromContent(code, code);
+    assert.strictEqual(decision.shouldValidate, false);
+  });
+
+  test("Blank-line deletion should skip validation", () => {
+    const before = "class Order:\n\n    def confirm(self):\n        pass\n";
+    const after = "class Order:\n    def confirm(self):\n        pass\n";
+    const decision = classifySaveForValidationFromContent(before, after);
+    assert.strictEqual(decision.shouldValidate, false);
+  });
+
+  test("Comment-only change should skip validation", () => {
+    const before =
+      "class Order:\n    def confirm(self):\n        return True\n";
+    const after =
+      "class Order:\n    # updated comment\n    def confirm(self):\n        return True  # inline\n";
+    const decision = classifySaveForValidationFromContent(before, after);
+    assert.strictEqual(decision.shouldValidate, false);
+  });
+
+  test("Semantic code change should trigger validation", () => {
+    const before =
+      "class Order:\n    def confirm(self):\n        return True\n";
+    const after =
+      "class Order:\n    def confirm(self):\n        return False\n";
+    const decision = classifySaveForValidationFromContent(before, after);
+    assert.strictEqual(decision.shouldValidate, true);
   });
 });

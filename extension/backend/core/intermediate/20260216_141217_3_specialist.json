@@ -1,0 +1,280 @@
+{
+  "timestamp": "2026-02-16 14:13:23",
+  "contexts_analyzed": 5,
+  "analyses": [
+    {
+      "context": "CustomerManagement",
+      "analysis": {
+        "context": "CustomerManagement",
+        "aggregate_roots": [
+          "Customer"
+        ],
+        "entities": [
+          {
+            "name": "Customer",
+            "attributes": [
+              "id",
+              "name",
+              "email",
+              "registrationDate",
+              "password",
+              "status"
+            ]
+          },
+          {
+            "name": "Wishlist",
+            "attributes": [
+              "id",
+              "customerId",
+              "products",
+              "notes"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Address",
+            "attributes": [
+              "street",
+              "city",
+              "postalCode",
+              "country"
+            ]
+          },
+          {
+            "name": "Email",
+            "attributes": [
+              "value"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Customer email must be unique.",
+          "Customer email must be valid format.",
+          "Customer must verify email before placing first order.",
+          "Inactive customers (no orders in 2 years) are marked dormant.",
+          "Each Wishlist belongs to exactly one Customer.",
+          "The system shall maintain a history of customer address changes."
+        ]
+      }
+    },
+    {
+      "context": "ProductCatalog",
+      "analysis": {
+        "context": "ProductCatalog",
+        "aggregate_roots": [
+          "Product",
+          "Category"
+        ],
+        "entities": [
+          {
+            "name": "Product",
+            "attributes": [
+              "SKU",
+              "name",
+              "description",
+              "price",
+              "images",
+              "specifications",
+              "categories"
+            ]
+          },
+          {
+            "name": "Category",
+            "attributes": [
+              "id",
+              "name",
+              "description",
+              "parentCategory"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "Image",
+            "attributes": [
+              "url",
+              "altText"
+            ]
+          },
+          {
+            "name": "Specification",
+            "attributes": [
+              "name",
+              "value"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Each Product has a unique SKU.",
+          "Product prices are expressed as Money values with amount and currency.",
+          "Products are organized into hierarchical categories.",
+          "Products can belong to multiple categories for cross-listing."
+        ]
+      }
+    },
+    {
+      "context": "OrderManagement",
+      "analysis": {
+        "context": "OrderManagement",
+        "aggregate_roots": [
+          "Order"
+        ],
+        "entities": [
+          {
+            "name": "Order",
+            "attributes": [
+              "orderNumber",
+              "creationDate",
+              "totalAmount",
+              "status",
+              "customerId",
+              "shippingAddress",
+              "paymentMethodInfo"
+            ]
+          },
+          {
+            "name": "OrderItem",
+            "attributes": [
+              "productId",
+              "quantity",
+              "unitPrice"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "OrderStatus",
+            "attributes": [
+              "value"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Orders must contain at least one OrderItem to be valid.",
+          "Orders can only be cancelled before they are shipped.",
+          "Orders cannot be placed if any product is out of stock.",
+          "Minimum order value is $10.00 for free shipping eligibility.",
+          "Maximum order quantity per product is 100 units.",
+          "Order total must match sum of items plus shipping minus discounts.",
+          "Orders cannot be modified after shipping.",
+          "Payment must be completed within 30 minutes of order creation.",
+          "Orders with failed payment are automatically cancelled after 3 retries."
+        ]
+      }
+    },
+    {
+      "context": "InventoryManagement",
+      "analysis": {
+        "context": "InventoryManagement",
+        "aggregate_roots": [
+          "StockLevel"
+        ],
+        "entities": [
+          {
+            "name": "StockLevel",
+            "attributes": [
+              "productId",
+              "warehouseId",
+              "currentQuantity",
+              "reservedQuantity",
+              "reorderThreshold"
+            ]
+          }
+        ],
+        "value_objects": [],
+        "business_rules": [
+          "Available stock = Current quantity - Reserved quantity.",
+          "The system shall prevent overselling by checking available stock.",
+          "When stock falls below reorder threshold, the system generates a replenishment alert.",
+          "Stock reservations are created when orders are placed.",
+          "Stock reservations are released when orders are shipped.",
+          "Cancelled orders release reserved inventory immediately.",
+          "Backorders are not permitted - orders require available stock.",
+          "Products with zero available stock show 'Out of Stock'."
+        ]
+      }
+    },
+    {
+      "context": "PaymentProcessing",
+      "analysis": {
+        "context": "PaymentProcessing",
+        "aggregate_roots": [
+          "Payment"
+        ],
+        "entities": [
+          {
+            "name": "Payment",
+            "attributes": [
+              "transactionId",
+              "orderId",
+              "amount",
+              "status",
+              "paymentMethodInfo",
+              "customerId"
+            ]
+          },
+          {
+            "name": "Refund",
+            "attributes": [
+              "id",
+              "paymentId",
+              "amount",
+              "status",
+              "processedDate"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "PaymentMethodInfo",
+            "attributes": [
+              "type",
+              "maskedDetails"
+            ]
+          },
+          {
+            "name": "PaymentStatus",
+            "attributes": [
+              "value"
+            ]
+          },
+          {
+            "name": "RefundStatus",
+            "attributes": [
+              "value"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Payment method validation occurs before order confirmation.",
+          "Refund amount cannot exceed original payment amount.",
+          "Refunds are processed to the original payment method.",
+          "Refunds must be processed within 5 business days.",
+          "Each Payment has a unique transaction ID and is linked to an Order."
+        ]
+      }
+    }
+  ]
+}

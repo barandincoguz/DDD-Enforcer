@@ -1,43 +1,42 @@
 {
-  "session_start": "2026-02-16T12:47:08.804171",
-  "session_end": "2026-02-16T12:47:39.248999",
+  "session_start": "2026-02-16T14:45:15.329224",
+  "session_end": "2026-02-16T14:45:43.989965",
   "summary": {
-    "total_validations": 2,
-    "files_with_violations": 2,
+    "total_validations": 3,
+    "files_with_violations": 3,
     "files_without_violations": 0,
     "violation_rate_percent": 100.0,
-    "total_violations_found": 32,
-    "avg_violations_per_file": 16.0
+    "total_violations_found": 43,
+    "avg_violations_per_file": 14.33
   },
   "performance": {
-    "avg_validation_time_ms": 4955.16,
-    "total_validation_time_ms": 9910.33,
-    "avg_code_size_chars": 2829.5,
-    "total_code_size_chars": 5659,
-    "avg_code_tokens": 766.0,
-    "total_code_tokens": 1532
+    "avg_validation_time_ms": 985.51,
+    "total_validation_time_ms": 2956.54,
+    "avg_code_size_chars": 2830.33,
+    "total_code_size_chars": 8491,
+    "avg_code_tokens": 708.0,
+    "total_code_tokens": 2124
   },
   "rag_integration": {
     "validations_with_sources": 0,
     "source_attachment_rate_percent": 0.0
   },
   "violation_breakdown": {
-    "SynonymViolation": 26,
-    "BannedTermViolation": 6
+    "SynonymViolation": 33,
+    "BannedTermViolation": 9,
+    "NamingConventionViolation": 1
   },
   "validation_history": [
     {
-      "timestamp": "2026-02-16T12:47:12.963233",
+      "timestamp": "2026-02-16T14:45:16.172245",
       "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
-      "file_size_chars": 2829,
-      "code_file_tokens": 766,
-      "validation_time_ms": 4159.072637557983,
-      "violations_count": 16,
+      "file_size_chars": 2830,
+      "code_file_tokens": 708,
+      "validation_time_ms": 843.0120944976807,
+      "violations_count": 14,
       "violation_types": [
         "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
+        "BannedTermViolation",
         "SynonymViolation",
         "SynonymViolation",
         "SynonymViolation",
@@ -49,22 +48,20 @@
         "SynonymViolation",
         "BannedTermViolation",
         "BannedTermViolation",
-        "BannedTermViolation"
+        "SynonymViolation"
       ],
       "has_sources": false
     },
     {
-      "timestamp": "2026-02-16T12:47:39.248527",
+      "timestamp": "2026-02-16T14:45:40.422456",
       "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
-      "file_size_chars": 2830,
-      "code_file_tokens": 766,
-      "validation_time_ms": 5751.256227493286,
-      "violations_count": 16,
+      "file_size_chars": 2831,
+      "code_file_tokens": 708,
+      "validation_time_ms": 1458.8239192962646,
+      "violations_count": 15,
       "violation_types": [
         "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
+        "BannedTermViolation",
         "SynonymViolation",
         "SynonymViolation",
         "SynonymViolation",
@@ -76,7 +73,33 @@
         "SynonymViolation",
         "BannedTermViolation",
         "BannedTermViolation",
-        "BannedTermViolation"
+        "SynonymViolation",
+        "NamingConventionViolation"
+      ],
+      "has_sources": false
+    },
+    {
+      "timestamp": "2026-02-16T14:45:43.989539",
+      "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
+      "file_size_chars": 2830,
+      "code_file_tokens": 708,
+      "validation_time_ms": 654.7060012817383,
+      "violations_count": 14,
+      "violation_types": [
+        "SynonymViolation",
+        "BannedTermViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "SynonymViolation",
+        "BannedTermViolation",
+        "BannedTermViolation",
+        "SynonymViolation"
       ],
       "has_sources": false
     }

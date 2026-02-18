@@ -1,0 +1,276 @@
+{
+  "timestamp": "2026-02-16 14:13:48",
+  "final_model": {
+    "project_name": "ECommerceDomainModel",
+    "project_metadata": {
+      "version": "1.0",
+      "generated_at": "2023-10-27",
+      "description": "A synthesized domain model for an e-commerce system, derived from bounded context analyses."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "CustomerManagement",
+        "description": "Manages customer profiles, authentication, and personal preferences like wishlists.",
+        "allowed_dependencies": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Customer",
+              "description": "Represents a registered user of the system, holding core profile information.",
+              "synonyms_to_avoid": [
+                "User",
+                "AccountHolder",
+                "Client",
+                "Buyer"
+              ]
+            },
+            {
+              "name": "Wishlist",
+              "description": "A collection of products saved by a customer for future consideration.",
+              "synonyms_to_avoid": [
+                "Favorites",
+                "SavedItems",
+                "ShoppingList"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "Address",
+              "attributes": [
+                "street",
+                "city",
+                "postalCode",
+                "country"
+              ],
+              "description": "A physical location, used for customer billing or shipping."
+            },
+            {
+              "name": "Email",
+              "attributes": [
+                "value"
+              ],
+              "description": "A customer's unique email address, used for communication and login."
+            }
+          ],
+          "domain_events": [
+            "CustomerRegistered",
+            "CustomerEmailVerified",
+            "CustomerMarkedDormant",
+            "CustomerAddressChanged",
+            "WishlistCreated"
+          ]
+        }
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Manages product information, categories, and specifications.",
+        "allowed_dependencies": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Product",
+              "description": "A distinct item available for sale, identified by a unique SKU.",
+              "synonyms_to_avoid": [
+                "Item",
+                "Merchandise",
+                "Goods",
+                "Offering"
+              ]
+            },
+            {
+              "name": "Category",
+              "description": "A classification for organizing products, potentially hierarchical.",
+              "synonyms_to_avoid": [
+                "Department",
+                "Section",
+                "Group",
+                "Classification"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "Money",
+              "attributes": [
+                "amount",
+                "currency"
+              ],
+              "description": "Represents a monetary value with a specific currency."
+            },
+            {
+              "name": "Image",
+              "attributes": [
+                "url",
+                "altText"
+              ],
+              "description": "Visual representation of a product."
+            },
+            {
+              "name": "Specification",
+              "attributes": [
+                "name",
+                "value"
+              ],
+              "description": "A key-value pair describing a product attribute."
+            }
+          ],
+          "domain_events": [
+            "ProductCreated",
+            "ProductPriceUpdated",
+            "CategoryCreated",
+            "ProductCategorized"
+          ]
+        }
+      },
+      {
+        "context_name": "OrderManagement",
+        "description": "Handles the lifecycle of customer orders, from creation to shipping.",
+        "allowed_dependencies": [
+          "CustomerManagement",
+          "ProductCatalog"
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Order",
+              "description": "A customer's request to purchase one or more products.",
+              "synonyms_to_avoid": [
+                "Purchase",
+                "Transaction",
+                "Sale",
+                "Cart"
+              ]
+            },
+            {
+              "name": "OrderItem",
+              "description": "A specific product and its quantity within an order.",
+              "synonyms_to_avoid": [
+                "LineItem",
+                "ProductInOrder",
+                "OrderDetail"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "OrderStatus",
+              "attributes": [
+                "value"
+              ],
+              "description": "The current state of an order (e.g., Pending, Shipped, Cancelled)."
+            }
+          ],
+          "domain_events": [
+            "OrderCreated",
+            "OrderCancelled",
+            "OrderShipped",
+            "OrderPaymentDue",
+            "OrderPaymentFailed"
+          ]
+        }
+      },
+      {
+        "context_name": "InventoryManagement",
+        "description": "Manages the stock levels of products across warehouses.",
+        "allowed_dependencies": [
+          "ProductCatalog"
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "StockLevel",
+              "description": "The quantity of a specific product available or reserved in a warehouse.",
+              "synonyms_to_avoid": [
+                "Inventory",
+                "QuantityOnHand",
+                "ProductStock"
+              ]
+            }
+          ],
+          "value_objects": [],
+          "domain_events": [
+            "StockLevelUpdated",
+            "StockReserved",
+            "StockReleased",
+            "StockBelowReorderThreshold",
+            "ProductOutOfStock"
+          ]
+        }
+      },
+      {
+        "context_name": "PaymentProcessing",
+        "description": "Handles financial transactions, including payments and refunds.",
+        "allowed_dependencies": [
+          "OrderManagement",
+          "CustomerManagement"
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Payment",
+              "description": "A record of a financial transaction for an order.",
+              "synonyms_to_avoid": [
+                "Transaction",
+                "Settlement",
+                "Charge",
+                "Remittance"
+              ]
+            },
+            {
+              "name": "Refund",
+              "description": "A record of money returned to a customer for a payment.",
+              "synonyms_to_avoid": [
+                "Reimbursement",
+                "Credit",
+                "ReturnPayment"
+              ]
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "PaymentMethodInfo",
+              "attributes": [
+                "type",
+                "maskedDetails"
+              ],
+              "description": "Details of the payment instrument used for a transaction."
+            },
+            {
+              "name": "PaymentStatus",
+              "attributes": [
+                "value"
+              ],
+              "description": "The current state of a payment (e.g., Pending, Completed, Failed)."
+            },
+            {
+              "name": "RefundStatus",
+              "attributes": [
+                "value"
+              ],
+              "description": "The current state of a refund (e.g., Requested, Processed, Failed)."
+            }
+          ],
+          "domain_events": [
+            "PaymentInitiated",
+            "PaymentCompleted",
+            "PaymentFailed",
+            "PaymentMethodValidated",
+            "RefundRequested",
+            "RefundProcessed"
+          ]
+        }
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Manager",
+        "Util",
+        "Helper",
+        "Data",
+        "Info"
+      ]
+    }
+  }
+}

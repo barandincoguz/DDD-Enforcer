@@ -117,8 +117,8 @@ let outputChannel: vscode.OutputChannel;
 let isBackendReady: boolean = false;
 let backendStarting: boolean = false;
 
-// Track last validated normalized content per document.
-// Normalization removes blank lines so empty-line-only edits won't trigger validation.
+// Track last validated semantic content per document.
+// Semantic fingerprint ignores whitespace/comment-only edits.
 const lastValidatedContentFingerprint = new Map<string, string>();
 
 // Store sources for code actions (keyed by document URI + line number)
@@ -209,13 +209,17 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        // Skip if this save has no content change since last successful validation
-        if (!shouldValidateOnSave(document)) {
+        const decision = shouldValidateOnSave(document);
+        if (!decision.shouldValidate) {
           log(
-            `Validation skipped: no changes detected in file '${path.basename(document.fileName)}' (same document version).`,
+            `Validate skip: ${decision.reason} (${path.basename(document.fileName)})`,
           );
           return;
         }
+
+        log(
+          `Validate trigger: semantic code change (${path.basename(document.fileName)})`,
+        );
 
         await ensureBackendRunning(context);
         if (isBackendReady) {
@@ -679,10 +683,16 @@ async function generateModelWithStreaming(
               throw new Error(event.error || "Unknown error");
             }
           } catch (parseError) {
-            // Ignore parse errors for non-JSON lines
+            // Ignore parse errors for non-JSON lines, but keep lightweight trace.
+            log("Streaming parse warning: skipped malformed SSE data line.");
           }
         }
       }
+    }
+
+    // If stream ended without a completion payload, fallback to non-stream API.
+    if (!finalResult) {
+      throw new Error("Streaming ended without completion payload");
     }
 
     // Handle completion
@@ -962,25 +972,169 @@ async function validateCode(
  * Uses normalized content fingerprint (blank lines removed) so empty-line-only
  * edits do not trigger backend validation.
  */
-function shouldValidateOnSave(document: vscode.TextDocument): boolean {
+function shouldValidateOnSave(document: vscode.TextDocument): {
+  shouldValidate: boolean;
+  reason: string;
+} {
   const key = document.uri.toString();
   const lastFingerprint = lastValidatedContentFingerprint.get(key);
-  const currentFingerprint = getValidationFingerprint(document.getText());
-
-  return (
-    lastFingerprint === undefined || lastFingerprint !== currentFingerprint
-  );
+  return classifySaveForValidation(lastFingerprint, document.getText());
 }
 
 /**
- * Creates a stable fingerprint for validation decisions.
- * Blank/whitespace-only lines are ignored intentionally.
+ * Creates a stable semantic fingerprint for validation decisions.
+ * Ignores comments and whitespace outside string literals.
  */
 function getValidationFingerprint(content: string): string {
-  return content
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0)
-    .join("\n");
+  return normalizePythonSemantics(content);
+}
+
+/**
+ * Test helper: compare two file snapshots and return validate/skip decision.
+ */
+export function classifySaveForValidation(
+  previousFingerprint: string | undefined,
+  currentContent: string,
+): { shouldValidate: boolean; reason: string } {
+  const curr = getValidationFingerprint(currentContent);
+
+  if (previousFingerprint === undefined) {
+    return { shouldValidate: true, reason: "first semantic snapshot" };
+  }
+  if (previousFingerprint === curr) {
+    return { shouldValidate: false, reason: "non-semantic change" };
+  }
+  return { shouldValidate: true, reason: "semantic code change" };
+}
+
+/**
+ * Test helper: compare raw text snapshots directly.
+ */
+export function classifySaveForValidationFromContent(
+  previousContent: string | undefined,
+  currentContent: string,
+): { shouldValidate: boolean; reason: string } {
+  const prev = previousContent
+    ? getValidationFingerprint(previousContent)
+    : undefined;
+  return classifySaveForValidation(prev, currentContent);
+}
+
+/**
+ * Lightweight Python semantic normalization:
+ * - removes comments outside strings
+ * - removes whitespace outside strings
+ * - preserves string literal content
+ */
+function normalizePythonSemantics(content: string): string {
+  let result = "";
+  let i = 0;
+  let inSingle = false;
+  let inDouble = false;
+  let inTripleSingle = false;
+  let inTripleDouble = false;
+  let escaped = false;
+
+  const isWhitespace = (ch: string) => /\s/.test(ch);
+
+  while (i < content.length) {
+    const ch = content[i];
+    const next3 = content.slice(i, i + 3);
+
+    if (inTripleSingle) {
+      result += ch;
+      if (next3 === "'''") {
+        result += "''";
+        i += 3;
+        inTripleSingle = false;
+        continue;
+      }
+      i += 1;
+      continue;
+    }
+
+    if (inTripleDouble) {
+      result += ch;
+      if (next3 === '"""') {
+        result += '""';
+        i += 3;
+        inTripleDouble = false;
+        continue;
+      }
+      i += 1;
+      continue;
+    }
+
+    if (inSingle) {
+      result += ch;
+      if (!escaped && ch === "'") {
+        inSingle = false;
+      }
+      escaped = !escaped && ch === "\\";
+      i += 1;
+      continue;
+    }
+
+    if (inDouble) {
+      result += ch;
+      if (!escaped && ch === '"') {
+        inDouble = false;
+      }
+      escaped = !escaped && ch === "\\";
+      i += 1;
+      continue;
+    }
+
+    // Outside string literals
+    if (next3 === "'''") {
+      inTripleSingle = true;
+      result += "'''";
+      i += 3;
+      continue;
+    }
+
+    if (next3 === '"""') {
+      inTripleDouble = true;
+      result += '"""';
+      i += 3;
+      continue;
+    }
+
+    if (ch === "'") {
+      inSingle = true;
+      escaped = false;
+      result += ch;
+      i += 1;
+      continue;
+    }
+
+    if (ch === '"') {
+      inDouble = true;
+      escaped = false;
+      result += ch;
+      i += 1;
+      continue;
+    }
+
+    // Strip comments outside strings
+    if (ch === "#") {
+      while (i < content.length && content[i] !== "\n") {
+        i += 1;
+      }
+      continue;
+    }
+
+    // Strip whitespace outside strings
+    if (isWhitespace(ch)) {
+      i += 1;
+      continue;
+    }
+
+    result += ch;
+    i += 1;
+  }
+
+  return result;
 }
 
 /**

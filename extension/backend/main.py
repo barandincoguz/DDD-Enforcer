@@ -9,6 +9,7 @@ import glob
 import json
 import os
 import asyncio
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -35,6 +36,7 @@ from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel
 from core.token_tracker import TokenTracker
 from core.validation_metrics import ValidationMetricsTracker
+from core.ast_model_signals import ASTModelSignalExtractor
 
 app_state: Dict[str, Any] = {}
 rag_config = RAGConfig()
@@ -62,6 +64,17 @@ def generate_domain_model(srs_path: str) -> Dict[str, Any]:
 
     print("[AI] Synthesizing final Domain Model JSON...")
     final_model: DomainModel = architect.synthesize_final_model(analysis_results)
+
+    # AST enrichment for higher precision/traceability
+    workspace_path = os.getenv("WORKSPACE_PATH", "")
+    if workspace_path:
+        extractor = ASTModelSignalExtractor()
+        final_model = extractor.enrich_domain_model(
+            final_model,
+            workspace_path,
+            srs_docs=[{"path": srs_path, "content": raw_text}],
+        )
+
     print("   -> Domain Model synthesis complete.")
 
     DOMAIN_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -225,6 +238,60 @@ class GenerateModelRequest(BaseModel):
     output_path: str  # Where to save model.json
 
 
+def _estimate_tokens_from_text(text: str) -> int:
+    """Cheap local token estimate to avoid an extra API call per validation."""
+    if not text:
+        return 0
+    return max(1, round(len(text) / 4))
+
+
+def _is_semantically_empty_python(content: str) -> bool:
+    """Return True if content is empty or comment-only (semantic no-op)."""
+    lines = content.splitlines()
+    has_code = False
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            continue
+        has_code = True
+        break
+    return not has_code
+
+
+def _needs_llm_advanced_checks(ast_data: Dict[str, Any]) -> bool:
+    """Run LLM only when advanced signals exist in AST."""
+    return bool(
+        ast_data.get("imports")
+        or ast_data.get("assignments")
+        or ast_data.get("function_calls")
+    )
+
+
+def _merge_violations(*groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Merge and deduplicate violations by (type, message)."""
+    merged: List[Dict[str, Any]] = []
+    seen = set()
+    for group in groups:
+        for violation in group:
+            key = (violation.get("type", ""), violation.get("message", ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(violation)
+    return merged
+
+
+def _rag_cache_key(violation: Dict[str, Any]) -> str:
+    """Build cache key for source retrieval deduplication."""
+    v_type = violation.get("type", "")
+    message = violation.get("message", "")
+    match = re.search(r"'([^']+)'", message)
+    focus = (match.group(1).lower() if match else message[:80].lower())
+    return f"{v_type}:{focus}"
+
+
 @app.post("/generate-model")
 def generate_model_endpoint(request: GenerateModelRequest):
     """
@@ -248,6 +315,7 @@ def generate_model_endpoint(request: GenerateModelRequest):
         # Parse and combine all documents
         doc_parser = SRSDocumentParser()
         combined_text = ""
+        srs_docs: List[Dict[str, Any]] = []
         
         for file_path in request.file_paths:
             print(f"  📄 Parsing: {file_path}")
@@ -255,6 +323,7 @@ def generate_model_endpoint(request: GenerateModelRequest):
                 raw_text = doc_parser.parse_file(file_path)
                 combined_text += f"\n\n--- Document: {Path(file_path).name} ---\n\n"
                 combined_text += raw_text
+                srs_docs.append({"path": file_path, "content": raw_text})
                 print(f"     -> {len(raw_text)} characters")
             except Exception as e:
                 print(f"     ❌ Failed to parse: {e}")
@@ -278,6 +347,16 @@ def generate_model_endpoint(request: GenerateModelRequest):
         
         print("  🔧 Synthesizing final model...")
         final_model: DomainModel = architect.synthesize_final_model(analysis_results)
+
+        # AST enrichment from workspace Python files
+        workspace_path = os.getenv("WORKSPACE_PATH", "")
+        if workspace_path:
+            extractor = ASTModelSignalExtractor()
+            final_model = extractor.enrich_domain_model(
+                final_model,
+                workspace_path,
+                srs_docs=srs_docs,
+            )
         
         # Save to specified output path
         output_path = Path(request.output_path)
@@ -367,12 +446,14 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
             # Parse and combine all documents
             doc_parser = SRSDocumentParser()
             combined_text = ""
+            srs_docs: List[Dict[str, Any]] = []
             
             for file_path in request.file_paths:
                 try:
                     raw_text = doc_parser.parse_file(file_path)
                     combined_text += f"\n\n--- Document: {Path(file_path).name} ---\n\n"
                     combined_text += raw_text
+                    srs_docs.append({"path": file_path, "content": raw_text})
                 except Exception as e:
                     result_holder["error"] = f"Failed to parse {Path(file_path).name}: {str(e)}"
                     return
@@ -385,6 +466,15 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
             architect = DomainArchitect(progress_callback=progress_callback)
             analysis_results = architect.analyze_document(raw_text=combined_text)
             final_model: DomainModel = architect.synthesize_final_model(analysis_results)
+
+            workspace_path = os.getenv("WORKSPACE_PATH", "")
+            if workspace_path:
+                extractor = ASTModelSignalExtractor()
+                final_model = extractor.enrich_domain_model(
+                    final_model,
+                    workspace_path,
+                    srs_docs=srs_docs,
+                )
             
             # Save to specified output path
             output_path = Path(request.output_path)
@@ -427,6 +517,9 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
             }
             
         except Exception as e:
+            print(f"[STREAM] Domain model pipeline error: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             result_holder["error"] = str(e)
         finally:
             progress_queue.put(None)  # Signal completion
@@ -500,20 +593,25 @@ def validate_code(submission: CodeSubmission):
     print(f"  File: {submission.filename}")
     print(f"  Size: {len(submission.content)} chars")
     
-    # Count code file tokens for metrics (BEFORE latency measurement)
-    code_file_tokens = 0
-    try:
-        from google import genai
-        from config import AnalyzerConfig
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        token_count_response = client.models.count_tokens(
-            model=AnalyzerConfig.MODEL_NAME,
-            contents=submission.content
-        )
-        code_file_tokens = token_count_response.total_tokens
-        print(f"  📊 Code tokens: {code_file_tokens:,}")
-    except Exception as e:
-        print(f"  ⚠️  Token counting failed: {e}")
+    # Local estimation avoids extra count_tokens API call.
+    code_file_tokens = _estimate_tokens_from_text(submission.content)
+    print(f"  📊 Code tokens (estimated): {code_file_tokens:,}")
+
+    if _is_semantically_empty_python(submission.content):
+        print("  ⏭️  Skip LLM: comment/blank-only content")
+        return {
+            "is_violation": False,
+            "violations": [],
+            "metrics": {
+                "validation_time_ms": 0,
+                "code_file_tokens": code_file_tokens,
+                "llm_input_tokens": 0,
+                "llm_output_tokens": 0,
+                "llm_total_tokens": 0,
+                "cost_usd": 0,
+                "api_calls": 0,
+            },
+        }
     
     # START LATENCY MEASUREMENT - only actual validation logic
     start_time = time.time()
@@ -552,9 +650,32 @@ def validate_code(submission: CodeSubmission):
             ],
         }
 
-    # Check for violations
-    print("  🤖 Analyzing with LLM...")
-    result = llm.analyze_violation(ast_data, rules)
+    token_tracker = TokenTracker.get_instance()
+    pre_input = token_tracker.stats.flash_lite_prompt_tokens
+    pre_output = token_tracker.stats.flash_lite_completion_tokens
+    pre_calls = token_tracker.stats.total_api_calls
+
+    # Run deterministic checks first (no LLM token cost)
+    deterministic_violations = llm.rule_based_name_violations(ast_data, rules)
+    if deterministic_violations:
+        print(f"  ⚙️  Deterministic checks found {len(deterministic_violations)} violation(s)")
+
+    # Run LLM only for advanced checks if required by AST signals
+    advanced_result = {"is_violation": False, "violations": []}
+    if _needs_llm_advanced_checks(ast_data):
+        print("  🤖 Analyzing advanced rules with LLM...")
+        advanced_result = llm.analyze_advanced_violations(ast_data, rules)
+    else:
+        print("  ⏭️  Skip LLM: no advanced AST signals")
+
+    merged_violations = _merge_violations(
+        deterministic_violations,
+        advanced_result.get("violations", []),
+    )
+    result = {
+        "is_violation": len(merged_violations) > 0,
+        "violations": merged_violations,
+    }
 
     # Add source references from RAG
     rag = app_state.get("rag")
@@ -562,15 +683,22 @@ def validate_code(submission: CodeSubmission):
     if result.get("is_violation") and rag:
         violations_list = result.get("violations", [])
         print(f"  📚 Fetching RAG sources for {len(violations_list)} violation(s)...")
+        rag_cache: Dict[str, List[Dict[str, Any]]] = {}
         
         for idx, violation in enumerate(violations_list):
             print(f"     [{idx+1}/{len(violations_list)}] Processing: {violation.get('type', 'Unknown')}")
             try:
-                print(f"     🔍 Retrieving sources for: {violation.get('type', 'Unknown')}")
-                sources = rag.retrieve_source(
-                    violation_type=violation.get("type", ""),
-                    violation_message=violation.get("message", ""),
-                )
+                cache_key = _rag_cache_key(violation)
+                if cache_key in rag_cache:
+                    sources = rag_cache[cache_key]
+                    print("     ♻️  Reusing cached sources")
+                else:
+                    print(f"     🔍 Retrieving sources for: {violation.get('type', 'Unknown')}")
+                    sources = rag.retrieve_source(
+                        violation_type=violation.get("type", ""),
+                        violation_message=violation.get("message", ""),
+                    )
+                    rag_cache[cache_key] = sources
                 print(f"     ✅ Found {len(sources)} sources")
                 violation["sources"] = sources
                 if sources:
@@ -598,22 +726,26 @@ def validate_code(submission: CodeSubmission):
         has_sources=has_sources
     )
     
-    # Get token usage for this validation call
-    token_tracker = TokenTracker.get_instance()
-    cost_breakdown = token_tracker.calculate_cost()
-    
-    # Get validator-specific metrics (only flash-lite model used in validation)
+    # Get token usage delta for this validation call
+    post_input = token_tracker.stats.flash_lite_prompt_tokens
+    post_output = token_tracker.stats.flash_lite_completion_tokens
+    post_calls = token_tracker.stats.total_api_calls
+    llm_input_delta = max(0, post_input - pre_input)
+    llm_output_delta = max(0, post_output - pre_output)
+    llm_calls_delta = max(0, post_calls - pre_calls)
+
+    lite_price_in = 0.10 / 1_000_000
+    lite_price_out = 0.40 / 1_000_000
+    call_cost = (llm_input_delta * lite_price_in) + (llm_output_delta * lite_price_out)
+
     validation_metrics = {
         "validation_time_ms": round(validation_time_ms, 2),
         "code_file_tokens": code_file_tokens,
-        "llm_input_tokens": cost_breakdown["flash_lite_model"]["input_tokens"],
-        "llm_output_tokens": cost_breakdown["flash_lite_model"]["output_tokens"],
-        "llm_total_tokens": (
-            cost_breakdown["flash_lite_model"]["input_tokens"] + 
-            cost_breakdown["flash_lite_model"]["output_tokens"]
-        ),
-        "cost_usd": cost_breakdown["flash_lite_model"]["total_cost"],
-        "api_calls": token_tracker.stats.total_api_calls,
+        "llm_input_tokens": llm_input_delta,
+        "llm_output_tokens": llm_output_delta,
+        "llm_total_tokens": llm_input_delta + llm_output_delta,
+        "cost_usd": round(call_cost, 8),
+        "api_calls": llm_calls_delta,
     }
     
     # Print result

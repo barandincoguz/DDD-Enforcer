@@ -1,0 +1,289 @@
+{
+  "timestamp": "2026-02-16 14:34:49",
+  "contexts_analyzed": 5,
+  "analyses": [
+    {
+      "context": "CustomerManagement",
+      "analysis": {
+        "context": "CustomerManagement",
+        "aggregate_roots": [
+          "Customer"
+        ],
+        "entities": [
+          {
+            "name": "Customer",
+            "attributes": [
+              "id",
+              "name",
+              "email",
+              "registration_date",
+              "is_email_verified",
+              "status"
+            ]
+          },
+          {
+            "name": "Wishlist",
+            "attributes": [
+              "id",
+              "customer_id",
+              "products",
+              "notes"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Address",
+            "attributes": [
+              "street",
+              "city",
+              "postal_code",
+              "country"
+            ]
+          },
+          {
+            "name": "WishlistItem",
+            "attributes": [
+              "product_sku",
+              "notes"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Customer email must be unique.",
+          "Customer email must be in a valid format.",
+          "Customer must verify email before placing first order.",
+          "Inactive customers (no orders in 2 years) are marked dormant.",
+          "Each Wishlist belongs to exactly one Customer.",
+          "Customers can have multiple shipping addresses.",
+          "The system shall maintain a history of customer address changes."
+        ]
+      }
+    },
+    {
+      "context": "CatalogManagement",
+      "analysis": {
+        "context": "CatalogManagement",
+        "aggregate_roots": [
+          "Product",
+          "Category"
+        ],
+        "entities": [
+          {
+            "name": "Product",
+            "attributes": [
+              "sku",
+              "name",
+              "description",
+              "price",
+              "images",
+              "specifications",
+              "category_ids"
+            ]
+          },
+          {
+            "name": "Category",
+            "attributes": [
+              "id",
+              "name",
+              "description",
+              "parent_category_id"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "Image",
+            "attributes": [
+              "url",
+              "alt_text"
+            ]
+          },
+          {
+            "name": "Specification",
+            "attributes": [
+              "name",
+              "value"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Each Product has a unique SKU.",
+          "Products are organized into hierarchical categories.",
+          "Products can belong to multiple categories for cross-listing.",
+          "Product prices are expressed as Money values.",
+          "Each Category has an optional parent category."
+        ]
+      }
+    },
+    {
+      "context": "OrderManagement",
+      "analysis": {
+        "context": "OrderManagement",
+        "aggregate_roots": [
+          "Order"
+        ],
+        "entities": [
+          {
+            "name": "Order",
+            "attributes": [
+              "order_number",
+              "customer_id",
+              "creation_date",
+              "status",
+              "total_amount",
+              "shipping_address",
+              "billing_address",
+              "payment_method_info",
+              "items"
+            ]
+          },
+          {
+            "name": "OrderItem",
+            "attributes": [
+              "product_sku",
+              "product_name",
+              "quantity",
+              "unit_price"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "Address",
+            "attributes": [
+              "street",
+              "city",
+              "postal_code",
+              "country"
+            ]
+          },
+          {
+            "name": "PaymentMethodInfo",
+            "attributes": [
+              "type",
+              "masked_details"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Orders must contain at least one OrderItem.",
+          "Orders can only be cancelled before they are shipped.",
+          "Orders cannot be placed if any product is out of stock.",
+          "Minimum order value is $10.00 for free shipping eligibility.",
+          "Maximum order quantity per product is 100 units.",
+          "Order total must match sum of items plus shipping minus discounts.",
+          "Orders cannot be modified after shipping.",
+          "Payment must be completed within 30 minutes of order creation.",
+          "Orders with failed payment are automatically cancelled after 3 retries.",
+          "Order status progression: Pending -> Confirmed -> Shipped -> Delivered / Cancelled."
+        ]
+      }
+    },
+    {
+      "context": "InventoryManagement",
+      "analysis": {
+        "context": "InventoryManagement",
+        "aggregate_roots": [
+          "StockLevel"
+        ],
+        "entities": [
+          {
+            "name": "StockLevel",
+            "attributes": [
+              "product_sku",
+              "warehouse_id",
+              "current_quantity",
+              "reserved_quantity",
+              "reorder_threshold"
+            ]
+          }
+        ],
+        "value_objects": [],
+        "business_rules": [
+          "Available stock = Current quantity - Reserved quantity.",
+          "The system shall prevent overselling (Available stock must be >= requested quantity).",
+          "When stock falls below reorder threshold, the system generates a replenishment alert.",
+          "Stock reservations are created when orders are placed.",
+          "Stock reservations are released when orders are shipped or cancelled.",
+          "Stock is reduced when orders are shipped.",
+          "Backorders are not permitted - orders require available stock.",
+          "Products with zero available stock show \"Out of Stock\"."
+        ]
+      }
+    },
+    {
+      "context": "PaymentManagement",
+      "analysis": {
+        "context": "PaymentManagement",
+        "aggregate_roots": [
+          "Payment"
+        ],
+        "entities": [
+          {
+            "name": "Payment",
+            "attributes": [
+              "transaction_id",
+              "order_id",
+              "customer_id",
+              "amount",
+              "currency",
+              "status",
+              "payment_method_info",
+              "creation_date",
+              "last_updated_date"
+            ]
+          },
+          {
+            "name": "Refund",
+            "attributes": [
+              "id",
+              "payment_id",
+              "amount",
+              "currency",
+              "status",
+              "processed_date"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "PaymentMethodInfo",
+            "attributes": [
+              "type",
+              "masked_details"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Payment method validation occurs before order confirmation.",
+          "Refund amount cannot exceed original payment amount.",
+          "Refunds are processed to the original payment method.",
+          "Refunds must be processed within 5 business days.",
+          "Payment status progression: Initiated -> Completed / Failed / Refunded."
+        ]
+      }
+    }
+  ]
+}

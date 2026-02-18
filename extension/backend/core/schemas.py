@@ -25,6 +25,14 @@ class BoundedContextList(BaseModel):
     contexts: List[str] = Field(description="List of Bounded Context names")
 
 
+class InferenceSource(BaseModel):
+    """Traceable source record for a domain inference."""
+    file: str = Field(description="Source file path")
+    line: int = Field(default=1, ge=1, description="1-based line number")
+    rule: str = Field(description="Inference rule identifier")
+    evidence: str = Field(description="Short evidence snippet")
+
+
 # =============================================================================
 # CORE DOMAIN BUILDING BLOCKS
 # =============================================================================
@@ -33,6 +41,16 @@ class Entity(BaseModel):
     """Domain entity definition."""
     name: str = Field(description="Name of the domain entity (e.g., Customer)")
     description: str = Field(description="Brief description of the entity's role")
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for this inference (0.0-1.0)"
+    )
+    sources: List[InferenceSource] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)"
+    )
     synonyms_to_avoid: Optional[List[str]] = Field(
         default=None,
         description="Terms forbidden for this entity (e.g., Client, User)"
@@ -44,6 +62,48 @@ class ValueObject(BaseModel):
     name: str = Field(description="Name of the value object")
     attributes: List[str] = Field(description="List of attributes")
     description: Optional[str] = Field(description="Description of purpose")
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for this inference (0.0-1.0)"
+    )
+    sources: List[InferenceSource] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)"
+    )
+
+
+class Service(BaseModel):
+    """Domain service candidate definition."""
+    name: str = Field(description="Name of the domain service")
+    description: str = Field(description="Service responsibility summary")
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for this inference (0.0-1.0)"
+    )
+    sources: List[InferenceSource] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)"
+    )
+
+
+class Aggregate(BaseModel):
+    """Aggregate root candidate definition."""
+    name: str = Field(description="Name of the aggregate root")
+    description: str = Field(description="Aggregate consistency boundary")
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for this inference (0.0-1.0)"
+    )
+    sources: List[InferenceSource] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)"
+    )
 
 
 class DomainEvent(BaseModel):
@@ -57,6 +117,14 @@ class UbiquitousLanguage(BaseModel):
     entities: List[Entity] = Field(description="List of entities in this context")
     value_objects: Optional[List[ValueObject]] = Field(
         description="Value objects in this context"
+    )
+    services: Optional[List[Service]] = Field(
+        default=None,
+        description="Domain services in this context"
+    )
+    aggregates: Optional[List[Aggregate]] = Field(
+        default=None,
+        description="Aggregate roots in this context"
     )
     domain_events: Optional[List[str]] = Field(description="List of domain events")
 

@@ -204,6 +204,159 @@ def process_order(order_id: str) -> dict:
 
 
 # =============================================================================
+# DETERMINISTIC VALIDATION TESTS
+# =============================================================================
+
+class TestDeterministicValidation:
+    """Test non-LLM deterministic violation detection."""
+
+    def test_rule_based_name_violations_detects_synonyms_and_banned_terms(self):
+        from core.llm_client import LLMClient
+
+        llm = object.__new__(LLMClient)
+
+        ast_data = {
+            "filename": "sample.py",
+            "classes": [
+                {"name": "ClientManager"},
+                {"name": "PaymentRecord"},
+                {"name": "DataHelper"},
+            ],
+            "functions": [],
+        }
+        domain_rules = {
+            "bounded_contexts": [
+                {
+                    "ubiquitous_language": {
+                        "entities": [
+                            {
+                                "name": "Customer",
+                                "synonyms_to_avoid": ["Client", "User"],
+                            },
+                            {
+                                "name": "Payment",
+                                "synonyms_to_avoid": ["PaymentRecord"],
+                            },
+                        ]
+                    }
+                }
+            ],
+            "global_rules": {
+                "banned_global_terms": ["Manager", "Data", "Helper"]
+            },
+        }
+
+        violations = llm.rule_based_name_violations(ast_data, domain_rules)
+        types = [v["type"] for v in violations]
+
+        assert "SynonymViolation" in types
+        assert "BannedTermViolation" in types
+        assert any("ClientManager" in v["message"] for v in violations)
+        assert any("PaymentRecord" in v["message"] for v in violations)
+        assert any("DataHelper" in v["message"] for v in violations)
+
+
+# =============================================================================
+# AST MODEL SIGNAL TESTS
+# =============================================================================
+
+class TestASTModelSignals:
+    """Test AST candidate extraction and model enrichment."""
+
+    def test_extract_candidates_with_traceability(self, tmp_path):
+        from core.ast_model_signals import ASTModelSignalExtractor
+
+        sample = tmp_path / "domain_model.py"
+        sample.write_text(
+            """
+from dataclasses import dataclass
+
+class Order:
+    def __init__(self, order_id, total):
+        self.order_id = order_id
+        self.total = total
+
+    def add_item(self, item):
+        return item
+
+@dataclass
+class Money:
+    amount: float
+    currency: str
+
+class OrderService:
+    def place(self):
+        return True
+
+class OrderAggregate:
+    def __init__(self):
+        self.items = []
+
+    def add_item(self, item):
+        self.items.append(item)
+""",
+            encoding="utf-8",
+        )
+
+        extractor = ASTModelSignalExtractor()
+        candidates = extractor.extract_candidates([str(sample)], grounding_docs=[])
+
+        assert any(c["name"] == "Order" for c in candidates["entities"])
+        assert any(c["name"] == "Money" for c in candidates["value_objects"])
+        assert any(c["name"] == "OrderService" for c in candidates["services"])
+        assert any(c["name"] == "OrderAggregate" for c in candidates["aggregates"])
+
+        order_entity = next(c for c in candidates["entities"] if c["name"] == "Order")
+        assert 0.0 <= order_entity["confidence"] <= 1.0
+        assert len(order_entity["sources"]) >= 1
+        assert "file" in order_entity["sources"][0]
+        assert "line" in order_entity["sources"][0]
+        assert "rule" in order_entity["sources"][0]
+
+    def test_enrich_domain_model_adds_confidence_and_sources(self, tmp_path):
+        from core.ast_model_signals import ASTModelSignalExtractor
+        from core.schemas import DomainModel, ProjectMetadata
+
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        (workspace / "billing.py").write_text(
+            """
+class Invoice:
+    def __init__(self, invoice_id, amount):
+        self.invoice_id = invoice_id
+        self.amount = amount
+""",
+            encoding="utf-8",
+        )
+
+        model = DomainModel(
+            project_name="Test",
+            project_metadata=ProjectMetadata(
+                version="1.0.0",
+                generated_at="2026-02-16",
+                description="test"
+            ),
+            bounded_contexts=[],
+            global_rules=None,
+        )
+
+        extractor = ASTModelSignalExtractor()
+        enriched = extractor.enrich_domain_model(
+            model,
+            str(workspace),
+            srs_docs=[{"path": "srs.txt", "content": "Invoice must include amount."}],
+        )
+
+        assert len(enriched.bounded_contexts) >= 1
+        ul = enriched.bounded_contexts[0].ubiquitous_language
+        assert ul.entities is not None
+        assert any(e.name == "Invoice" for e in ul.entities)
+        invoice = next(e for e in ul.entities if e.name == "Invoice")
+        assert invoice.confidence >= 0.5
+        assert len(invoice.sources) >= 1
+
+
+# =============================================================================
 # SCHEMA TESTS
 # =============================================================================
 

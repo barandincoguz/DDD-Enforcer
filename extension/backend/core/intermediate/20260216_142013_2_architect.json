@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-02-16 14:20:58",
+  "contexts_identified": 5,
+  "contexts": [
+    "CustomerManagement",
+    "ProductCatalog",
+    "OrderManagement",
+    "InventoryManagement",
+    "PaymentProcessing"
+  ],
+  "input_sentences_count": 88
+}
