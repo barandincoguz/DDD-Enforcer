@@ -112,3 +112,9 @@ audit_logs/
 temp/
 misc/.DS_Store
 token_usage_report.json
+
+#DDD Paper files
+DDD_paper_yeni.docx 
+
+
+/node_modules/
