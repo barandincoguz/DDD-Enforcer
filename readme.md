@@ -10,8 +10,6 @@
 
 ---
 
-### 🎓 SENG 472 — Term Project — Team 2
-
 \*An intelligent **"Domain Guardian"** that prevents vibe coding by enforcing **Domain-Driven Design** principles in real-time using **Static Analysis (AST)** and **Large Language Models\***
 
 [Features](#-features) • [Architecture](#-system-architecture) • [Installation](#-installation--setup) • [Usage](#-usage) • [Configuration](#%EF%B8%8F-configuration)
