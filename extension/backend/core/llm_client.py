@@ -1,32 +1,22 @@
 """
-LLM Client
+LLM client for DDD violation detection.
 
-Interfaces with Google Gemini for DDD violation detection.
-Uses structured outputs to ensure consistent response format.
+This module now depends on the provider abstraction rather than calling Gemini
+directly, which makes validation logic reusable from the IDE backend and the
+experiment runner.
 """
 
+from __future__ import annotations
+
 import json
-import os
-import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 from pydantic import BaseModel, Field
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import AnalyzerConfig
-from core.token_tracker import TokenTracker
-
-load_dotenv()
-
-
-# =============================================================================
-# RESPONSE SCHEMAS
-# =============================================================================
+from core.llm_provider import GeminiLLMProvider, LLMProvider
 
 
 class Violation(BaseModel):
@@ -46,85 +36,128 @@ class Violation(BaseModel):
 
 
 class ValidationResponse(BaseModel):
-    """Response from violation analysis."""
+    """Structured response for validation output."""
 
     is_violation: bool = Field(description="True if any violation is detected")
     violations: List[Violation] = Field(description="List of detected violations")
 
 
-# =============================================================================
-# LLM CLIENT
-# =============================================================================
-
-
 class LLMClient:
-    """Client for DDD violation detection using Google Gemini."""
+    """Provider-backed client for DDD violation detection."""
 
-    def __init__(self, config: Optional[AnalyzerConfig] = None):
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment")
-
+    def __init__(
+        self,
+        config: Optional[AnalyzerConfig] = None,
+        provider: Optional[LLMProvider] = None,
+        model_name: Optional[str] = None,
+    ):
         self.config = config or AnalyzerConfig()
-        self.client = genai.Client(api_key=api_key)
-        self.token_tracker = TokenTracker.get_instance()
+        self.provider = provider or GeminiLLMProvider()
+        self.model_name = model_name or self.config.MODEL_NAME
 
     def analyze_violation(
-        self, ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
+        self,
+        ast_data: Dict[str, Any],
+        domain_rules: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """
-        Analyze code for DDD violations.
-
-        Checks class and function names against synonym lists and
-        banned global terms from the domain rules.
-        """
-        # Fast short-circuit: nothing analyzable in AST
+        """Run deterministic and advanced checks together."""
         if not ast_data.get("classes") and not ast_data.get("functions") and not ast_data.get("imports"):
             return {"is_violation": False, "violations": []}
 
-        prompt = self._build_prompt(ast_data, domain_rules)
+        deterministic = self.rule_based_name_violations(ast_data, domain_rules)
+        advanced = self.analyze_advanced_violations(ast_data, domain_rules)
+        violations = self._dedupe_violations(deterministic + advanced.get("violations", []))
+        return {"is_violation": bool(violations), "violations": violations}
+
+    def analyze_advanced_violations(
+        self,
+        ast_data: Dict[str, Any],
+        domain_rules: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Run advanced context/value-object/event checks through the provider."""
+        prompt = self._build_advanced_prompt(ast_data, domain_rules)
         retries = getattr(self.config, "VALIDATION_RETRIES", 2)
         backoff = float(getattr(self.config, "RETRY_BACKOFF_SECONDS", 1.0))
 
         last_error: Optional[Exception] = None
         for attempt in range(retries + 1):
             try:
-                response = self.client.models.generate_content(
-                    model=self.config.MODEL_NAME,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type=self.config.RESPONSE_MIME_TYPE,
-                        response_schema=ValidationResponse,
-                        temperature=self.config.TEMPERATURE,
-                    ),
-                )
-
-                self.token_tracker.track_api_call(
-                    response,
+                result = self.provider.generate_json(
+                    model=self.model_name,
+                    prompt=prompt,
                     stage="Validator",
-                    operation="validate_code"
+                    operation="validate_advanced_checks",
+                    response_schema=ValidationResponse,
+                    response_mime_type=self.config.RESPONSE_MIME_TYPE,
+                    temperature=self.config.TEMPERATURE,
+                    retry_count=attempt,
                 )
-
-                result = json.loads(response.text)
-                result = self._filter_hallucinations(result, ast_data, domain_rules)
-                return result
-            except Exception as e:
-                last_error = e
+                if result.parse_success and result.parsed is not None:
+                    parsed = result.parsed.model_dump(mode="json")
+                else:
+                    parsed = json.loads(result.text)
+                allowed_types = {
+                    "ContextBoundaryViolation",
+                    "ValueObjectViolation",
+                    "DomainEventViolation",
+                    "SystemError",
+                }
+                advanced = [
+                    violation
+                    for violation in parsed.get("violations", [])
+                    if violation.get("type") in allowed_types
+                ]
+                return {"is_violation": bool(advanced), "violations": advanced}
+            except Exception as exc:
+                last_error = exc
                 if attempt < retries:
-                    time.sleep(backoff * (2 ** attempt))
-
-        # Deterministic fallback after retries
-        fallback_result = self._deterministic_fallback(ast_data, domain_rules)
-        if fallback_result["is_violation"]:
-            return fallback_result
+                    time.sleep(backoff * (2**attempt))
 
         return {
             "is_violation": True,
             "violations": [
                 {
                     "type": "SystemError",
-                    "message": f"LLM Error after retries: {str(last_error)}",
-                    "suggestion": "Retry validation or check backend/API connectivity.",
+                    "message": f"LLM Error after retries: {last_error}",
+                    "suggestion": "Retry validation or check provider/API connectivity.",
+                }
+            ],
+        }
+
+    def analyze_naive_violations(self, filename: str, source_code: str) -> Dict[str, Any]:
+        """Run the principled naive baseline without domain rules or AST guidance."""
+        prompt = self._build_naive_prompt(filename, source_code)
+        retries = getattr(self.config, "VALIDATION_RETRIES", 2)
+        backoff = float(getattr(self.config, "RETRY_BACKOFF_SECONDS", 1.0))
+        last_error: Optional[Exception] = None
+
+        for attempt in range(retries + 1):
+            try:
+                result = self.provider.generate_json(
+                    model=self.model_name,
+                    prompt=prompt,
+                    stage="Validator",
+                    operation="validate_naive_baseline",
+                    response_schema=ValidationResponse,
+                    response_mime_type=self.config.RESPONSE_MIME_TYPE,
+                    temperature=self.config.TEMPERATURE,
+                    retry_count=attempt,
+                )
+                if result.parse_success and result.parsed is not None:
+                    return result.parsed.model_dump(mode="json")
+                return json.loads(result.text)
+            except Exception as exc:
+                last_error = exc
+                if attempt < retries:
+                    time.sleep(backoff * (2**attempt))
+
+        return {
+            "is_violation": True,
+            "violations": [
+                {
+                    "type": "SystemError",
+                    "message": f"Naive baseline failed after retries: {last_error}",
+                    "suggestion": "Retry validation or check provider/API connectivity.",
                 }
             ],
         }
@@ -137,54 +170,49 @@ class LLMClient:
         """Deterministic checks for synonym/banned/naming violations."""
         global_rules = domain_rules.get("global_rules") or {}
         banned_terms = {
-            str(t).lower()
-            for t in global_rules.get("banned_global_terms", []) or []
-            if str(t).strip()
+            str(term).lower()
+            for term in global_rules.get("banned_global_terms", []) or []
+            if str(term).strip()
         }
 
         synonyms_map: Dict[str, str] = {}
-        for ctx in domain_rules.get("bounded_contexts", []) or []:
-            ul = (ctx or {}).get("ubiquitous_language", {})
-            for entity in ul.get("entities", []) or []:
+        for context in domain_rules.get("bounded_contexts", []) or []:
+            ubiquitous_language = (context or {}).get("ubiquitous_language", {})
+            for entity in ubiquitous_language.get("entities", []) or []:
                 canonical = (entity or {}).get("name", "")
-                for syn in (entity or {}).get("synonyms_to_avoid", []) or []:
-                    syn_name = str(syn).strip().lower()
-                    if syn_name:
-                        synonyms_map[syn_name] = canonical
+                for synonym in (entity or {}).get("synonyms_to_avoid", []) or []:
+                    synonym_key = str(synonym).strip().lower()
+                    if synonym_key:
+                        synonyms_map[synonym_key] = canonical
 
         class_names = [cls.get("name", "") for cls in ast_data.get("classes", [])]
         function_names = [fn.get("name", "") for fn in ast_data.get("functions", [])]
-
         filename_raw = ast_data.get("filename", "")
         filename = Path(filename_raw).name if filename_raw else ""
 
         tagged_names: List[tuple[str, str]] = []
         if filename:
             tagged_names.append(("File", filename))
-        tagged_names.extend(("Class", n) for n in class_names if n)
-        tagged_names.extend(("Function", n) for n in function_names if n)
+        tagged_names.extend(("Class", name) for name in class_names if name)
+        tagged_names.extend(("Function", name) for name in function_names if name)
 
         violations: List[Dict[str, str]] = []
         for label, name in tagged_names:
             lowered_name = name.lower()
-
-            # Prefer more specific synonym matches first to avoid noisy overlap
-            # (e.g., 'item' and 'lineitem' both matching 'LineItem').
             matched_by_canonical: Dict[str, str] = {}
-            sorted_synonyms = sorted(synonyms_map.keys(), key=len, reverse=True)
-            for syn in sorted_synonyms:
-                canonical = synonyms_map[syn]
-                if syn in lowered_name:
-                    prev = matched_by_canonical.get(canonical)
-                    if prev is None or len(syn) > len(prev):
-                        matched_by_canonical[canonical] = syn
+            for synonym in sorted(synonyms_map.keys(), key=len, reverse=True):
+                canonical = synonyms_map[synonym]
+                if synonym in lowered_name:
+                    previous = matched_by_canonical.get(canonical)
+                    if previous is None or len(synonym) > len(previous):
+                        matched_by_canonical[canonical] = synonym
 
-            for canonical, syn in matched_by_canonical.items():
+            for canonical, synonym in matched_by_canonical.items():
                 violations.append(
                     {
                         "type": "SynonymViolation",
-                        "message": f"{label} name '{name}' contains a synonym '{syn}' for the term '{canonical}'.",
-                        "suggestion": f"Use '{canonical}' terminology instead of '{syn}'.",
+                        "message": f"{label} name '{name}' contains a synonym '{synonym}' for the term '{canonical}'.",
+                        "suggestion": f"Use '{canonical}' terminology instead of '{synonym}'.",
                     }
                 )
 
@@ -208,374 +236,116 @@ class LLMClient:
                     }
                 )
 
-        # Deduplicate by type/message
-        seen = set()
-        deduped: List[Dict[str, str]] = []
-        for v in violations:
-            key = (v["type"], v["message"])
-            if key not in seen:
-                seen.add(key)
-                deduped.append(v)
+        return self._dedupe_violations(violations)
 
-        return deduped
-
-    def analyze_advanced_violations(
-        self,
-        ast_data: Dict[str, Any],
-        domain_rules: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """LLM analysis for advanced checks only (context/value-object/event)."""
-        prompt = self._build_advanced_prompt(ast_data, domain_rules)
-        retries = getattr(self.config, "VALIDATION_RETRIES", 2)
-        backoff = float(getattr(self.config, "RETRY_BACKOFF_SECONDS", 1.0))
-
-        last_error: Optional[Exception] = None
-        for attempt in range(retries + 1):
-            try:
-                response = self.client.models.generate_content(
-                    model=self.config.MODEL_NAME,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type=self.config.RESPONSE_MIME_TYPE,
-                        response_schema=ValidationResponse,
-                        temperature=self.config.TEMPERATURE,
-                    ),
-                )
-
-                self.token_tracker.track_api_call(
-                    response,
-                    stage="Validator",
-                    operation="validate_advanced_checks",
-                )
-
-                result = json.loads(response.text)
-
-                # Keep only advanced types
-                allowed_types = {
-                    "ContextBoundaryViolation",
-                    "ValueObjectViolation",
-                    "DomainEventViolation",
-                    "SystemError",
-                }
-                advanced = [
-                    v for v in result.get("violations", [])
-                    if v.get("type") in allowed_types
-                ]
-                return {"is_violation": len(advanced) > 0, "violations": advanced}
-            except Exception as e:
-                last_error = e
-                if attempt < retries:
-                    time.sleep(backoff * (2 ** attempt))
-
-        return {
-            "is_violation": True,
-            "violations": [
-                {
-                    "type": "SystemError",
-                    "message": f"LLM Error after retries: {str(last_error)}",
-                    "suggestion": "Retry validation or check backend/API connectivity.",
-                }
-            ],
-        }
-
-    def _deterministic_fallback(
-        self,
-        ast_data: Dict[str, Any],
-        domain_rules: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """Lightweight fallback checks when LLM call fails."""
-        violations: List[Dict[str, str]] = []
-
-        banned_terms = [
-            t.lower() for t in domain_rules.get("global_rules", {}).get("banned_global_terms", [])
-        ]
-
-        synonyms_map: Dict[str, str] = {}
-        for ctx in domain_rules.get("bounded_contexts", []):
-            ul = ctx.get("ubiquitous_language", {})
-            for entity in ul.get("entities", []):
-                canonical = entity.get("name", "")
-                for syn in entity.get("synonyms_to_avoid", []) or []:
-                    synonyms_map[syn.lower()] = canonical
-
-        class_names = [cls.get("name", "") for cls in ast_data.get("classes", [])]
-        func_names = [fn.get("name", "") for fn in ast_data.get("functions", [])]
-        filename = ast_data.get("filename", "")
-        all_names = [filename] + class_names + func_names
-
-        for name in all_names:
-            lower_name = name.lower()
-            for term in banned_terms:
-                if term and term in lower_name:
-                    violations.append(
-                        {
-                            "type": "BannedTermViolation",
-                            "message": f"Banned term '{term}' found in '{name}'.",
-                            "suggestion": "Rename using domain terminology.",
-                        }
-                    )
-
-            for syn, canonical in synonyms_map.items():
-                if syn and syn in lower_name:
-                    violations.append(
-                        {
-                            "type": "SynonymViolation",
-                            "message": f"Synonym '{syn}' found in '{name}', prefer '{canonical}'.",
-                            "suggestion": f"Use '{canonical}' in naming.",
-                        }
-                    )
-
-        for class_name in class_names:
-            if class_name and (class_name[0].islower() or "_" in class_name):
-                violations.append(
-                    {
-                        "type": "NamingConventionViolation",
-                        "message": f"Class '{class_name}' should be PascalCase.",
-                        "suggestion": "Rename class to PascalCase.",
-                    }
-                )
-
-        # Deduplicate by (type, message)
-        seen = set()
-        unique_violations: List[Dict[str, str]] = []
-        for violation in violations:
-            key = (violation["type"], violation["message"])
-            if key not in seen:
-                seen.add(key)
-                unique_violations.append(violation)
-
-        return {
-            "is_violation": len(unique_violations) > 0,
-            "violations": unique_violations,
-        }
-    
     def _filter_hallucinations(
-        self, result: Dict[str, Any], ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
+        self,
+        result: Dict[str, Any],
+        ast_data: Dict[str, Any],
+        domain_rules: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """
-        Filter out hallucinated violations by verifying string matches.
-        
-        This catches cases where LLM claims a term exists in a name but it doesn't.
-        """
+        """Filter simple hallucinations for name-based violations."""
         if not result.get("is_violation") or not result.get("violations"):
             return result
-        
-        # Get banned terms and synonyms for verification
-        banned_terms = set()
-        global_rules = domain_rules.get("global_rules", {})
-        for term in global_rules.get("banned_global_terms", []):
-            banned_terms.add(term.lower())
-        
+
+        banned_terms = {
+            str(term).lower()
+            for term in (domain_rules.get("global_rules", {}) or {}).get("banned_global_terms", [])
+        }
         synonyms = set()
-        for ctx in domain_rules.get("bounded_contexts", []):
-            ul = ctx.get("ubiquitous_language", {})
-            for entity in ul.get("entities", []):
-                for syn in entity.get("synonyms_to_avoid", []):
-                    synonyms.add(syn.lower())
-        
-        # Get all names from AST
-        all_names = set()
-        filename = ast_data.get("filename", "")
-        all_names.add(filename.lower())
+        for context in domain_rules.get("bounded_contexts", []) or []:
+            ubiquitous_language = (context or {}).get("ubiquitous_language", {})
+            for entity in ubiquitous_language.get("entities", []) or []:
+                for synonym in (entity or {}).get("synonyms_to_avoid", []) or []:
+                    synonyms.add(str(synonym).lower())
+
+        all_names = {Path(ast_data.get("filename", "")).name.lower()}
         for cls in ast_data.get("classes", []):
             all_names.add(cls.get("name", "").lower())
-        for func in ast_data.get("functions", []):
-            all_names.add(func.get("name", "").lower())
-        
-        filtered_violations = []
+        for fn in ast_data.get("functions", []):
+            all_names.add(fn.get("name", "").lower())
+
+        filtered = []
         for violation in result.get("violations", []):
-            v_type = violation.get("type", "")
+            violation_type = violation.get("type", "")
             message = violation.get("message", "").lower()
-            
-            # Verify BannedTermViolation
-            if v_type == "BannedTermViolation":
-                # Extract the claimed banned term from message
-                is_valid = False
-                for term in banned_terms:
-                    if term in message:
-                        # Check if this term actually exists in any name
-                        for name in all_names:
-                            if term in name:
-                                is_valid = True
-                                break
-                    if is_valid:
-                        break
-                
-                if is_valid:
-                    filtered_violations.append(violation)
-                else:
-                    print(f"      🚫 Filtered hallucination: {violation.get('message', '')[:60]}...")
-            
-            # Verify SynonymViolation
-            elif v_type == "SynonymViolation":
-                is_valid = False
-                for syn in synonyms:
-                    if syn in message:
-                        for name in all_names:
-                            if syn in name:
-                                is_valid = True
-                                break
-                    if is_valid:
-                        break
-                
-                if is_valid:
-                    filtered_violations.append(violation)
-                else:
-                    print(f"      🚫 Filtered hallucination: {violation.get('message', '')[:60]}...")
-            
-            # Verify NamingConventionViolation  
-            elif v_type == "NamingConventionViolation":
-                # Check if the mentioned name actually exists in the AST
-                is_valid = False
-                mentioned_name = None
-                
-                # Try to find which name is being mentioned
-                for cls in ast_data.get("classes", []):
-                    name = cls.get("name", "")
-                    if name and name.lower() in message:
-                        mentioned_name = name
-                        # Verify it actually violates the rule
-                        if name[0].islower() or "_" in name:
-                            is_valid = True
-                        break
-                
-                if is_valid:
-                    filtered_violations.append(violation)
-                elif mentioned_name:
-                    # Name exists but doesn't violate the rule
-                    print(f"      🚫 Filtered false positive: '{mentioned_name}' is valid PascalCase")
-                else:
-                    # Name doesn't exist at all - hallucination
-                    print(f"      🚫 Filtered hallucination: {violation.get('message', '')[:60]}...")
-            
+            if violation_type == "BannedTermViolation":
+                if any(term in message and any(term in name for name in all_names) for term in banned_terms):
+                    filtered.append(violation)
+            elif violation_type == "SynonymViolation":
+                if any(syn in message and any(syn in name for name in all_names) for syn in synonyms):
+                    filtered.append(violation)
+            elif violation_type == "NamingConventionViolation":
+                if any(
+                    class_name and class_name.lower() in message and (class_name[0].islower() or "_" in class_name)
+                    for class_name in [cls.get("name", "") for cls in ast_data.get("classes", [])]
+                ):
+                    filtered.append(violation)
             else:
-                # Other violation types - keep as-is
-                filtered_violations.append(violation)
-        
-        result["violations"] = filtered_violations
-        result["is_violation"] = len(filtered_violations) > 0
-        
+                filtered.append(violation)
+
+        result["violations"] = filtered
+        result["is_violation"] = bool(filtered)
         return result
 
-    def _build_prompt(
-        self, ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
-    ) -> str:
-        """Build the analysis prompt."""
-        filename = ast_data.get("filename", "unknown.py")
-        
-        # Extract entity and value object names for whitelist
-        whitelist_names = set()
-        for ctx in domain_rules.get("bounded_contexts", []):
-            ul = ctx.get("ubiquitous_language", {})
-            for entity in ul.get("entities", []):
-                whitelist_names.add(entity.get("name", ""))
-            for vo in ul.get("value_objects", []):
-                whitelist_names.add(vo.get("name", ""))
-        whitelist_str = ", ".join(sorted(whitelist_names)) if whitelist_names else "None"
-
-        # Extract actual names from AST for reference
-        class_names = [cls.get("name", "") for cls in ast_data.get("classes", [])]
-        function_names = [func.get("name", "") for func in ast_data.get("functions", [])]
-        
-        # Extract banned terms and synonyms
-        banned_terms = domain_rules.get("global_rules", {}).get("banned_global_terms", [])
-        
-        synonyms_map = {}
-        for ctx in domain_rules.get("bounded_contexts", []):
-            ul = ctx.get("ubiquitous_language", {})
-            for entity in ul.get("entities", []):
-                entity_name = entity.get("name", "")
-                for syn in entity.get("synonyms_to_avoid", []):
-                    synonyms_map[syn] = entity_name
-
-        return f"""You are a DDD violation detector. Analyze ONLY the code provided below.
-
-⚠️ CRITICAL INSTRUCTION:
-You must ONLY analyze the ACTUAL names listed below. Do NOT invent or imagine any names.
-If a name is not in the lists below, it DOES NOT EXIST - do not report violations for non-existent names.
-
-═══════════════════════════════════════════════════════════════════════════════
-ACTUAL CODE TO ANALYZE (ONLY THESE NAMES EXIST)
-═══════════════════════════════════════════════════════════════════════════════
-
-Filename: {filename}
-Class names in this file: {class_names if class_names else "NONE"}
-Function names in this file: {function_names if function_names else "NONE"}
-
-WHITELIST (domain entities - NEVER flag these): {whitelist_str}
-
-═══════════════════════════════════════════════════════════════════════════════
-VIOLATION RULES
-═══════════════════════════════════════════════════════════════════════════════
-
-1. SynonymViolation
-   - Check if any CLASS/FUNCTION name contains these synonyms: {list(synonyms_map.keys()) if synonyms_map else "NONE"}
-   - Synonym to correct term mapping: {synonyms_map if synonyms_map else "NONE"}
-   - Only flag if synonym is SUBSTRING of an ACTUAL name from the lists above
-
-2. BannedTermViolation
-   - Check if filename or any CLASS/FUNCTION name contains: {banned_terms if banned_terms else "NONE"}
-   - Only flag if banned term is SUBSTRING of an ACTUAL name from the lists above
-
-3. NamingConventionViolation (FOR CLASSES ONLY)
-   - Check each class name from: {class_names if class_names else "NONE"}
-   - Flag ONLY if: starts with lowercase OR contains underscore "_"
-   - DO NOT flag function names (snake_case is valid for functions)
-
-4. ContextBoundaryViolation - Check imports against allowed_dependencies
-5. ValueObjectViolation - Check if primitives used instead of Value Objects  
-6. DomainEventViolation - Check event emissions
-
-═══════════════════════════════════════════════════════════════════════════════
-FULL AST DATA (for detailed analysis)
-═══════════════════════════════════════════════════════════════════════════════
-
-{json.dumps(ast_data, indent=2)}
-
-═══════════════════════════════════════════════════════════════════════════════
-DOMAIN RULES
-═══════════════════════════════════════════════════════════════════════════════
-
-{json.dumps(domain_rules, indent=2)}
-
-═══════════════════════════════════════════════════════════════════════════════
-OUTPUT RULES
-═══════════════════════════════════════════════════════════════════════════════
-
-- Return {{"is_violation": false, "violations": []}} if NO violations found
-- ONLY report violations for names that ACTUALLY EXIST in the class/function lists above
-- Each violation must reference a REAL name from the code
-- Double-check: Is the name I'm reporting actually in {class_names + function_names}?"""
-
     def _build_advanced_prompt(
-        self, ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
+        self,
+        ast_data: Dict[str, Any],
+        domain_rules: Dict[str, Any],
     ) -> str:
-        """Build compact prompt for advanced checks only."""
         imports = ast_data.get("imports", [])
         assignments = ast_data.get("assignments", [])
         function_calls = ast_data.get("function_calls", [])
 
         compact_rules: Dict[str, Any] = {"bounded_contexts": []}
-        for ctx in domain_rules.get("bounded_contexts", []) or []:
-            ul = (ctx or {}).get("ubiquitous_language", {})
+        for context in domain_rules.get("bounded_contexts", []) or []:
+            ubiquitous_language = (context or {}).get("ubiquitous_language", {})
             compact_rules["bounded_contexts"].append(
                 {
-                    "context_name": ctx.get("context_name"),
-                    "allowed_dependencies": ctx.get("allowed_dependencies", []),
-                    "value_objects": [
-                        vo.get("name", "") for vo in ul.get("value_objects", []) or []
+                    "context_name": context.get("context_name"),
+                    "allowed_dependencies": context.get("allowed_dependencies", []),
+                    "actors": [
+                        actor.get("name", "")
+                        for actor in context.get("actors", []) or []
                     ],
-                    "domain_events": ul.get("domain_events", []) or [],
+                    "capabilities": [
+                        capability.get("name", "")
+                        for capability in context.get("capabilities", []) or []
+                    ],
+                    "business_rules": [
+                        rule.get("text", "")
+                        for rule in context.get("business_rules", []) or []
+                    ],
+                    "aggregates": [
+                        aggregate.get("name", "")
+                        for aggregate in ubiquitous_language.get("aggregates", []) or []
+                    ],
+                    "services": [
+                        service.get("name", "")
+                        for service in ubiquitous_language.get("services", []) or []
+                    ],
+                    "entities": [
+                        entity.get("name", "")
+                        for entity in ubiquitous_language.get("entities", []) or []
+                    ],
+                    "value_objects": [
+                        value_object.get("name", "")
+                        for value_object in ubiquitous_language.get("value_objects", []) or []
+                    ],
+                    "domain_events": [
+                        event.get("name", "") if isinstance(event, dict) else event
+                        for event in ubiquitous_language.get("domain_events", []) or []
+                    ],
                 }
             )
 
         return f"""You are a DDD advanced-rule validator.
-Only check these 3 rule types:
+Only check these rule types:
 1) ContextBoundaryViolation
 2) ValueObjectViolation
 3) DomainEventViolation
 
-Do NOT output SynonymViolation, BannedTermViolation, NamingConventionViolation.
+Do not output SynonymViolation, BannedTermViolation, or NamingConventionViolation.
 
 AST IMPORTS:
 {json.dumps(imports, indent=2)}
@@ -595,24 +365,29 @@ Output JSON:
 If no advanced violation exists, return:
 {{"is_violation": false, "violations": []}}"""
 
+    def _build_naive_prompt(self, filename: str, source_code: str) -> str:
+        return f"""You are performing a naive DDD review with no project-specific domain model.
+Analyze the raw source code below and detect possible DDD violations using only general DDD knowledge.
 
-# =============================================================================
-# TEST
-# =============================================================================
+Rules:
+- You may output only these violation types:
+  SynonymViolation, BannedTermViolation, NamingConventionViolation,
+  ContextBoundaryViolation, ValueObjectViolation, DomainEventViolation
+- If no violation exists, return {{"is_violation": false, "violations": []}}
+- Output valid JSON only
 
-if __name__ == "__main__":
-    dummy_ast = {"classes": [{"name": "ClientManager"}], "imports": []}
-    dummy_rules = {
-        "bounded_contexts": [
-            {
-                "ubiquitous_language": {
-                    "entities": [{"name": "Customer", "synonyms_to_avoid": ["Client"]}]
-                }
-            }
-        ]
-    }
+Filename: {filename}
+Source code:
+```python
+{source_code}
+```"""
 
-    client = LLMClient()
-    print("Analyzing...")
-    result = client.analyze_violation(dummy_ast, dummy_rules)
-    print(json.dumps(result, indent=2))
+    def _dedupe_violations(self, violations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        seen = set()
+        deduped = []
+        for violation in violations:
+            key = (violation.get("type", ""), violation.get("message", ""))
+            if key not in seen:
+                seen.add(key)
+                deduped.append(violation)
+        return deduped

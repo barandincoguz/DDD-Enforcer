@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-03-12 19:26:09",
+  "verification_report": {
+    "passed": false,
+    "missing_requirement_ids": [
+      "REQ-005",
+      "REQ-006",
+      "REQ-008"
+    ],
+    "uncovered_capabilities": [],
+    "uncovered_actors": [],
+    "uncovered_entities": [],
+    "evidence_less_items": [],
+    "duplicate_entities": [],
+    "missing_fields": [],
+    "contradictions": [],
+    "notes": []
+  }
+}

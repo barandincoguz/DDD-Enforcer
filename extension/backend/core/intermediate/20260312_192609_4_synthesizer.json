@@ -1,0 +1,873 @@
+{
+  "timestamp": "2026-03-12 19:26:09",
+  "final_model": {
+    "schema_version": "2.0.0",
+    "project_name": "KinmailDomainModel",
+    "project_metadata": {
+      "version": "1.0.0",
+      "generated_at": "SET_BY_CODE",
+      "description": "Synthesized model."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "IdentityAndAccess",
+        "description": "Registration and access control.",
+        "allowed_dependencies": [],
+        "actors": [
+          {
+            "name": "NonRegisteredUsers",
+            "description": "Actor extracted from FUNCTIONAL REQUIREMENT.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0001",
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0010"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RegisteredUsers",
+            "description": "Actor extracted from FUNCTIONAL REQUIREMENT.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0010",
+              "E0011",
+              "E0012"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RegisteredUser",
+            "description": "Authenticated user.",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0001"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "RegisterAccount",
+            "description": "Non-registered users can register and verify email before entering the platform.",
+            "actor": "NonRegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0001",
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0010"
+            ],
+            "sources": []
+          },
+          {
+            "name": "SearchProducts",
+            "description": "Users can search through the category of products.",
+            "actor": "NonRegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0006",
+              "E0007",
+              "E0008",
+              "E0013"
+            ],
+            "sources": []
+          },
+          {
+            "name": "AddProduct",
+            "description": "Only registered users can add products with price details and product condition.",
+            "actor": "RegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0010",
+              "E0011",
+              "E0012"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewProductDashboard",
+            "description": "Registered users can view their dashboard.",
+            "actor": "RegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0006",
+              "E0013",
+              "E0014",
+              "E0015"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "User",
+              "description": "Inferred from requirement: Register to the website",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0001",
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Profile",
+              "description": "Inferred from requirement: Users",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0018",
+                "E0019"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ContactInformation",
+              "attributes": [
+                "contactNumber",
+                "email"
+              ],
+              "description": "Contact channels associated with a user or listing.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0001",
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Price",
+              "attributes": [
+                "amount",
+                "currency"
+              ],
+              "description": "Monetary amount associated with a product or offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetails",
+              "attributes": [
+                "condition",
+                "warranty",
+                "homeDelivery"
+              ],
+              "description": "Detailed sellable-product attributes.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [
+            {
+              "name": "IdentityAndAccessService",
+              "description": "Coordinating domain service for IdentityAndAccess.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": []
+            }
+          ],
+          "aggregates": [
+            {
+              "name": "User",
+              "description": "Aggregate root candidate for IdentityAndAccess.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0001",
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Profile",
+              "description": "Aggregate root candidate for IdentityAndAccess.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0018",
+                "E0019"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": [
+            {
+              "name": "UserRegistered",
+              "description": "A user registration flow completed.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0001",
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductListed",
+              "description": "A product was listed for discovery.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            }
+          ]
+        },
+        "business_rules": [
+          {
+            "text": "Users must verify email before entering the platform.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0001"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [],
+        "evidence_ids": [
+          "E0001",
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0010",
+          "E0011",
+          "E0012",
+          "E0013",
+          "E0014",
+          "E0015",
+          "E0018",
+          "E0019"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Searchable product information.",
+        "allowed_dependencies": [],
+        "actors": [
+          {
+            "name": "NonRegisteredUsers",
+            "description": "Actor extracted from FUNCTIONAL REQUIREMENT.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0002",
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0010"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RegisteredUsers",
+            "description": "Actor extracted from FUNCTIONAL REQUIREMENT.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0010",
+              "E0011",
+              "E0012"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "SearchProducts",
+            "description": "Users can search through the category of products.",
+            "actor": "NonRegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0002",
+              "E0006",
+              "E0007",
+              "E0008",
+              "E0013"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewProductDetails",
+            "description": "View seller and product details.",
+            "actor": "NonRegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0002"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Product",
+              "description": "Inferred from requirement: Search for products",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0002",
+                "E0006",
+                "E0007",
+                "E0008",
+                "E0013"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Category",
+              "description": "Inferred from requirement: Search for products",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0002",
+                "E0006",
+                "E0007",
+                "E0008",
+                "E0013"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Price",
+              "description": "Inferred from requirement: Add product",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Dashboard",
+              "description": "Inferred from requirement: View product dashboard",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0006",
+                "E0013",
+                "E0014",
+                "E0015"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ContactInformation",
+              "attributes": [
+                "email",
+                "contactNumber"
+              ],
+              "description": "Contact channels associated with a user or listing.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Price",
+              "attributes": [
+                "amount",
+                "currency"
+              ],
+              "description": "Monetary amount associated with a product or offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0002",
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetails",
+              "attributes": [
+                "condition",
+                "warranty",
+                "homeDelivery"
+              ],
+              "description": "Detailed sellable-product attributes.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [
+            {
+              "name": "Product",
+              "description": "Aggregate root candidate for ProductCatalog.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0002",
+                "E0006",
+                "E0007",
+                "E0008",
+                "E0013"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Category",
+              "description": "Aggregate root candidate for ProductCatalog.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0006",
+                "E0007",
+                "E0008",
+                "E0013"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": []
+        },
+        "business_rules": [],
+        "external_references": [],
+        "evidence_ids": [
+          "E0002",
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0010",
+          "E0011",
+          "E0012",
+          "E0013",
+          "E0014",
+          "E0015"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "SellerWorkspace",
+        "description": "Seller-only workspace features.",
+        "allowed_dependencies": [
+          "IdentityAndAccess",
+          "ProductCatalog"
+        ],
+        "actors": [
+          {
+            "name": "RegisteredUsers",
+            "description": "Authenticated seller.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "AddProduct",
+            "description": "Only registered users can add products with price details and product condition.",
+            "actor": "RegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0010",
+              "E0011",
+              "E0012"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewProductDashboard",
+            "description": "Registered users can view their dashboard.",
+            "actor": "RegisteredUsers",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0006",
+              "E0013",
+              "E0014",
+              "E0015"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Seller",
+              "description": "Inferred from requirement: Offers",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0022",
+                "E0023"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ProductDetails",
+              "attributes": [
+                "condition",
+                "warranty",
+                "homeDelivery"
+              ],
+              "description": "Condition and delivery details.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [
+            {
+              "name": "SellerWorkspaceService",
+              "description": "Coordinating domain service for SellerWorkspace.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            }
+          ],
+          "aggregates": [],
+          "domain_events": [
+            {
+              "name": "ProductListed",
+              "description": "A product was listed for discovery.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            }
+          ]
+        },
+        "business_rules": [
+          {
+            "text": "Only the registered users can add products.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0003"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "IdentityAndAccess",
+            "relationship": "allowed_dependency",
+            "target_context": "IdentityAndAccess",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0003",
+              "E0022",
+              "E0023"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductCatalog",
+            "relationship": "allowed_dependency",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0003",
+              "E0022",
+              "E0023"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Product",
+            "relationship": "references_entity",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0003",
+              "E0006",
+              "E0007",
+              "E0008",
+              "E0013"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Dashboard",
+            "relationship": "references_entity",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0003"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Offer",
+            "relationship": "references_entity",
+            "target_context": "NegotiationAndCommunication",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0022",
+              "E0023"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Product",
+            "relationship": "references_aggregate",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0003",
+              "E0006",
+              "E0007",
+              "E0008",
+              "E0013"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Offer",
+            "relationship": "references_aggregate",
+            "target_context": "NegotiationAndCommunication",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0022",
+              "E0023"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0003",
+          "E0022",
+          "E0023"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "NegotiationAndCommunication",
+        "description": "Offer exchange between buyers and sellers.",
+        "allowed_dependencies": [
+          "IdentityAndAccess",
+          "ProductCatalog"
+        ],
+        "actors": [
+          {
+            "name": "NonRegisteredUsers",
+            "description": "Actor extracted from FUNCTIONAL REQUIREMENT.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0010"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Offer",
+              "description": "This table stores buyer and seller offers.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0004",
+                "E0022",
+                "E0023"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Buyer",
+              "description": "Inferred from requirement: Offers",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0022",
+                "E0023"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ContactInformation",
+              "attributes": [
+                "email",
+                "contactNumber"
+              ],
+              "description": "Contact channels associated with a user or listing.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [
+            {
+              "name": "Offer",
+              "description": "Aggregate root candidate for NegotiationAndCommunication.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0004",
+                "E0022",
+                "E0023"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Buyer",
+              "description": "Aggregate root candidate for NegotiationAndCommunication.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0022",
+                "E0023"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": [
+            {
+              "name": "OfferSubmitted",
+              "description": "An offer is submitted.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0004"
+              ],
+              "sources": []
+            }
+          ]
+        },
+        "business_rules": [],
+        "external_references": [
+          {
+            "name": "IdentityAndAccess",
+            "relationship": "allowed_dependency",
+            "target_context": "IdentityAndAccess",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0010",
+              "E0022",
+              "E0023"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductCatalog",
+            "relationship": "allowed_dependency",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0010",
+              "E0022",
+              "E0023"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0010",
+          "E0022",
+          "E0023"
+        ],
+        "evidence": []
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Data",
+        "Helper",
+        "Info",
+        "Manager",
+        "Util"
+      ],
+      "cross_cutting_constraints": [
+        "Only the registered users can add products.",
+        "Users need to verify their email after registering to enter the platform as registered user."
+      ],
+      "assumptions": []
+    }
+  }
+}

@@ -1,0 +1,499 @@
+{
+  "timestamp": "2026-03-12 19:28:20",
+  "chunks_processed": 1,
+  "requirements": 9,
+  "actors": 2,
+  "entities": 9,
+  "capabilities": 4,
+  "constraints": 2,
+  "tables": 3,
+  "scout_summary": {
+    "requirements": [
+      {
+        "requirement_id": "REQ-001",
+        "title": "Register to the website",
+        "category": "functional",
+        "description": "Non-registered users can register and verify email before entering the platform.",
+        "actor": "NonRegisteredUsers",
+        "evidence_ids": [
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0010"
+        ]
+      },
+      {
+        "requirement_id": "REQ-002",
+        "title": "Search for products",
+        "category": "functional",
+        "description": "Users can search through the category of products.",
+        "actor": "NonRegisteredUsers",
+        "evidence_ids": [
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0013"
+        ]
+      },
+      {
+        "requirement_id": "REQ-003",
+        "title": "Add product",
+        "category": "functional",
+        "description": "Only registered users can add products with price details and product condition.",
+        "actor": "RegisteredUsers",
+        "evidence_ids": [
+          "E0003",
+          "E0010",
+          "E0011",
+          "E0012"
+        ]
+      },
+      {
+        "requirement_id": "REQ-004",
+        "title": "View product dashboard",
+        "category": "functional",
+        "description": "Registered users can view their dashboard.",
+        "actor": "RegisteredUsers",
+        "evidence_ids": [
+          "E0006",
+          "E0013",
+          "E0014",
+          "E0015"
+        ]
+      },
+      {
+        "requirement_id": "REQ-005",
+        "title": "Users need to verify their email after registering to enter the platform as regi",
+        "category": "security",
+        "description": "Users need to verify their email after registering to enter the platform as registered user.",
+        "actor": null,
+        "evidence_ids": [
+          "E0016"
+        ]
+      },
+      {
+        "requirement_id": "REQ-006",
+        "title": "Only the registered users can add products.",
+        "category": "security",
+        "description": "Only the registered users can add products.",
+        "actor": null,
+        "evidence_ids": [
+          "E0017"
+        ]
+      },
+      {
+        "requirement_id": "REQ-007",
+        "title": "Users",
+        "category": "database",
+        "description": "This table stores user credentials and profile details.",
+        "actor": null,
+        "evidence_ids": [
+          "E0018",
+          "E0019"
+        ]
+      },
+      {
+        "requirement_id": "REQ-008",
+        "title": "Products",
+        "category": "database",
+        "description": "This table stores product information, price and category.",
+        "actor": null,
+        "evidence_ids": [
+          "E0020",
+          "E0021"
+        ]
+      },
+      {
+        "requirement_id": "REQ-009",
+        "title": "Offers",
+        "category": "database",
+        "description": "This table stores buyer and seller offers.",
+        "actor": null,
+        "evidence_ids": [
+          "E0022",
+          "E0023"
+        ]
+      }
+    ],
+    "actors": [
+      {
+        "name": "NonRegisteredUsers",
+        "description": "Actor extracted from FUNCTIONAL REQUIREMENT.",
+        "evidence_ids": [
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0010"
+        ]
+      },
+      {
+        "name": "RegisteredUsers",
+        "description": "Actor extracted from FUNCTIONAL REQUIREMENT.",
+        "evidence_ids": [
+          "E0003",
+          "E0010",
+          "E0011",
+          "E0012"
+        ]
+      }
+    ],
+    "entities": [
+      {
+        "name": "User",
+        "description": "Inferred from requirement: Register to the website",
+        "evidence_ids": [
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0010"
+        ]
+      },
+      {
+        "name": "Product",
+        "description": "Inferred from requirement: Search for products",
+        "evidence_ids": [
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0013"
+        ]
+      },
+      {
+        "name": "Category",
+        "description": "Inferred from requirement: Search for products",
+        "evidence_ids": [
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0013"
+        ]
+      },
+      {
+        "name": "Price",
+        "description": "Inferred from requirement: Add product",
+        "evidence_ids": [
+          "E0003",
+          "E0010",
+          "E0011",
+          "E0012"
+        ]
+      },
+      {
+        "name": "Dashboard",
+        "description": "Inferred from requirement: View product dashboard",
+        "evidence_ids": [
+          "E0006",
+          "E0013",
+          "E0014",
+          "E0015"
+        ]
+      },
+      {
+        "name": "Profile",
+        "description": "Inferred from requirement: Users",
+        "evidence_ids": [
+          "E0018",
+          "E0019"
+        ]
+      },
+      {
+        "name": "Offer",
+        "description": "This table stores buyer and seller offers.",
+        "evidence_ids": [
+          "E0022",
+          "E0023"
+        ]
+      },
+      {
+        "name": "Seller",
+        "description": "Inferred from requirement: Offers",
+        "evidence_ids": [
+          "E0022",
+          "E0023"
+        ]
+      },
+      {
+        "name": "Buyer",
+        "description": "Inferred from requirement: Offers",
+        "evidence_ids": [
+          "E0022",
+          "E0023"
+        ]
+      }
+    ],
+    "constraints": [
+      {
+        "text": "Users need to verify their email after registering to enter the platform as registered user.",
+        "category": "security",
+        "evidence_ids": [
+          "E0016"
+        ]
+      },
+      {
+        "text": "Only the registered users can add products.",
+        "category": "security",
+        "evidence_ids": [
+          "E0017"
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "name": "Users",
+        "description": "This table stores user credentials and profile details.",
+        "evidence_ids": [
+          "E0018",
+          "E0019"
+        ]
+      },
+      {
+        "name": "Products",
+        "description": "This table stores product information, price and category.",
+        "evidence_ids": [
+          "E0020",
+          "E0021"
+        ]
+      },
+      {
+        "name": "Offers",
+        "description": "This table stores buyer and seller offers.",
+        "evidence_ids": [
+          "E0022",
+          "E0023"
+        ]
+      }
+    ],
+    "capabilities": [
+      {
+        "name": "RegisterAccount",
+        "description": "Non-registered users can register and verify email before entering the platform.",
+        "actor": "NonRegisteredUsers",
+        "evidence_ids": [
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0010"
+        ]
+      },
+      {
+        "name": "SearchProducts",
+        "description": "Users can search through the category of products.",
+        "actor": "NonRegisteredUsers",
+        "evidence_ids": [
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0013"
+        ]
+      },
+      {
+        "name": "AddProduct",
+        "description": "Only registered users can add products with price details and product condition.",
+        "actor": "RegisteredUsers",
+        "evidence_ids": [
+          "E0003",
+          "E0010",
+          "E0011",
+          "E0012"
+        ]
+      },
+      {
+        "name": "ViewProductDashboard",
+        "description": "Registered users can view their dashboard.",
+        "actor": "RegisteredUsers",
+        "evidence_ids": [
+          "E0006",
+          "E0013",
+          "E0014",
+          "E0015"
+        ]
+      }
+    ],
+    "evidence_spans": [
+      {
+        "evidence_id": "E0001",
+        "document": "sample_srs.docx",
+        "section": "INTRODUCTION",
+        "excerpt": "Kinmail is an e-commerce platform for buyers and sellers.",
+        "line": 2,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0002",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "User Class 1- Non Registered Users",
+        "line": 4,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0003",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 1",
+        "line": 5,
+        "requirement_id": "REQ-003"
+      },
+      {
+        "evidence_id": "E0004",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Register to the website",
+        "line": 6,
+        "requirement_id": "REQ-001"
+      },
+      {
+        "evidence_id": "E0005",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Non-registered users can register and verify email before entering the platform.",
+        "line": 7,
+        "requirement_id": "REQ-001"
+      },
+      {
+        "evidence_id": "E0006",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 2",
+        "line": 8,
+        "requirement_id": "REQ-004"
+      },
+      {
+        "evidence_id": "E0007",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Search for products",
+        "line": 9,
+        "requirement_id": "REQ-002"
+      },
+      {
+        "evidence_id": "E0008",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Users can search through the category of products.",
+        "line": 10,
+        "requirement_id": "REQ-002"
+      },
+      {
+        "evidence_id": "E0009",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "User Class 2- Registered Users",
+        "line": 11,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0010",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 1",
+        "line": 12,
+        "requirement_id": "REQ-003"
+      },
+      {
+        "evidence_id": "E0011",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Add product",
+        "line": 13,
+        "requirement_id": "REQ-003"
+      },
+      {
+        "evidence_id": "E0012",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Only registered users can add products with price details and product condition.",
+        "line": 14,
+        "requirement_id": "REQ-003"
+      },
+      {
+        "evidence_id": "E0013",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 2",
+        "line": 15,
+        "requirement_id": "REQ-004"
+      },
+      {
+        "evidence_id": "E0014",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: View product dashboard",
+        "line": 16,
+        "requirement_id": "REQ-004"
+      },
+      {
+        "evidence_id": "E0015",
+        "document": "sample_srs.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Registered users can view their dashboard.",
+        "line": 17,
+        "requirement_id": "REQ-004"
+      },
+      {
+        "evidence_id": "E0016",
+        "document": "sample_srs.docx",
+        "section": "Security Requirements",
+        "excerpt": "Users need to verify their email after registering to enter the platform as registered user.",
+        "line": 20,
+        "requirement_id": "REQ-005"
+      },
+      {
+        "evidence_id": "E0017",
+        "document": "sample_srs.docx",
+        "section": "Security Requirements",
+        "excerpt": "Only the registered users can add products.",
+        "line": 21,
+        "requirement_id": "REQ-006"
+      },
+      {
+        "evidence_id": "E0018",
+        "document": "sample_srs.docx",
+        "section": "Database Requirement",
+        "excerpt": "Users",
+        "line": 23,
+        "requirement_id": "REQ-007"
+      },
+      {
+        "evidence_id": "E0019",
+        "document": "sample_srs.docx",
+        "section": "Database Requirement",
+        "excerpt": "This table stores user credentials and profile details.",
+        "line": 24,
+        "requirement_id": "REQ-007"
+      },
+      {
+        "evidence_id": "E0020",
+        "document": "sample_srs.docx",
+        "section": "Database Requirement",
+        "excerpt": "Products",
+        "line": 25,
+        "requirement_id": "REQ-008"
+      },
+      {
+        "evidence_id": "E0021",
+        "document": "sample_srs.docx",
+        "section": "Database Requirement",
+        "excerpt": "This table stores product information, price and category.",
+        "line": 26,
+        "requirement_id": "REQ-008"
+      },
+      {
+        "evidence_id": "E0022",
+        "document": "sample_srs.docx",
+        "section": "Database Requirement",
+        "excerpt": "Offers",
+        "line": 27,
+        "requirement_id": "REQ-009"
+      },
+      {
+        "evidence_id": "E0023",
+        "document": "sample_srs.docx",
+        "section": "Database Requirement",
+        "excerpt": "This table stores buyer and seller offers.",
+        "line": 28,
+        "requirement_id": "REQ-009"
+      }
+    ]
+  }
+}

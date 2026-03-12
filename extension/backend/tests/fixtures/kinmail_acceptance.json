@@ -1,0 +1,29 @@
+{
+  "actors": [
+    "NonRegisteredUsers",
+    "RegisteredUsers"
+  ],
+  "entities": [
+    "User",
+    "Product",
+    "Category",
+    "Offer",
+    "Request",
+    "Profile",
+    "Dashboard"
+  ],
+  "capabilities": [
+    "RegisterAccount",
+    "Login",
+    "SearchProducts",
+    "ViewProductDetails",
+    "AddProduct",
+    "ViewProfile",
+    "ViewProductDashboard",
+    "ViewUserManual"
+  ],
+  "constraints": [
+    "Users need to verify their email after registering to enter the platform as registered user.",
+    "Only the registered users can add products."
+  ]
+}

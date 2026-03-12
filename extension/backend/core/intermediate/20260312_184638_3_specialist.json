@@ -1,0 +1,216 @@
+{
+  "timestamp": "2026-03-12 18:47:12",
+  "contexts_analyzed": 4,
+  "analyses": [
+    {
+      "context": "IdentityAndAccess",
+      "analysis": {
+        "context": "IdentityAndAccess",
+        "aggregate_roots": [
+          "User"
+        ],
+        "entities": [
+          {
+            "name": "User",
+            "attributes": [
+              "id",
+              "username",
+              "passwordHash",
+              "email",
+              "registrationDate",
+              "lastLoginDate",
+              "roles",
+              "contactInformation"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "ContactInformation",
+            "attributes": [
+              "email",
+              "phoneNumber"
+            ]
+          },
+          {
+            "name": "PasswordHash",
+            "attributes": [
+              "hashValue",
+              "salt"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Users must register before logging in.",
+          "Each user must have a unique username and email.",
+          "A user can have multiple roles (e.g., buyer and seller)."
+        ]
+      }
+    },
+    {
+      "context": "ProductCatalog",
+      "analysis": {
+        "context": "ProductCatalog",
+        "aggregate_roots": [
+          "Product"
+        ],
+        "entities": [
+          {
+            "name": "Product",
+            "attributes": [
+              "id",
+              "name",
+              "description",
+              "category",
+              "status",
+              "sellerId",
+              "price"
+            ]
+          },
+          {
+            "name": "Category",
+            "attributes": [
+              "id",
+              "name"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Price",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "ProductDescription",
+            "attributes": [
+              "shortDescription",
+              "longDescription"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Products must belong to at least one category.",
+          "Only available products can be browsed or searched."
+        ]
+      }
+    },
+    {
+      "context": "SellerProductManagement",
+      "analysis": {
+        "context": "SellerProductManagement",
+        "aggregate_roots": [
+          "Product"
+        ],
+        "entities": [
+          {
+            "name": "Product",
+            "attributes": [
+              "id",
+              "name",
+              "description",
+              "category",
+              "initialPrice",
+              "status",
+              "sellerId",
+              "listingDate"
+            ]
+          },
+          {
+            "name": "ProductImage",
+            "attributes": [
+              "id",
+              "productId",
+              "url",
+              "caption"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Price",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "ProductDescription",
+            "attributes": [
+              "shortDescription",
+              "longDescription"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Only registered sellers can add products.",
+          "A seller can only modify or remove their own products.",
+          "Products must have a valid initial price.",
+          "A product cannot be removed if it's part of an active deal negotiation."
+        ]
+      }
+    },
+    {
+      "context": "DealNegotiation",
+      "analysis": {
+        "context": "DealNegotiation",
+        "aggregate_roots": [
+          "Deal"
+        ],
+        "entities": [
+          {
+            "name": "Deal",
+            "attributes": [
+              "id",
+              "productId",
+              "sellerId",
+              "buyerId",
+              "status",
+              "creationDate",
+              "lastUpdateDate"
+            ]
+          },
+          {
+            "name": "Offer",
+            "attributes": [
+              "id",
+              "dealId",
+              "amount",
+              "currency",
+              "offererId",
+              "offerDate",
+              "status"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Money",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "NegotiationMessage",
+            "attributes": [
+              "senderId",
+              "recipientId",
+              "timestamp",
+              "content"
+            ]
+          }
+        ],
+        "business_rules": [
+          "A deal must involve one buyer and one seller for a specific product.",
+          "Offers must be greater than zero.",
+          "A deal is concluded when an offer is accepted by both parties.",
+          "Only the current offer can be accepted or rejected.",
+          "A product can only be part of one active deal negotiation at a time."
+        ]
+      }
+    }
+  ]
+}

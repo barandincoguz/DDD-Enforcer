@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-03-12 18:46:47",
+  "input_length": 2901,
+  "chunks_processed": 1,
+  "sentences_extracted": 8,
+  "sentences": [
+    "The website can be used by users to browse, search and add products to sell to the buyers.",
+    "Register to the platform",
+    "Log in to the platform",
+    "Browse through the database of available product",
+    "View user profile",
+    "Get contact information of the seller",
+    "View product dashboard",
+    "So to overcome such concepts we have decided to make a customer to customer transaction based online system where the buyers and sellers make a reasonable discussion of the product involved to make a deal among themselves."
+  ]
+}

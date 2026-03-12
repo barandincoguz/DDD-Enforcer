@@ -1,107 +1,121 @@
 {
-  "session_start": "2026-02-16T14:45:15.329224",
-  "session_end": "2026-02-16T14:45:43.989965",
+  "session_start": "2026-03-12T19:30:17.329607",
+  "session_end": "2026-03-12T19:30:17.331726",
   "summary": {
-    "total_validations": 3,
-    "files_with_violations": 3,
+    "total_validations": 2,
+    "files_with_violations": 2,
     "files_without_violations": 0,
     "violation_rate_percent": 100.0,
-    "total_violations_found": 43,
-    "avg_violations_per_file": 14.33
+    "total_violations_found": 3,
+    "avg_violations_per_file": 1.5,
+    "validation_modes": {
+      "pipeline": 1,
+      "naive": 1
+    }
   },
   "performance": {
-    "avg_validation_time_ms": 985.51,
-    "total_validation_time_ms": 2956.54,
-    "avg_code_size_chars": 2830.33,
-    "total_code_size_chars": 8491,
-    "avg_code_tokens": 708.0,
-    "total_code_tokens": 2124
+    "avg_validation_time_ms": 0.2293,
+    "total_validation_time_ms": 0.4585,
+    "avg_code_size_chars": 30.0,
+    "total_code_size_chars": 60,
+    "avg_code_tokens": 8.0,
+    "total_code_tokens": 16,
+    "avg_stage_latencies_ms": {
+      "ast_parse": 0.0106,
+      "deterministic_rules": 0.0076,
+      "advanced_llm": 0.0,
+      "naive_llm": 0.1983,
+      "rag": 0.0,
+      "total": 0.2293
+    }
+  },
+  "llm_usage": {
+    "avg_input_tokens": 69.0,
+    "avg_output_tokens": 23.5,
+    "avg_total_tokens": 92.5,
+    "avg_cached_tokens": 0.0,
+    "avg_cost_usd": 0.0,
+    "avg_api_calls": 0.5,
+    "parseable_output_rate_percent": 100.0
   },
   "rag_integration": {
     "validations_with_sources": 0,
-    "source_attachment_rate_percent": 0.0
+    "source_attachment_rate_percent": 0.0,
+    "retrieval_top1_accuracy_percent": null,
+    "retrieval_top3_accuracy_percent": null
   },
   "violation_breakdown": {
-    "SynonymViolation": 33,
-    "BannedTermViolation": 9,
+    "SynonymViolation": 1,
+    "BannedTermViolation": 1,
     "NamingConventionViolation": 1
   },
   "validation_history": [
     {
-      "timestamp": "2026-02-16T14:45:16.172245",
-      "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
-      "file_size_chars": 2830,
-      "code_file_tokens": 708,
-      "validation_time_ms": 843.0120944976807,
-      "violations_count": 14,
+      "timestamp": "2026-03-12T19:30:17.329763",
+      "filename": "sample.py",
+      "mode": "pipeline",
+      "provider": "static-json",
+      "model": "static-model",
+      "file_size_chars": 30,
+      "code_file_tokens": 8,
+      "validation_time_ms": 0.0497,
+      "stage_latencies_ms": {
+        "ast_parse": 0.0211,
+        "deterministic_rules": 0.0153,
+        "advanced_llm": 0.0,
+        "naive_llm": 0.0,
+        "rag": 0.0,
+        "total": 0.0497
+      },
+      "llm_input_tokens": 0,
+      "llm_output_tokens": 0,
+      "llm_total_tokens": 0,
+      "cached_tokens": 0,
+      "cost_usd": 0.0,
+      "api_calls": 0,
+      "parseable_outputs": 0,
+      "unparseable_outputs": 0,
+      "violations_count": 2,
       "violation_types": [
         "SynonymViolation",
-        "BannedTermViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "BannedTermViolation",
-        "BannedTermViolation",
-        "SynonymViolation"
+        "BannedTermViolation"
       ],
-      "has_sources": false
+      "has_sources": false,
+      "retrieval_top1_hit": null,
+      "retrieval_top3_hit": null
     },
     {
-      "timestamp": "2026-02-16T14:45:40.422456",
-      "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
-      "file_size_chars": 2831,
-      "code_file_tokens": 708,
-      "validation_time_ms": 1458.8239192962646,
-      "violations_count": 15,
+      "timestamp": "2026-03-12T19:30:17.331421",
+      "filename": "sample.py",
+      "mode": "naive",
+      "provider": "static-json",
+      "model": "static-model",
+      "file_size_chars": 30,
+      "code_file_tokens": 8,
+      "validation_time_ms": 0.4088,
+      "stage_latencies_ms": {
+        "ast_parse": 0.0,
+        "deterministic_rules": 0.0,
+        "advanced_llm": 0.0,
+        "naive_llm": 0.3966,
+        "rag": 0.0,
+        "total": 0.4088
+      },
+      "llm_input_tokens": 138,
+      "llm_output_tokens": 47,
+      "llm_total_tokens": 185,
+      "cached_tokens": 0,
+      "cost_usd": 0.0,
+      "api_calls": 1,
+      "parseable_outputs": 1,
+      "unparseable_outputs": 0,
+      "violations_count": 1,
       "violation_types": [
-        "SynonymViolation",
-        "BannedTermViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "BannedTermViolation",
-        "BannedTermViolation",
-        "SynonymViolation",
         "NamingConventionViolation"
       ],
-      "has_sources": false
-    },
-    {
-      "timestamp": "2026-02-16T14:45:43.989539",
-      "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
-      "file_size_chars": 2830,
-      "code_file_tokens": 708,
-      "validation_time_ms": 654.7060012817383,
-      "violations_count": 14,
-      "violation_types": [
-        "SynonymViolation",
-        "BannedTermViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "SynonymViolation",
-        "BannedTermViolation",
-        "BannedTermViolation",
-        "SynonymViolation"
-      ],
-      "has_sources": false
+      "has_sources": false,
+      "retrieval_top1_hit": null,
+      "retrieval_top3_hit": null
     }
   ]
 }

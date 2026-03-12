@@ -1,0 +1,40 @@
+{
+  "session_start": "2026-03-12T18:33:46.525637",
+  "session_end": "2026-03-12T18:33:47.404514",
+  "summary": {
+    "total_api_calls": 0,
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_tokens": 0,
+    "total_cached_tokens": 0,
+    "parseable_calls": 0,
+    "unparseable_calls": 0,
+    "parseable_output_rate_percent": 0.0
+  },
+  "model_usage": {},
+  "cost_estimation": {
+    "currency": "USD",
+    "by_model": {},
+    "totals": {
+      "total_input_cost": 0.0,
+      "total_output_cost": 0.0,
+      "total_cost": 0.0
+    }
+  },
+  "pricing_reference": {
+    "gemini-2.5-flash": {
+      "provider": "gemini",
+      "input_per_1m_tokens": 0.3,
+      "output_per_1m_tokens": 2.5,
+      "notes": "Output price includes thinking tokens."
+    },
+    "gemini-2.5-flash-lite": {
+      "provider": "gemini",
+      "input_per_1m_tokens": 0.1,
+      "output_per_1m_tokens": 0.4,
+      "notes": "Output price includes thinking tokens."
+    }
+  },
+  "stage_breakdown": {},
+  "call_history": []
+}

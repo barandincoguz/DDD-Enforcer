@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-03-12 19:19:21",
+  "verification_report": {
+    "passed": false,
+    "missing_requirement_ids": [],
+    "uncovered_capabilities": [],
+    "uncovered_actors": [],
+    "uncovered_entities": [],
+    "evidence_less_items": [],
+    "duplicate_entities": [
+      "Dashboard:ProductCatalog,SellerWorkspace",
+      "Offer:SellerWorkspace,NegotiationAndCommunication",
+      "Product:ProductCatalog,SellerWorkspace"
+    ],
+    "missing_fields": [],
+    "contradictions": [],
+    "notes": []
+  }
+}

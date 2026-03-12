@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-03-12 19:16:25",
+  "verification_report": {
+    "passed": false,
+    "missing_requirement_ids": [],
+    "uncovered_capabilities": [],
+    "uncovered_actors": [],
+    "uncovered_entities": [],
+    "evidence_less_items": [],
+    "duplicate_entities": [
+      "Buyer:IdentityAndAccess,SellerWorkspace,NegotiationAndCommunication",
+      "Category:IdentityAndAccess,ProductCatalog,SellerWorkspace,NegotiationAndCommunication",
+      "Offer:IdentityAndAccess,SellerWorkspace,NegotiationAndCommunication",
+      "Price:IdentityAndAccess,ProductCatalog,SellerWorkspace,NegotiationAndCommunication",
+      "Product:IdentityAndAccess,ProductCatalog,SellerWorkspace",
+      "Profile:IdentityAndAccess,NegotiationAndCommunication",
+      "Seller:IdentityAndAccess,SellerWorkspace,NegotiationAndCommunication",
+      "User:IdentityAndAccess,ProductCatalog,SellerWorkspace,NegotiationAndCommunication"
+    ],
+    "missing_fields": [],
+    "contradictions": [],
+    "notes": []
+  }
+}

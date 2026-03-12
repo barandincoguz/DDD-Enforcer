@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-03-12 18:46:57",
+  "contexts_identified": 4,
+  "contexts": [
+    "IdentityAndAccess",
+    "ProductCatalog",
+    "SellerProductManagement",
+    "DealNegotiation"
+  ],
+  "input_sentences_count": 8
+}

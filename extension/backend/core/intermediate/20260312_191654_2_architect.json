@@ -1,0 +1,88 @@
+{
+  "timestamp": "2026-03-12 19:16:54",
+  "contexts_identified": 4,
+  "contexts": {
+    "contexts": [
+      {
+        "context_name": "IdentityAndAccess",
+        "description": "Registration and access control.",
+        "ownership_rationale": "Owns registration and identity constraints.",
+        "included_capabilities": [
+          "RegisterAccount"
+        ],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Product",
+          "Profile",
+          "User"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0001",
+          "E0010",
+          "E0011",
+          "E0012",
+          "E0013"
+        ]
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Context inferred for ProductCatalog.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for ProductCatalog.",
+        "included_capabilities": [],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Category",
+          "Price"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0014",
+          "E0015"
+        ]
+      },
+      {
+        "context_name": "SellerWorkspace",
+        "description": "Seller-side listing and dashboard features.",
+        "ownership_rationale": "Owns seller-only capabilities.",
+        "included_capabilities": [
+          "AddProduct",
+          "ViewProductDashboard"
+        ],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Offer",
+          "Product",
+          "Seller"
+        ],
+        "allowed_dependencies": [
+          "IdentityAndAccess",
+          "ProductCatalog"
+        ],
+        "evidence_ids": [
+          "E0002",
+          "E0016",
+          "E0017"
+        ]
+      },
+      {
+        "context_name": "NegotiationAndCommunication",
+        "description": "Context inferred for NegotiationAndCommunication.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for NegotiationAndCommunication.",
+        "included_capabilities": [],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Buyer"
+        ],
+        "allowed_dependencies": [
+          "IdentityAndAccess",
+          "ProductCatalog"
+        ],
+        "evidence_ids": [
+          "E0016",
+          "E0017"
+        ]
+      }
+    ]
+  }
+}

@@ -111,6 +111,37 @@ class ArchitectConfig:
     RESPONSE_MIME_TYPE: str = "application/json"
     TEMPERATURE: float = 0.05  # low temperature for consistent results
     SEED: int = 42  # Fixed seed for reproducibility
+    MAX_OUTPUT_TOKENS: int = 8192
+
+
+class PricingConfig:
+    """Provider/model pricing and experiment export configuration."""
+
+    CURRENCY: str = "USD"
+
+    MODEL_PRICING: dict = {
+        "gemini-2.5-flash": {
+            "provider": "gemini",
+            "input_per_1m_tokens": 0.30,
+            "output_per_1m_tokens": 2.50,
+            "notes": "Output price includes thinking tokens.",
+        },
+        "gemini-2.5-flash-lite": {
+            "provider": "gemini",
+            "input_per_1m_tokens": 0.10,
+            "output_per_1m_tokens": 0.40,
+            "notes": "Output price includes thinking tokens.",
+        },
+    }
+
+
+class ResearchArtifactsConfig:
+    """Paths for structured research metrics and experiment outputs."""
+
+    METRICS_DIR: Path = BASE_DIR / "artifacts" / "metrics"
+    EVENTS_DIR: Path = METRICS_DIR / "events"
+    SUMMARIES_DIR: Path = METRICS_DIR / "summaries"
+    DEFAULT_EXPORT_DIR: Path = BASE_DIR / "artifacts" / "exports"
  
 
 # =============================================================================
