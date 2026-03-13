@@ -1,0 +1,198 @@
+{
+  "timestamp": "2026-03-13 13:01:34",
+  "contexts_analyzed": 2,
+  "analyses": [
+    {
+      "context": "ProductContext",
+      "description": "Context inferred for ProductContext.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in ProductContext.",
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0010",
+            "E0011",
+            "E0012",
+            "E0013",
+            "E0014",
+            "E0015"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in ProductContext.",
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0010",
+            "E0011",
+            "E0012",
+            "E0013",
+            "E0014",
+            "E0015"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "SearchForProducts",
+          "description": "Users can search through product categories and open product details.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0013"
+          ]
+        },
+        {
+          "name": "AddProduct",
+          "description": "Only registered users can add products with price details and product condition.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        }
+      ],
+      "aggregate_roots": [],
+      "entities": [
+        {
+          "name": "Product",
+          "description": "Inferred from requirement title: Search for products",
+          "evidence_ids": [
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0013"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "UserAttributes",
+          "description": "Explicitly stated attributes for User.",
+          "attributes": [
+            "email"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010"
+          ]
+        },
+        {
+          "name": "ProductAttributes",
+          "description": "Explicitly stated attributes for Product.",
+          "attributes": [
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "ProductDetailAttributes",
+          "description": "Explicitly stated attributes for ProductDetail.",
+          "attributes": [
+            "condition",
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        }
+      ],
+      "business_rules": [],
+      "domain_events": [],
+      "domain_services": [],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0003",
+        "E0004",
+        "E0005",
+        "E0006",
+        "E0007",
+        "E0008",
+        "E0010",
+        "E0011",
+        "E0012",
+        "E0013",
+        "E0014",
+        "E0015"
+      ]
+    },
+    {
+      "context": "OfferContext",
+      "description": "Context inferred for OfferContext.",
+      "actors": [
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in OfferContext.",
+          "evidence_ids": [
+            "E0006",
+            "E0013",
+            "E0014",
+            "E0015"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "SendOffers",
+          "description": "Registered users can send offers to sellers for products.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0006",
+            "E0013",
+            "E0014",
+            "E0015"
+          ]
+        }
+      ],
+      "aggregate_roots": [],
+      "entities": [
+        {
+          "name": "Offer",
+          "description": "Inferred from requirement title: Send offers",
+          "evidence_ids": [
+            "E0006",
+            "E0013",
+            "E0014",
+            "E0015"
+          ]
+        }
+      ],
+      "value_objects": [],
+      "business_rules": [],
+      "domain_events": [],
+      "domain_services": [],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0006",
+        "E0013",
+        "E0014",
+        "E0015"
+      ]
+    }
+  ]
+}

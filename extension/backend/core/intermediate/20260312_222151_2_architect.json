@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-03-12 22:21:51",
+  "contexts_identified": 4,
+  "contexts": {
+    "contexts": [
+      {
+        "context_name": "IdentityAndAccess",
+        "description": "Registration and access control.",
+        "ownership_rationale": "Owns registration and identity constraints.",
+        "included_capabilities": [
+          "AddProduct",
+          "RegisterAccount",
+          "SearchProducts",
+          "ViewProductDashboard"
+        ],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Profile",
+          "User"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0001",
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0010",
+          "E0011",
+          "E0012",
+          "E0013",
+          "E0014",
+          "E0015",
+          "E0018",
+          "E0019"
+        ]
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Search and browse product information.",
+        "ownership_rationale": "Owns searchable product facts and categories.",
+        "included_capabilities": [
+          "SearchProducts",
+          "ViewProductDetails"
+        ],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Category",
+          "Product"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0003",
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0013"
+        ]
+      },
+      {
+        "context_name": "SellerWorkspace",
+        "description": "Seller-side listing and dashboard features.",
+        "ownership_rationale": "Owns seller-only capabilities.",
+        "included_capabilities": [
+          "AddProduct",
+          "ViewProductDashboard"
+        ],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Dashboard",
+          "Offer",
+          "Product"
+        ],
+        "allowed_dependencies": [
+          "IdentityAndAccess",
+          "ProductCatalog"
+        ],
+        "evidence_ids": [
+          "E0002",
+          "E0006",
+          "E0013",
+          "E0014",
+          "E0015"
+        ]
+      },
+      {
+        "context_name": "NegotiationAndCommunication",
+        "description": "Offer and request interactions between users.",
+        "ownership_rationale": "Owns buyer-seller communication artifacts.",
+        "included_capabilities": [],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Buyer",
+          "Offer",
+          "Seller"
+        ],
+        "allowed_dependencies": [
+          "IdentityAndAccess",
+          "ProductCatalog"
+        ],
+        "evidence_ids": [
+          "E0004",
+          "E0022",
+          "E0023"
+        ]
+      }
+    ]
+  }
+}

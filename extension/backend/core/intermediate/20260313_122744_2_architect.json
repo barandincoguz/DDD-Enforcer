@@ -1,0 +1,284 @@
+{
+  "timestamp": "2026-03-13 12:34:25",
+  "contexts_identified": 7,
+  "contexts": {
+    "contexts": [
+      {
+        "context_name": "WebServerContext",
+        "description": "Context inferred for WebServerContext.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for WebServerContext.",
+        "included_capabilities": [],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "WebServer"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0032",
+          "E0033"
+        ]
+      },
+      {
+        "context_name": "WebBrowserContext",
+        "description": "Context inferred for WebBrowserContext.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for WebBrowserContext.",
+        "included_capabilities": [],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "WebBrowser"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0032",
+          "E0033"
+        ]
+      },
+      {
+        "context_name": "TableContext",
+        "description": "Context inferred for TableContext.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for TableContext.",
+        "included_capabilities": [],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Table"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0036",
+          "E0037",
+          "E0038",
+          "E0039"
+        ]
+      },
+      {
+        "context_name": "UserIdentity",
+        "description": "Manages user registration, authentication, and core user profile information. Ensures secure access to the platform.",
+        "ownership_rationale": "This context is responsible for the entire lifecycle of a user's identity on the platform, from initial registration and email verification to login and maintaining core profile data. It enforces security constraints related to user credentials.",
+        "included_capabilities": [
+          "LoginToWebsite",
+          "LoginUser",
+          "RegisterToWebsite",
+          "RegisterUser",
+          "ViewProfile"
+        ],
+        "excluded_capabilities": [
+          "AddProduct",
+          "BuyProduct",
+          "ContactDeveloper",
+          "FilterProducts",
+          "SearchForProducts",
+          "SearchProduct",
+          "SearchProducts",
+          "SellProduct",
+          "ViewProductDashboard",
+          "ViewProductDetails",
+          "ViewProducts",
+          "ViewUserManual",
+          "ViewWebsiteUserManual"
+        ],
+        "primary_entities": [
+          "Credential",
+          "Email",
+          "Profile",
+          "User"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0030",
+          "E0031",
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0103",
+          "E0104",
+          "E0131",
+          "E0134",
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Manages the listing, searching, and detailed viewing of products available on the platform.",
+        "ownership_rationale": "This context is solely responsible for the product information that is publicly browsable and searchable, including its details, categories, and pricing. It provides the core product data for the marketplace.",
+        "included_capabilities": [
+          "FilterProducts",
+          "SearchForProducts",
+          "SearchProduct",
+          "SearchProducts",
+          "ViewProductDetails",
+          "ViewProducts"
+        ],
+        "excluded_capabilities": [
+          "AddProduct",
+          "BuyProduct",
+          "ContactDeveloper",
+          "LoginToWebsite",
+          "LoginUser",
+          "RegisterToWebsite",
+          "RegisterUser",
+          "SellProduct",
+          "ViewProductDashboard",
+          "ViewProfile",
+          "ViewUserManual",
+          "ViewWebsiteUserManual"
+        ],
+        "primary_entities": [
+          "Category",
+          "DeliveryDetail",
+          "PricingDetail",
+          "Product",
+          "ProductDetail",
+          "WarrantyDetail"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0108",
+          "E0127",
+          "E0129",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "context_name": "Marketplace",
+        "description": "Facilitates the buying and selling of products between consumers, including adding products for sale, managing offers, and tracking requests.",
+        "ownership_rationale": "This context handles the core C2C e-commerce interactions, enabling registered users to list products, make/receive offers, and manage their sales/purchase activities. It directly relates to the 'C2C e-Commerce' definition.",
+        "included_capabilities": [
+          "AddProduct",
+          "BuyProduct",
+          "SellProduct",
+          "ViewProductDashboard"
+        ],
+        "excluded_capabilities": [
+          "ContactDeveloper",
+          "FilterProducts",
+          "LoginToWebsite",
+          "LoginUser",
+          "RegisterToWebsite",
+          "RegisterUser",
+          "SearchForProducts",
+          "SearchProduct",
+          "SearchProducts",
+          "ViewProductDetails",
+          "ViewProducts",
+          "ViewProfile",
+          "ViewUserManual",
+          "ViewWebsiteUserManual"
+        ],
+        "primary_entities": [
+          "Buyer",
+          "C2CECommerce",
+          "CommissionFee",
+          "HomeDeliveryDetail",
+          "Offer",
+          "Owner",
+          "Platform",
+          "ProductCondition",
+          "ProductDescription",
+          "ProductPicture",
+          "Request",
+          "Seller"
+        ],
+        "allowed_dependencies": [
+          "ProductCatalog",
+          "UserIdentity"
+        ],
+        "evidence_ids": [
+          "E0028",
+          "E0029",
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0093",
+          "E0094",
+          "E0095",
+          "E0105",
+          "E0133",
+          "E0135",
+          "E0138",
+          "E0139",
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "context_name": "SupportAndHelp",
+        "description": "Provides users with access to help resources, user manuals, and a way to contact developers.",
+        "ownership_rationale": "This context centralizes all functionalities related to user assistance and communication with the development team, ensuring users can find information and get help when needed.",
+        "included_capabilities": [
+          "ContactDeveloper",
+          "ViewUserManual",
+          "ViewWebsiteUserManual"
+        ],
+        "excluded_capabilities": [
+          "AddProduct",
+          "BuyProduct",
+          "FilterProducts",
+          "LoginToWebsite",
+          "LoginUser",
+          "RegisterToWebsite",
+          "RegisterUser",
+          "SearchForProducts",
+          "SearchProduct",
+          "SearchProducts",
+          "SellProduct",
+          "ViewProductDashboard",
+          "ViewProductDetails",
+          "ViewProducts",
+          "ViewProfile"
+        ],
+        "primary_entities": [
+          "CompanyProfile",
+          "Developer",
+          "HelpPage",
+          "Message",
+          "SocialMediaLink",
+          "UserManual"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0087",
+          "E0090",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0128",
+          "E0130"
+        ]
+      }
+    ]
+  }
+}

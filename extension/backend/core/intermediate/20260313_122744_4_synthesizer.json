@@ -1,0 +1,4036 @@
+{
+  "timestamp": "2026-03-13 12:39:52",
+  "final_model": {
+    "schema_version": "2.0.0",
+    "project_name": "KinmailDomainModel",
+    "project_metadata": {
+      "version": "1.0.0",
+      "generated_at": "SET_BY_CODE",
+      "description": "Evidence-backed domain model synthesized from the SRS."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "WebServerContext",
+        "description": "Context inferred for WebServerContext, primarily concerned with the web server's role in serving the system and interacting with user interfaces.",
+        "allowed_dependencies": [],
+        "actors": [],
+        "capabilities": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "WebPage",
+              "description": "A document downloaded and rendered by the Web browser for user interaction.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0032",
+                "E0033"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "System",
+              "description": "The software running on a Web server that users interact with.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0032",
+                "E0033",
+                "E0153"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "WebDesign",
+              "attributes": [
+                "responsive",
+                "attractive",
+                "easy-to-navigate"
+              ],
+              "description": "Qualities of the web interface related to responsiveness, attractiveness, and ease of navigation.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0106"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [
+            {
+              "name": "WebServer",
+              "description": "A server hosting the system and interacting with user interfaces, assumed to be properly working with an Internet connection.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0032",
+                "E0033",
+                "E0153"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": []
+        },
+        "business_rules": [
+          {
+            "text": "The web design is responsive, attractive and, easy-to-navigate.",
+            "category": "performance",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0106"
+            ],
+            "sources": []
+          },
+          {
+            "text": "The Kinmail system will be running on a properly working web server and database system with an Internet connection that allows the system to perform all communications between the users.",
+            "category": "assumption",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0153"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "WebBrowser",
+            "relationship": "interacts with",
+            "target_context": "WebBrowserContext",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0032",
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "WebPage",
+            "relationship": "serves",
+            "target_context": "WebBrowserContext",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0032",
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "User",
+            "relationship": "interacts with",
+            "target_context": "UserIdentity",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0032",
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "WebDesign",
+            "relationship": "applies to",
+            "target_context": "WebBrowserContext",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0106"
+            ],
+            "sources": []
+          },
+          {
+            "name": "WebBrowser",
+            "relationship": "references_entitie",
+            "target_context": "WebBrowserContext",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0032",
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "User",
+            "relationship": "references_entitie",
+            "target_context": "UserIdentity",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0032",
+              "E0033"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0032",
+          "E0033",
+          "E0106"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "WebBrowserContext",
+        "description": "Context inferred for WebBrowserContext.",
+        "allowed_dependencies": [],
+        "actors": [],
+        "capabilities": [
+          {
+            "name": "DownloadWebPage",
+            "description": "The Web browser downloads a Web page.",
+            "actor": null,
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RenderWebPage",
+            "description": "The Web browser renders a downloaded Web page.",
+            "actor": null,
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0033"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [],
+          "value_objects": [],
+          "services": [],
+          "aggregates": [
+            {
+              "name": "WebBrowser",
+              "description": "The user interface application responsible for downloading and rendering web pages.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0032",
+                "E0033"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": []
+        },
+        "business_rules": [
+          {
+            "text": "The web design is responsive, attractive and, easy-to-navigate.",
+            "category": "performance",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0106"
+            ],
+            "sources": []
+          },
+          {
+            "text": "The web design must be responsive, attractive and easy-to-navigate.",
+            "category": "performance",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0106"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "WebServer",
+            "relationship": "interacts with",
+            "target_context": "WebServerContext",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0032",
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "System",
+            "relationship": "interacts with",
+            "target_context": "WebServerContext",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0032",
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "WebPage",
+            "relationship": "references_entitie",
+            "target_context": "WebServerContext",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0033"
+            ],
+            "sources": []
+          },
+          {
+            "name": "WebDesign",
+            "relationship": "references_value_object",
+            "target_context": "WebServerContext",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0106"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0032",
+          "E0033",
+          "E0106"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "TableContext",
+        "description": "Context inferred for TableContext.",
+        "allowed_dependencies": [],
+        "actors": [],
+        "capabilities": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Table",
+              "description": "A set of formally described data within a relational database.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0036",
+                "E0037",
+                "E0038",
+                "E0039"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "UserTable",
+              "description": "The user table is used to store new users, including id as primary key, username, password, date of birth, gender, and contact number.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-047"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "OfferTable",
+              "description": "This table stores data of buyers and sellers who offer products, and information about offers received.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductTable",
+              "description": "This table contains basic properties of products like product name, price, user email, and category, for registered users to view, buy, and sell.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0145",
+                "REQ-049"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "RequestTable",
+              "description": "This table stores information of requests made by registered users and requests made to users by probable buyers, displayed on the user's profile page.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0142",
+                "E0143",
+                "REQ-050"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductDetailTable",
+              "description": "This table contains detailed product information including name, company, price, condition, usage duration, home delivery, warranty period, warranty conditions, and extra keywords.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "UserId",
+              "attributes": [
+                "birthdate",
+                "id"
+              ],
+              "description": "The primary key for the User table, which is auto generated and incremented.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-047"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserUsername",
+              "attributes": [
+                "username"
+              ],
+              "description": "The username for a user, used for login.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-047",
+                "REQ-108"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserPasswordHash",
+              "attributes": [
+                "password_hash"
+              ],
+              "description": "The password hash for a user, used for login.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-047",
+                "REQ-104"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserDateOfBirth",
+              "attributes": [
+                "date of birth"
+              ],
+              "description": "The date of birth of a user.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-047",
+                "REQ-106"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserGender",
+              "attributes": [
+                "gender"
+              ],
+              "description": "The gender of a user.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-047",
+                "REQ-107"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserContactNumber",
+              "attributes": [
+                "contact number",
+                "contact_number"
+              ],
+              "description": "The contact number of a user.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-047",
+                "REQ-105"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserName",
+              "attributes": [
+                "name"
+              ],
+              "description": "The name of a user.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0136",
+                "E0137",
+                "E0140",
+                "REQ-109"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OfferBuyerName",
+              "attributes": [
+                "buyer name"
+              ],
+              "description": "The name of the buyer in an offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OfferBuyerUsername",
+              "attributes": [
+                "buyer username"
+              ],
+              "description": "The username of the buyer in an offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OfferBuyerEmail",
+              "attributes": [
+                "buyer email"
+              ],
+              "description": "The email of the buyer in an offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OfferSellerName",
+              "attributes": [
+                "seller name",
+                "seller_name"
+              ],
+              "description": "The name of the seller in an offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048",
+                "REQ-110"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OfferSellerUsername",
+              "attributes": [
+                "seller username"
+              ],
+              "description": "The username of the seller in an offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OfferSellerEmail",
+              "attributes": [
+                "seller email"
+              ],
+              "description": "The email of the seller in an offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OfferDetail",
+              "attributes": [
+                "information of the offers"
+              ],
+              "description": "Information pertaining to an offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductName",
+              "attributes": [
+                "product name"
+              ],
+              "description": "The name of a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0145",
+                "REQ-049",
+                "REQ-051"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductPrice",
+              "attributes": [
+                "price"
+              ],
+              "description": "The price of a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0144",
+                "E0145",
+                "REQ-049",
+                "REQ-051",
+                "REQ-112",
+                "REQ-114",
+                "REQ-121"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductUserEmail",
+              "attributes": [
+                "user_email"
+              ],
+              "description": "The email of the user associated with a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0145",
+                "REQ-049",
+                "REQ-111"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailCompany",
+              "attributes": [
+                "company",
+                "home_delivery",
+                "keywords"
+              ],
+              "description": "The company associated with a product's detailed information.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051",
+                "REQ-115"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailCondition",
+              "attributes": [
+                "condition"
+              ],
+              "description": "The condition of a product as part of its detailed information.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051",
+                "REQ-116"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailUsageDuration",
+              "attributes": [
+                "for how long it has been used till the date"
+              ],
+              "description": "The duration for which a product has been used.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailHomeDelivery",
+              "attributes": [
+                "home delivery service"
+              ],
+              "description": "Indicates if home delivery service is available for a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051",
+                "REQ-117"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailWarrantyPeriod",
+              "attributes": [
+                "warranty period",
+                "warranty_period"
+              ],
+              "description": "The warranty period for a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051",
+                "REQ-118"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailWarrantyCondition",
+              "attributes": [
+                "warranty conditions",
+                "warranty_conditions"
+              ],
+              "description": "The conditions of the warranty for a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051",
+                "REQ-119"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailKeyword",
+              "attributes": [
+                "extra keywords"
+              ],
+              "description": "Extra keywords for detailed product information.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0140",
+                "E0144",
+                "E0145",
+                "REQ-051",
+                "REQ-120"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [],
+          "domain_events": []
+        },
+        "business_rules": [
+          {
+            "text": "Field password_hash is required for User.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0075",
+              "E0099",
+              "E0100",
+              "E0101",
+              "E0103",
+              "E0131",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field contact_number is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "The user table includes id as primary key which is auto generated and incremented.",
+            "category": "database_structure",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0136",
+              "E0137",
+              "E0140",
+              "REQ-047"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "User",
+            "relationship": "stores data for",
+            "target_context": "UserIdentity",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Offer",
+            "relationship": "stores data for",
+            "target_context": "Marketplace",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0138",
+              "E0139"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Product",
+            "relationship": "stores data for",
+            "target_context": "ProductCatalog",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Request",
+            "relationship": "stores data for",
+            "target_context": "Marketplace",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0142",
+              "E0143"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductDetail",
+            "relationship": "stores data for",
+            "target_context": "ProductCatalog",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0140",
+              "E0144",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "User",
+            "relationship": "references_entitie",
+            "target_context": "UserIdentity",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Offer",
+            "relationship": "references_entitie",
+            "target_context": "Marketplace",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0138",
+              "E0139"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Product",
+            "relationship": "references_entitie",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductDetail",
+            "relationship": "references_entitie",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0140",
+              "E0144",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductCategory",
+            "relationship": "references_value_object",
+            "target_context": "Marketplace",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145",
+              "REQ-049",
+              "REQ-113"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RequestDetail",
+            "relationship": "references_value_object",
+            "target_context": "Marketplace",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0142",
+              "E0143",
+              "REQ-050"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0036",
+          "E0037",
+          "E0038",
+          "E0039",
+          "E0136",
+          "E0137",
+          "E0138",
+          "E0139",
+          "E0140",
+          "E0141",
+          "E0142",
+          "E0143",
+          "E0144",
+          "E0145",
+          "REQ-047",
+          "REQ-048",
+          "REQ-049",
+          "REQ-050",
+          "REQ-051",
+          "REQ-104",
+          "REQ-105",
+          "REQ-106",
+          "REQ-107",
+          "REQ-108",
+          "REQ-109",
+          "REQ-110",
+          "REQ-111",
+          "REQ-112",
+          "REQ-113",
+          "REQ-114",
+          "REQ-115",
+          "REQ-116",
+          "REQ-117",
+          "REQ-118",
+          "REQ-119",
+          "REQ-120",
+          "REQ-121"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "UserIdentity",
+        "description": "Manages user registration, authentication, and core user profile information. Ensures secure access to the platform.",
+        "allowed_dependencies": [],
+        "actors": [
+          {
+            "name": "RegisteredUser",
+            "description": "A user who has successfully registered and logged into the platform, capable of logging in, searching for products, viewing product details, adding products, and viewing their profile.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0062",
+              "E0065",
+              "E0066",
+              "E0068",
+              "E0069",
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0075",
+              "E0078",
+              "E0079",
+              "E0080",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0093",
+              "E0094",
+              "E0095",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0099",
+              "E0100",
+              "E0101",
+              "E0105",
+              "E0131",
+              "E0132",
+              "E0133",
+              "E0134",
+              "E0135",
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0142",
+              "E0143",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "NonRegisteredUser",
+            "description": "A user who has not yet registered an account on the platform and can perform actions like registration.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0062",
+              "E0063",
+              "E0064",
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0068",
+              "E0069",
+              "E0070",
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0075",
+              "E0076",
+              "E0078",
+              "E0081",
+              "E0082",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0087",
+              "E0090",
+              "E0097",
+              "E0098",
+              "E0100",
+              "E0126",
+              "E0132"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "RegisterToWebsite",
+            "description": "The non-registered users can register into the website by entering first name, middle name, last name, gender, profile picture, contact number, birthdate, username, email, password and then verify email. If verification is successful then the page is redirected to the login page.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0062",
+              "E0063",
+              "E0064",
+              "E0078"
+            ],
+            "sources": []
+          },
+          {
+            "name": "LoginToWebsite",
+            "description": "Registered users can log in to the system using their credentials. If username or email and password match then, users are logged in to the platform otherwise, error message for invalid username and password is displayed.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0062",
+              "E0078",
+              "E0079",
+              "E0080"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewProfile",
+            "description": "Display a registered user's personal profile information, including name, gender, username, email, contact number, birthdate, and profile picture.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0134"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RegisterUser",
+            "description": "Allow non-registered users to create an account by providing personal details and verifying their email.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0062",
+              "E0063",
+              "E0064",
+              "E0078"
+            ],
+            "sources": []
+          },
+          {
+            "name": "LoginUser",
+            "description": "Allow registered users to access the platform by authenticating their username or email and password.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0062",
+              "E0078",
+              "E0079",
+              "E0080"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Profile",
+              "description": "A collection of user's personal information including name, gender, username, email, contact number, birthdate, and profile picture.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0074",
+                "E0078",
+                "E0090",
+                "E0091",
+                "E0092",
+                "E0134"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Email",
+              "description": "A digital message used for communication and authentication.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0030",
+                "E0031",
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0071",
+                "E0072",
+                "E0073",
+                "E0074",
+                "E0078",
+                "E0079",
+                "E0080",
+                "E0087",
+                "E0090",
+                "E0091",
+                "E0092",
+                "E0097",
+                "E0098",
+                "E0104"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Credential",
+              "description": "A user's username or email and password used for logging into the system.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0062",
+                "E0078",
+                "E0079",
+                "E0080"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "UserAttribute",
+              "attributes": [
+                "birthdate",
+                "contact_number",
+                "email",
+                "first name",
+                "gender",
+                "last name",
+                "middle name",
+                "name",
+                "password_hash",
+                "profile picture",
+                "profile_picture",
+                "username"
+              ],
+              "description": "Explicitly stated attributes for User.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0060",
+                "E0061",
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0067",
+                "E0072",
+                "E0073",
+                "E0074",
+                "E0075",
+                "E0076",
+                "E0078",
+                "E0079",
+                "E0080",
+                "E0088",
+                "E0089",
+                "E0090",
+                "E0091",
+                "E0092",
+                "E0094",
+                "E0097",
+                "E0098",
+                "E0099",
+                "E0100",
+                "E0101",
+                "E0102",
+                "E0103",
+                "E0104",
+                "E0105",
+                "E0106",
+                "E0107",
+                "E0108",
+                "E0109",
+                "E0131",
+                "E0136",
+                "E0137",
+                "E0140"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Name",
+              "attributes": [
+                "first name",
+                "middle name",
+                "last name",
+                "name"
+              ],
+              "description": "User's full name, including first, middle, and last name.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0067",
+                "E0076",
+                "E0078",
+                "E0094",
+                "E0103",
+                "E0109"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Gender",
+              "attributes": [
+                "gender"
+              ],
+              "description": "User's gender.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0078",
+                "E0091",
+                "E0107",
+                "E0136",
+                "E0137",
+                "E0140"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProfilePicture",
+              "attributes": [
+                "profile picture"
+              ],
+              "description": "User's profile picture.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0065",
+                "E0078",
+                "E0092"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ContactNumber",
+              "attributes": [
+                "contact number"
+              ],
+              "description": "User's contact number.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0078",
+                "E0089",
+                "E0105",
+                "E0136",
+                "E0137",
+                "E0140"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Birthdate",
+              "attributes": [
+                "birthdate"
+              ],
+              "description": "User's birthdate.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0078",
+                "E0090",
+                "E0106",
+                "E0136",
+                "E0137",
+                "E0140"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Username",
+              "attributes": [
+                "username"
+              ],
+              "description": "User's unique username for login.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0066",
+                "E0075",
+                "E0078",
+                "E0093",
+                "E0102",
+                "E0108",
+                "E0131",
+                "E0136",
+                "E0137",
+                "E0140"
+              ],
+              "sources": []
+            },
+            {
+              "name": "EmailAddress",
+              "attributes": [
+                "email"
+              ],
+              "description": "User's email address for registration and verification.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0060",
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0073",
+                "E0078",
+                "E0088",
+                "E0099",
+                "E0104"
+              ],
+              "sources": []
+            },
+            {
+              "name": "PasswordHash",
+              "attributes": [
+                "password_hash"
+              ],
+              "description": "Hashed version of the user's password for security and authentication.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0061",
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0072",
+                "E0074",
+                "E0078",
+                "E0097",
+                "E0098",
+                "E0101",
+                "E0103",
+                "E0104",
+                "E0131",
+                "E0136",
+                "E0137",
+                "E0140"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [
+            {
+              "name": "UserRegistrationService",
+              "description": "Manages the process of user registration, including collecting user details and initiating email verification.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0078",
+                "E0104"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserAuthenticationService",
+              "description": "Handles user login, validating credentials (username/email and password) and managing session state.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0062",
+                "E0078",
+                "E0079",
+                "E0080"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserProfileService",
+              "description": "Provides functionality for users to view their personal profile information.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0074",
+                "E0090",
+                "E0091",
+                "E0092"
+              ],
+              "sources": []
+            }
+          ],
+          "aggregates": [
+            {
+              "name": "User",
+              "description": "The user table is used to store new users, including their login credentials (username and password) and core profile information like date of birth, gender, and contact number. It serves as the primary consistency boundary for user identity.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0032",
+                "E0033",
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0065",
+                "E0066",
+                "E0067",
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0071",
+                "E0072",
+                "E0073",
+                "E0074",
+                "E0075",
+                "E0076",
+                "E0078",
+                "E0079",
+                "E0080",
+                "E0081",
+                "E0082",
+                "E0083",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0090",
+                "E0091",
+                "E0092",
+                "E0096",
+                "E0097",
+                "E0098",
+                "E0099",
+                "E0100",
+                "E0101",
+                "E0103",
+                "E0104",
+                "E0131",
+                "E0136",
+                "E0137",
+                "E0140"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": [
+            {
+              "name": "UserRegistered",
+              "description": "A user has successfully registered into the website.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0078"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserLoggedIn",
+              "description": "A registered user has successfully logged into the platform.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0062",
+                "E0078",
+                "E0079",
+                "E0080"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserEmailVerified",
+              "description": "A user's email has been successfully verified after registration.",
+              "confidence": 0.6,
+              "evidence_ids": [
+                "E0062",
+                "E0063",
+                "E0064",
+                "E0078",
+                "E0104"
+              ],
+              "sources": []
+            }
+          ]
+        },
+        "business_rules": [
+          {
+            "text": "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0103"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Users need to verify their email after registering to enter the platform as registered user.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0104"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field password_hash is required for User.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0075",
+              "E0099",
+              "E0100",
+              "E0101",
+              "E0103",
+              "E0131",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field email is required for User.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0104"
+            ],
+            "sources": []
+          },
+          {
+            "text": "If email verification is successful, the page is redirected to the login page.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0062",
+              "E0063",
+              "E0064",
+              "E0078"
+            ],
+            "sources": []
+          },
+          {
+            "text": "If username or email and password do not match during login, an error message for invalid username and password is displayed.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0062",
+              "E0078",
+              "E0079",
+              "E0080"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field name is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0062",
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0078",
+              "E0079",
+              "E0080",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0131"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field contact_number is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field birthdate is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field gender is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field profile_picture is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field username is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0131"
+            ],
+            "sources": []
+          },
+          {
+            "text": "If verification is successful then the page is redirected to the login page.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0062",
+              "E0063",
+              "E0064",
+              "E0078"
+            ],
+            "sources": []
+          },
+          {
+            "text": "If username or email and password match then, users are logged in to the platform otherwise, error message for invalid username and password is displayed.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0062",
+              "E0078",
+              "E0079",
+              "E0080"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Email authentication is a technical solution to proving that an email is not forged. It provides a way to verify that an email comes from whom it claims to be from. Email authentication is most often used to block harmful or fraudulent uses of email such as phishing and spam which has been implemented in this platform.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0030",
+              "E0031"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "ProductAttribute",
+            "relationship": "references_value_object",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0030",
+          "E0031",
+          "E0032",
+          "E0033",
+          "E0060",
+          "E0061",
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0093",
+          "E0097",
+          "E0098",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0102",
+          "E0103",
+          "E0104",
+          "E0105",
+          "E0106",
+          "E0107",
+          "E0108",
+          "E0109",
+          "E0131",
+          "E0134",
+          "E0136",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0144",
+          "E0145"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Manages the listing, searching, and detailed viewing of products available on the platform.",
+        "allowed_dependencies": [],
+        "actors": [
+          {
+            "name": "NonRegisteredUser",
+            "description": "Actor participating in ProductCatalog.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0068",
+              "E0069",
+              "E0070",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0136",
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0144",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RegisteredUser",
+            "description": "Actor participating in ProductCatalog.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0068",
+              "E0069",
+              "E0070",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0136",
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0144",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "User",
+            "description": "A general user of the system who can search products and view product profiles.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0127",
+              "E0129"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "SearchForProducts",
+            "description": "A search bar available in the platform can be used to search for the required product. Users can also search through the category of products. Users can input key words in the search bar and if the relevant match is found, then the title matching the word is displayed otherwise, ‘No products found’ message is displayed.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0081",
+              "E0082"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewProductDetails",
+            "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0068",
+              "E0069",
+              "E0070",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0129"
+            ],
+            "sources": []
+          },
+          {
+            "name": "SearchForProducts",
+            "description": "A search bar available in the platform can be used to search for the required product if available in the database. Both registered and non-registered users can search through the category of products.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0081",
+              "E0082",
+              "E0083"
+            ],
+            "sources": []
+          },
+          {
+            "name": "SearchProduct",
+            "description": "Enable users to find products using keywords in a search bar or by browsing through product categories.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0081",
+              "E0082",
+              "E0083"
+            ],
+            "sources": []
+          },
+          {
+            "name": "SearchProducts",
+            "description": "Search for products using a focused shopping approach.",
+            "actor": "User",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0108",
+              "E0127"
+            ],
+            "sources": []
+          },
+          {
+            "name": "FilterProducts",
+            "description": "Filter products using a focused shopping approach.",
+            "actor": null,
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0108"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewProducts",
+            "description": "Allow registered users to view products.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Product",
+              "description": "An item available for sale with various properties and detailed information.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0028",
+                "E0029",
+                "E0065",
+                "E0066",
+                "E0067",
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0071",
+                "E0081",
+                "E0082",
+                "E0083",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0093",
+                "E0094",
+                "E0095",
+                "E0105",
+                "E0108",
+                "E0127",
+                "E0129",
+                "E0133",
+                "E0135",
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0144",
+                "E0145"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": [
+                "Item",
+                "Good"
+              ]
+            },
+            {
+              "name": "Category",
+              "description": "A classification used to organize products.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0065",
+                "E0066",
+                "E0067",
+                "E0071",
+                "E0081",
+                "E0082",
+                "E0083",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0145"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "PricingDetail",
+              "description": "Information related to the price of a product.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0071",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0087",
+                "E0088",
+                "E0089"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "DeliveryDetail",
+              "description": "Information related to the delivery of a product.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0071",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0087",
+                "E0088",
+                "E0089"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "WarrantyDetail",
+              "description": "Information related to the warranty of a product.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0071",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0087",
+                "E0088",
+                "E0089"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductDetail",
+              "description": "Provides detailed information about a product, including company, condition, delivery options, warranty, and keywords.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0071",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0128",
+                "E0140",
+                "E0144",
+                "E0145"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ProductAttribute",
+              "attributes": [
+                "category",
+                "company",
+                "condition",
+                "description",
+                "for how long it has been used till the date",
+                "home_delivery",
+                "keywords",
+                "name",
+                "price",
+                "user_email",
+                "warranty_conditions",
+                "warranty_period"
+              ],
+              "description": "Explicitly stated attributes for Product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0015",
+                "E0016",
+                "E0020",
+                "E0021",
+                "E0049",
+                "E0051",
+                "E0065",
+                "E0066",
+                "E0067",
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0071",
+                "E0077",
+                "E0078",
+                "E0081",
+                "E0082",
+                "E0083",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0111",
+                "E0112",
+                "E0113",
+                "E0114",
+                "E0115",
+                "E0116",
+                "E0117",
+                "E0118",
+                "E0119",
+                "E0120",
+                "E0121",
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0144",
+                "E0145"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailAttribute",
+              "attributes": [
+                "company",
+                "condition",
+                "home_delivery",
+                "keywords",
+                "price",
+                "warranty_conditions",
+                "warranty_period"
+              ],
+              "description": "Explicitly stated attributes for ProductDetail.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0128",
+                "E0140",
+                "E0144",
+                "E0145"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductInfo",
+              "attributes": [
+                "name",
+                "price",
+                "category",
+                "description",
+                "user_email"
+              ],
+              "description": "Basic displayable attributes of a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0015",
+                "E0016",
+                "E0020",
+                "E0021",
+                "E0049",
+                "E0051",
+                "E0068",
+                "E0069",
+                "E0077",
+                "E0078",
+                "E0111",
+                "E0112",
+                "E0113",
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0145"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailedInfo",
+              "attributes": [
+                "company",
+                "condition",
+                "home_delivery",
+                "warranty_period",
+                "warranty_conditions",
+                "keywords",
+                "price"
+              ],
+              "description": "Comprehensive attributes providing detailed information about a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0051",
+                "E0114",
+                "E0115",
+                "E0116",
+                "E0117",
+                "E0118",
+                "E0119",
+                "E0120",
+                "E0121",
+                "E0140",
+                "E0144",
+                "E0145"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductSummary",
+              "attributes": [
+                "name",
+                "price",
+                "category",
+                "description",
+                "user_email"
+              ],
+              "description": "Basic displayable attributes of a product.",
+              "confidence": 0.8,
+              "evidence_ids": [
+                "E0015",
+                "E0016",
+                "E0020",
+                "E0021",
+                "E0049",
+                "E0051",
+                "E0068",
+                "E0069",
+                "E0077",
+                "E0078",
+                "E0111",
+                "E0112",
+                "E0113",
+                "E0137",
+                "E0140",
+                "E0141",
+                "E0145"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductExtendedDetail",
+              "attributes": [
+                "company",
+                "condition",
+                "home_delivery",
+                "warranty_period",
+                "warranty_conditions",
+                "keywords",
+                "price"
+              ],
+              "description": "Comprehensive attributes providing detailed information about a product.",
+              "confidence": 0.8,
+              "evidence_ids": [
+                "E0051",
+                "E0114",
+                "E0115",
+                "E0116",
+                "E0117",
+                "E0118",
+                "E0119",
+                "E0120",
+                "E0121",
+                "E0140",
+                "E0144",
+                "E0145"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [],
+          "domain_events": []
+        },
+        "business_rules": [
+          {
+            "text": "Field password_hash is required for User.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0075",
+              "E0099",
+              "E0100",
+              "E0101",
+              "E0103",
+              "E0131",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "If no relevant product match is found during a search, a 'No products found' message is displayed.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0081",
+              "E0082"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field category is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0071",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field description is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0068",
+              "E0069",
+              "E0071",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field contact_number is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "If a relevant product match is found, the title matching the word is displayed; otherwise, a 'No products found' message is displayed.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0067",
+              "E0081",
+              "E0082"
+            ],
+            "sources": []
+          },
+          {
+            "text": "There is a focused shopping approach with searching and filtering functionality.",
+            "category": "performance",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0108"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "User",
+            "relationship": "uses",
+            "target_context": "UserIdentity",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "name": "User",
+            "relationship": "references_entitie",
+            "target_context": "UserIdentity",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "name": "UserAttribute",
+            "relationship": "references_value_object",
+            "target_context": "UserIdentity",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0131",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0015",
+          "E0016",
+          "E0020",
+          "E0021",
+          "E0049",
+          "E0051",
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0071",
+          "E0077",
+          "E0078",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0108",
+          "E0111",
+          "E0112",
+          "E0113",
+          "E0114",
+          "E0115",
+          "E0116",
+          "E0117",
+          "E0118",
+          "E0119",
+          "E0120",
+          "E0121",
+          "E0127",
+          "E0128",
+          "E0129",
+          "E0131",
+          "E0136",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0144",
+          "E0145"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "Marketplace",
+        "description": "Facilitates the buying and selling of products between consumers, including adding products for sale, managing offers, and tracking requests.",
+        "allowed_dependencies": [
+          "ProductCatalog",
+          "UserIdentity"
+        ],
+        "actors": [
+          {
+            "name": "RegisteredUser",
+            "description": "Actor participating in Marketplace.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0093",
+              "E0094",
+              "E0095",
+              "E0105",
+              "E0133",
+              "E0135",
+              "E0137",
+              "E0138",
+              "E0139",
+              "E0140",
+              "E0141",
+              "E0142",
+              "E0143",
+              "E0145"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "AddProduct",
+            "description": "Users can add product and its details with their information. They must specify product name, product category, picture of the product, owner name, and description of product, price details, product condition, warranty and home delivery details.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0105",
+              "E0133"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewProductDashboard",
+            "description": "Users can view the number of products they have added to sell, requested to buy and been offered for the product they put on sale",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0093",
+              "E0094",
+              "E0095",
+              "E0135"
+            ],
+            "sources": []
+          },
+          {
+            "name": "BuyProduct",
+            "description": "Allow registered users to buy a product.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "SellProduct",
+            "description": "Allow registered users to sell their product by adding it to their profile for public posting.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "C2CECommerce",
+              "description": "A type of trade relations where both sellers and buyers are consumers, not businesses, with the platform benefiting from commission fees.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0028",
+                "E0029"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": [
+                "C2C"
+              ]
+            },
+            {
+              "name": "Seller",
+              "description": "A consumer who sells products on the C2C e-commerce site.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0028",
+                "E0029",
+                "E0068",
+                "E0069",
+                "E0070",
+                "E0074",
+                "E0075",
+                "E0076",
+                "E0084",
+                "E0085",
+                "E0086",
+                "E0090",
+                "E0100",
+                "E0138",
+                "E0139"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Buyer",
+              "description": "A consumer who purchases products on the C2C e-commerce site.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0028",
+                "E0029",
+                "E0138",
+                "E0139"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Platform",
+              "description": "The C2C e-commerce website where products are sold and purchased.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0028",
+                "E0029",
+                "E0062",
+                "E0065",
+                "E0066",
+                "E0067",
+                "E0075",
+                "E0078",
+                "E0079",
+                "E0080",
+                "E0081",
+                "E0082",
+                "E0083",
+                "E0099",
+                "E0100",
+                "E0101",
+                "E0104",
+                "E0109"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "CommissionFee",
+              "description": "Fees paid by sellers for listing goods on the C2C website.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0028",
+                "E0029"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Owner",
+              "description": "The individual who owns a product being listed for sale.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0071",
+                "E0080",
+                "E0087",
+                "E0088",
+                "E0089"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "OfferAttribute",
+              "attributes": [
+                "buyer email",
+                "buyer name",
+                "buyer username",
+                "information of the offers",
+                "seller email",
+                "seller name",
+                "seller username",
+                "seller_name"
+              ],
+              "description": "Explicitly stated attributes for Offer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0138",
+                "E0139",
+                "REQ-048",
+                "REQ-110"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductPicture",
+              "attributes": [],
+              "description": "An image associated with a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0079"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductCondition",
+              "attributes": [],
+              "description": "The state or quality of a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0084"
+              ],
+              "sources": []
+            },
+            {
+              "name": "HomeDeliveryDetail",
+              "attributes": [],
+              "description": "Information regarding the home delivery service for a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0085"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDescription",
+              "attributes": [],
+              "description": "Textual details describing a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0083"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Price",
+              "attributes": [],
+              "description": "The monetary value of a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0081",
+                "E0086"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductCategory",
+              "attributes": [],
+              "description": "A classification for organizing products.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0082"
+              ],
+              "sources": []
+            },
+            {
+              "name": "OwnerName",
+              "attributes": [],
+              "description": "The name of the individual who owns the product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089",
+                "E0080"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Warranty",
+              "attributes": [],
+              "description": "Details regarding the warranty period and conditions for a product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0087",
+                "E0088",
+                "E0089"
+              ],
+              "sources": []
+            },
+            {
+              "name": "RequestDetail",
+              "attributes": [
+                "information of the requests"
+              ],
+              "description": "Information pertaining to a request made by or to a user.",
+              "confidence": 0.8,
+              "evidence_ids": [
+                "E0142",
+                "E0143",
+                "REQ-050"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [
+            {
+              "name": "Offer",
+              "description": "A proposal to buy a product, storing details of the buyer, seller, and the offer itself.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0138",
+                "E0139"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Request",
+              "description": "A formal inquiry or expression of interest to buy a product, made by or to a registered user.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0142",
+                "E0143"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": []
+        },
+        "business_rules": [
+          {
+            "text": "Only the registered users can add products.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0105"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field name is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0062",
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0078",
+              "E0079",
+              "E0080",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0131"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field category is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0071",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field description is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0068",
+              "E0069",
+              "E0071",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field picture is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field owner_name is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field price is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field condition is required for ProductDetail.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field home_delivery is required for ProductDetail.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field price is required for ProductDetail.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "ProductCatalog",
+            "relationship": "allowed_dependency",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0028",
+              "E0029",
+              "E0071",
+              "E0079",
+              "E0080",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0093",
+              "E0094",
+              "E0095",
+              "E0105",
+              "E0133",
+              "E0135",
+              "E0137",
+              "E0138",
+              "E0139",
+              "E0140",
+              "E0141",
+              "E0142",
+              "E0143",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "UserIdentity",
+            "relationship": "allowed_dependency",
+            "target_context": "UserIdentity",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0028",
+              "E0029",
+              "E0071",
+              "E0079",
+              "E0080",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0093",
+              "E0094",
+              "E0095",
+              "E0105",
+              "E0133",
+              "E0135",
+              "E0137",
+              "E0138",
+              "E0139",
+              "E0140",
+              "E0141",
+              "E0142",
+              "E0143",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "User",
+            "relationship": "uses",
+            "target_context": "UserIdentity",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0093",
+              "E0094",
+              "E0095",
+              "E0105",
+              "E0133",
+              "E0135",
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145",
+              "E0138",
+              "E0139",
+              "E0142",
+              "E0143"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Product",
+            "relationship": "manages",
+            "target_context": "ProductCatalog",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0133",
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductDetail",
+            "relationship": "manages",
+            "target_context": "ProductCatalog",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Product",
+            "relationship": "references_aggregate",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0133",
+              "E0137",
+              "E0140",
+              "E0141",
+              "E0145"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductAttribute",
+            "relationship": "references_value_object",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductDetailAttribute",
+            "relationship": "references_value_object",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0028",
+          "E0029",
+          "E0071",
+          "E0079",
+          "E0080",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0093",
+          "E0094",
+          "E0095",
+          "E0105",
+          "E0133",
+          "E0135",
+          "E0137",
+          "E0138",
+          "E0139",
+          "E0140",
+          "E0141",
+          "E0142",
+          "E0143",
+          "E0145"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "SupportAndHelp",
+        "description": "Provides users with access to help resources, user manuals, and a way to contact developers.",
+        "allowed_dependencies": [],
+        "actors": [
+          {
+            "name": "User",
+            "description": "A general user of the system who can search products, view company profiles, view product profiles, and access the user manual.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0125",
+              "E0127",
+              "E0128",
+              "E0129",
+              "E0130",
+              "E0150",
+              "E0151",
+              "E0153"
+            ],
+            "sources": []
+          },
+          {
+            "name": "NonRegisteredUser",
+            "description": "Users who can contact developers and view the website user manual without being registered.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0075",
+              "E0076",
+              "E0087",
+              "E0090",
+              "E0097",
+              "E0098",
+              "E0100"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RegisteredUser",
+            "description": "Users who can contact developers and view the website user manual after being registered.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0072",
+              "E0073",
+              "E0075",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0099",
+              "E0100",
+              "E0101"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "ContactDeveloper",
+            "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0087",
+              "E0097",
+              "E0098"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewWebsiteUserManual",
+            "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller and so on.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0074",
+              "E0075",
+              "E0076",
+              "E0090",
+              "E0100"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ContactDeveloper",
+            "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0072",
+              "E0073",
+              "E0096",
+              "E0097",
+              "E0098"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewWebsiteUserManual",
+            "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0075",
+              "E0099",
+              "E0100",
+              "E0101"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewUserManual",
+            "description": "Provide access to the website's user manual through a help page, offering instructions on various platform functionalities.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0074",
+              "E0075",
+              "E0076",
+              "E0090",
+              "E0100"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewUserManual",
+            "description": "Visit the help page to view the website user manual, which includes instructions on registration, password recovery, product search, and contacting sellers.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0075",
+              "E0099",
+              "E0100",
+              "E0101"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewCompanyProfile",
+            "description": "Users can view the company profile.",
+            "actor": "User",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0128"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ViewUserManual",
+            "description": "Users can access the user manual.",
+            "actor": "User",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0130"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "SocialMediaLink",
+              "description": "A link to a developer's social media profile for contact purposes.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0071",
+                "E0072",
+                "E0073",
+                "E0087",
+                "E0096",
+                "E0097",
+                "E0098"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "HelpPage",
+              "description": "A section of the website providing user assistance and access to the user manual.",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0074",
+                "E0075",
+                "E0076",
+                "E0090",
+                "E0099",
+                "E0100",
+                "E0101"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ContactDetail",
+              "attributes": [
+                "email",
+                "name"
+              ],
+              "description": "Information required from a user when contacting a developer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0072",
+                "E0073",
+                "E0087",
+                "E0097",
+                "E0098"
+              ],
+              "sources": []
+            },
+            {
+              "name": "MessageContent",
+              "attributes": [
+                "text"
+              ],
+              "description": "The textual content of a message sent to a developer.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0071",
+                "E0072",
+                "E0073",
+                "E0087",
+                "E0097",
+                "E0098"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ManualInstruction",
+              "attributes": [
+                "instructions"
+              ],
+              "description": "The instructional content provided within the user manual.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0074",
+                "E0075",
+                "E0076",
+                "E0090",
+                "E0099",
+                "E0100",
+                "E0101"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [
+            {
+              "name": "CompanyProfile",
+              "description": "A distinct profile containing information about a company.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0128"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Developer",
+              "description": "A developer entity with associated contact information and social media links.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0071",
+                "E0072",
+                "E0073",
+                "E0087",
+                "E0096",
+                "E0097",
+                "E0098"
+              ],
+              "sources": []
+            },
+            {
+              "name": "Message",
+              "description": "A unit of communication sent by a user to a developer, requiring sender's name, email, and message content.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0071",
+                "E0072",
+                "E0073",
+                "E0087",
+                "E0097",
+                "E0098"
+              ],
+              "sources": []
+            },
+            {
+              "name": "UserManual",
+              "description": "A document containing instructions and guidance for using the website.",
+              "confidence": 0.65,
+              "evidence_ids": [
+                "E0074",
+                "E0075",
+                "E0076",
+                "E0090",
+                "E0099",
+                "E0100",
+                "E0101",
+                "E0130"
+              ],
+              "sources": []
+            }
+          ],
+          "domain_events": []
+        },
+        "business_rules": [
+          {
+            "text": "Field password_hash is required for User.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0075",
+              "E0099",
+              "E0100",
+              "E0101",
+              "E0103",
+              "E0131",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field email is required for User.",
+            "category": "security",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0104"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field name is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0062",
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0078",
+              "E0079",
+              "E0080",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0131"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field category is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0065",
+              "E0066",
+              "E0071",
+              "E0081",
+              "E0082",
+              "E0083",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field description is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0068",
+              "E0069",
+              "E0071",
+              "E0084",
+              "E0085",
+              "E0086",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field picture is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field owner_name is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field price is required for Product.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field condition is required for ProductDetail.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field home_delivery is required for ProductDetail.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field price is required for ProductDetail.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0087",
+              "E0088",
+              "E0089"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field contact_number is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0136",
+              "E0137",
+              "E0140"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field birthdate is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field gender is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field profile_picture is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field username is required for User.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0074",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0131"
+            ],
+            "sources": []
+          },
+          {
+            "text": "Field company is required for ProductDetail.",
+            "category": "product_function",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0128"
+            ],
+            "sources": []
+          },
+          {
+            "text": "When contacting a developer, information like name, email, and message is required.",
+            "category": "functional",
+            "confidence": 0.78,
+            "evidence_ids": [
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0087",
+              "E0097",
+              "E0098"
+            ],
+            "sources": []
+          }
+        ],
+        "external_references": [
+          {
+            "name": "User",
+            "relationship": "provides support to",
+            "target_context": "UserIdentity",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0075",
+              "E0076",
+              "E0087",
+              "E0090",
+              "E0097",
+              "E0098",
+              "E0100",
+              "E0125",
+              "E0127",
+              "E0128",
+              "E0129",
+              "E0130",
+              "E0150",
+              "E0151",
+              "E0153",
+              "E0096",
+              "E0099",
+              "E0101"
+            ],
+            "sources": []
+          },
+          {
+            "name": "Product",
+            "relationship": "references",
+            "target_context": "ProductCatalog",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0127",
+              "E0129"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductDetail",
+            "relationship": "references",
+            "target_context": "ProductCatalog",
+            "confidence": 0.8,
+            "evidence_ids": [
+              "E0128"
+            ],
+            "sources": []
+          },
+          {
+            "name": "User",
+            "relationship": "references_entitie",
+            "target_context": "UserIdentity",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0087",
+              "E0097",
+              "E0098"
+            ],
+            "sources": []
+          },
+          {
+            "name": "UserAttribute",
+            "relationship": "references_value_object",
+            "target_context": "UserIdentity",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0071",
+              "E0072",
+              "E0073",
+              "E0074",
+              "E0075",
+              "E0076",
+              "E0087",
+              "E0088",
+              "E0089",
+              "E0090",
+              "E0091",
+              "E0092",
+              "E0096",
+              "E0097",
+              "E0098",
+              "E0099",
+              "E0100",
+              "E0101"
+            ],
+            "sources": []
+          },
+          {
+            "name": "ProductDetailAttribute",
+            "relationship": "references_value_object",
+            "target_context": "ProductCatalog",
+            "confidence": 0.6,
+            "evidence_ids": [
+              "E0128"
+            ],
+            "sources": []
+          }
+        ],
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0128",
+          "E0130"
+        ],
+        "evidence": []
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Data",
+        "Helper",
+        "Info",
+        "Manager",
+        "Util"
+      ],
+      "cross_cutting_constraints": [
+        "Email authentication is a technical solution to proving that an email is not forged. It provides a way to verify that an email comes from whom it claims to be from. Email authentication is most often used to block harmful or fraudulent uses of email such as phishing and spam which has been implemented in this platform.",
+        "Email authentication is used to block harmful or fraudulent uses of email such as phishing and spam.",
+        "Field email is required for User.",
+        "Field password_hash is required for User.",
+        "It gives a pop-up message whenever an error or accidental decision is made.",
+        "Only the registered users can add products.",
+        "Stored information must be secured and verified.",
+        "The page loads fast without delay of more than one second.",
+        "The platform is hosted by a secure hosting infrastructure.",
+        "The system gives a pop-up message whenever an error or accidental decision is made.",
+        "The system should meet the following non-functional requirements:",
+        "The web design is responsive, attractive and, easy-to-navigate.",
+        "There is a focussed shopping approach with searching and filtering functionality.",
+        "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+        "Users need to verify their email after registering to enter the platform as registered user."
+      ],
+      "assumptions": [
+        "Provider:",
+        "The Kinmail system will be running on a properly working web server and database system with an Internet connection that allows the system to perform all communications between the users.",
+        "The information stored are secured and verified.",
+        "The performance of the platform is good.",
+        "The success of the system depends on:",
+        "The system is built with the perspective of HCI.",
+        "Users:",
+        "We have assumed that all the users using this platform are capable of connecting their devices to the Internet and navigate the browser on their devices to the address of Kinmail website.",
+        "We have assumed that the Kinmail will be running on a properly working web server and database system with an Internet connection that allows the system to perform all communications between the users."
+      ]
+    }
+  }
+}

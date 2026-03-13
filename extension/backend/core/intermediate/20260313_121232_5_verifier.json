@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-03-13 12:12:32",
+  "verification_report": {
+    "passed": false,
+    "missing_requirement_ids": [],
+    "uncovered_capabilities": [],
+    "uncovered_actors": [],
+    "uncovered_entities": [],
+    "evidence_less_items": [],
+    "duplicate_entities": [
+      "Offer:SellerWorkspace,NegotiationAndCommunication",
+      "ProductDetail:ProductDetailContext,SellerWorkspace"
+    ],
+    "missing_fields": [
+      "Product.category (from REQ-019)",
+      "Product.price (from REQ-018)",
+      "Product.user_email (from REQ-010)",
+      "Product.user_email (from REQ-016)",
+      "entity:IdentityAndAccess:User",
+      "entity:NegotiationAndCommunication:Offer"
+    ],
+    "contradictions": [],
+    "notes": []
+  }
+}

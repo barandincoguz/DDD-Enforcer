@@ -1,0 +1,51 @@
+{
+  "timestamp": "2026-03-13 13:00:52",
+  "contexts_identified": 2,
+  "contexts": {
+    "contexts": [
+      {
+        "context_name": "ProductContext",
+        "description": "Context inferred for ProductContext.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for ProductContext.",
+        "included_capabilities": [
+          "AddProduct",
+          "SearchForProducts"
+        ],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Product"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0003",
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0010",
+          "E0011",
+          "E0012",
+          "E0013"
+        ]
+      },
+      {
+        "context_name": "OfferContext",
+        "description": "Context inferred for OfferContext.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for OfferContext.",
+        "included_capabilities": [
+          "SendOffers"
+        ],
+        "excluded_capabilities": [],
+        "primary_entities": [
+          "Offer"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0006",
+          "E0013",
+          "E0014",
+          "E0015"
+        ]
+      }
+    ]
+  }
+}

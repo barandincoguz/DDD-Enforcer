@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-03-12 22:20:34",
+  "verification_report": {
+    "passed": false,
+    "missing_requirement_ids": [],
+    "uncovered_capabilities": [],
+    "uncovered_actors": [],
+    "uncovered_entities": [],
+    "evidence_less_items": [],
+    "duplicate_entities": [],
+    "missing_fields": [
+      "actor:IdentityAndAccess:NonRegisteredUsers",
+      "actor:IdentityAndAccess:RegisteredUsers",
+      "actor:NegotiationAndCommunication:RegisteredUsers",
+      "actor:ProductCatalog:NonRegisteredUsers",
+      "actor:ProductCatalog:RegisteredUsers",
+      "actor:SellerWorkspace:RegisteredUsers",
+      "service:IdentityAndAccess:IdentityAndAccessService",
+      "service:SellerWorkspace:SellerWorkspaceService",
+      "value_object:ProductCatalog:ProductDetails",
+      "value_object:SellerWorkspace:ProductDetails"
+    ],
+    "contradictions": [],
+    "notes": []
+  }
+}

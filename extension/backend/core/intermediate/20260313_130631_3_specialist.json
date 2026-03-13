@@ -1,0 +1,3258 @@
+{
+  "timestamp": "2026-03-13 13:17:24",
+  "contexts_analyzed": 4,
+  "analyses": [
+    {
+      "context": "UserAccount",
+      "description": "Manages user registration, authentication, and personal profile information. This context is responsible for the identity and access management of all users on the platform.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in UserAccount.",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0100",
+            "E0103",
+            "E0104",
+            "E0136",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145",
+            "REQ-014"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in UserAccount.",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0100",
+            "E0103",
+            "E0104",
+            "E0136",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145",
+            "REQ-019",
+            "REQ-023"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "RegisterToWebsite",
+          "description": "The non-registered users can register into the website by entering first name, middle name, last name, gender, profile picture, contact number, birthdate, username, email, password and then verify email. If verification is successful then the page is redirected to the login page.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078"
+          ]
+        },
+        {
+          "name": "LoginToWebsite",
+          "description": "Registered users can log in to the system using their credentials. If username or email and password match then, users are logged in to the platform otherwise, error message for invalid username and password is displayed.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "name": "ViewProfile",
+          "description": "Users can view their name, gender, username, email, contact number, birthdate, profile picture",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0134"
+          ]
+        },
+        {
+          "name": "RegisterUser",
+          "description": "Allow non-registered users to create an account by providing personal and login details, followed by email verification.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078"
+          ]
+        },
+        {
+          "name": "VerifyEmail",
+          "description": "Confirm the authenticity of a user's email address during registration.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078"
+          ]
+        },
+        {
+          "name": "LoginUser",
+          "description": "Enable registered users to gain access to the system using their credentials.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "name": "RegisterToWebsite",
+          "description": "Allows non-registered users to create an account by providing personal and login details, followed by email verification.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "REQ-014",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078"
+          ]
+        },
+        {
+          "name": "RegisterUser",
+          "description": "Allow non-registered users to create an account by providing personal and login details, followed by email verification.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "REQ-014",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078"
+          ]
+        },
+        {
+          "name": "VerifyEmail",
+          "description": "Confirm the authenticity of a user's email address during registration.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-029",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0104"
+          ]
+        },
+        {
+          "name": "LoginToWebsite",
+          "description": "Allows registered users to log in to the system using their credentials.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "REQ-019",
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "name": "LoginUser",
+          "description": "Enable registered users to gain access to the system using their credentials.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "REQ-019",
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "name": "ViewProfile",
+          "description": "Allows users to view their personal profile information.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "REQ-023",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "User",
+          "description": "Represents a user's identity, authentication credentials, and core personal information, serving as a consistency boundary for user accounts.",
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-019",
+            "REQ-047",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "User",
+          "description": "An individual interacting with the system, either registered or non-registered, possessing attributes like name, gender, username, email, contact number, birthdate, and profile picture.",
+          "evidence_ids": [
+            "E0032",
+            "E0033",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0099",
+            "E0100",
+            "E0101",
+            "E0103",
+            "E0104",
+            "E0128",
+            "E0131",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "Profile",
+          "description": "A collection of personal information associated with a user account, including name, gender, username, email, contact number, birthdate, and profile picture.",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0078",
+            "E0090",
+            "E0091",
+            "E0092",
+            "REQ-023"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "UserAttributes",
+          "description": "Explicitly stated attributes for User.",
+          "attributes": [
+            "birthdate",
+            "contact_number",
+            "email",
+            "gender",
+            "name",
+            "password_hash",
+            "profile_picture",
+            "username"
+          ],
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0100",
+            "E0103",
+            "E0104",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "ProductAttributes",
+          "description": "Explicitly stated attributes for Product.",
+          "attributes": [
+            "user_email"
+          ],
+          "evidence_ids": [
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "EmailAddress",
+          "description": "The email address used for user registration and login.",
+          "attributes": [
+            "email"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-060",
+            "REQ-073",
+            "REQ-088",
+            "REQ-099",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0104"
+          ]
+        },
+        {
+          "name": "PasswordHash",
+          "description": "The hashed password for user authentication, subject to specific complexity rules.",
+          "attributes": [
+            "password_hash"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-019",
+            "REQ-028",
+            "REQ-061",
+            "REQ-072",
+            "REQ-074",
+            "REQ-098",
+            "REQ-104",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0100",
+            "E0103",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "Username",
+          "description": "A unique identifier chosen by a user for logging into the system.",
+          "attributes": [
+            "username"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-019",
+            "REQ-066",
+            "REQ-075",
+            "REQ-093",
+            "REQ-108",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "ContactNumber",
+          "description": "The user's contact phone number.",
+          "attributes": [
+            "contact_number"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-062",
+            "REQ-089",
+            "REQ-105",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "Birthdate",
+          "description": "The user's date of birth.",
+          "attributes": [
+            "birthdate"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-063",
+            "REQ-090",
+            "REQ-106",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "Gender",
+          "description": "The user's gender.",
+          "attributes": [
+            "gender"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-064",
+            "REQ-091",
+            "REQ-107",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "ProfilePicture",
+          "description": "The user's profile image.",
+          "attributes": [
+            "profile_picture"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-065",
+            "REQ-092",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092"
+          ]
+        },
+        {
+          "name": "FullName",
+          "description": "The user's full name, including first, middle, and last names.",
+          "attributes": [
+            "first name",
+            "middle name",
+            "last name"
+          ],
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-067",
+            "REQ-076",
+            "REQ-094",
+            "REQ-109",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        }
+      ],
+      "business_rules": [
+        {
+          "text": "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+          "category": "security",
+          "evidence_ids": [
+            "E0103",
+            "REQ-028"
+          ]
+        },
+        {
+          "text": "Users need to verify their email after registering to enter the platform as registered user.",
+          "category": "security",
+          "evidence_ids": [
+            "E0104",
+            "REQ-029"
+          ]
+        },
+        {
+          "text": "Field password_hash is required for User.",
+          "category": "security",
+          "evidence_ids": [
+            "E0103"
+          ]
+        },
+        {
+          "text": "Field email is required for User.",
+          "category": "security",
+          "evidence_ids": [
+            "E0104"
+          ]
+        },
+        {
+          "text": "Email verification is required for new user registration to be successful.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078"
+          ]
+        },
+        {
+          "text": "Login requires matching username or email and password; otherwise, an error message for invalid credentials is displayed.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "text": "The 'name' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0131",
+            "E0136",
+            "E0137",
+            "E0140",
+            "REQ-067",
+            "REQ-076",
+            "REQ-094",
+            "REQ-109"
+          ]
+        },
+        {
+          "text": "The 'email' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0104",
+            "REQ-060",
+            "REQ-073",
+            "REQ-088",
+            "REQ-099"
+          ]
+        },
+        {
+          "text": "The 'contact_number' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0078",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140",
+            "REQ-062",
+            "REQ-089",
+            "REQ-105"
+          ]
+        },
+        {
+          "text": "The 'birthdate' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0078",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140",
+            "REQ-063",
+            "REQ-090",
+            "REQ-106"
+          ]
+        },
+        {
+          "text": "The 'gender' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0078",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140",
+            "REQ-064",
+            "REQ-091",
+            "REQ-107"
+          ]
+        },
+        {
+          "text": "The 'profile_picture' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0078",
+            "E0090",
+            "E0091",
+            "E0092",
+            "REQ-065",
+            "REQ-092"
+          ]
+        },
+        {
+          "text": "The 'username' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0131",
+            "E0136",
+            "E0137",
+            "E0140",
+            "REQ-066",
+            "REQ-075",
+            "REQ-093",
+            "REQ-108"
+          ]
+        },
+        {
+          "text": "The 'password_hash' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0090",
+            "E0099",
+            "E0100",
+            "E0101",
+            "E0103",
+            "E0131",
+            "E0136",
+            "E0137",
+            "E0140",
+            "REQ-061",
+            "REQ-072",
+            "REQ-074",
+            "REQ-098",
+            "REQ-104"
+          ]
+        },
+        {
+          "text": "If username or email and password match then, users are logged in to the platform otherwise, error message for invalid username and password is displayed.",
+          "category": "functional",
+          "evidence_ids": [
+            "REQ-019",
+            "E0079",
+            "E0080"
+          ]
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "UserRegistered",
+          "description": "A new user has successfully registered on the platform.",
+          "evidence_ids": [
+            "REQ-014",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078"
+          ]
+        },
+        {
+          "name": "UserLoggedIn",
+          "description": "A registered user has successfully logged into the platform.",
+          "evidence_ids": [
+            "REQ-019",
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "name": "UserEmailVerified",
+          "description": "A user's email address has been successfully verified.",
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-029",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0104"
+          ]
+        }
+      ],
+      "domain_services": [
+        {
+          "name": "UserRegistrationService",
+          "description": "Orchestrates the process of user registration, including data capture and email verification.",
+          "evidence_ids": [
+            "REQ-014",
+            "REQ-029",
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0104"
+          ]
+        },
+        {
+          "name": "UserAuthenticationService",
+          "description": "Handles user login, credential validation, and session management.",
+          "evidence_ids": [
+            "REQ-019",
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "name": "UserProfileService",
+          "description": "Manages the viewing and retrieval of user profile information.",
+          "evidence_ids": [
+            "REQ-023",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092"
+          ]
+        }
+      ],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0062",
+        "E0063",
+        "E0064",
+        "E0074",
+        "E0075",
+        "E0076",
+        "E0078",
+        "E0079",
+        "E0080",
+        "E0090",
+        "E0091",
+        "E0092",
+        "E0100",
+        "E0103",
+        "E0104",
+        "E0136",
+        "E0137",
+        "E0140",
+        "E0141",
+        "E0144",
+        "E0145",
+        "REQ-014",
+        "REQ-019",
+        "REQ-023",
+        "REQ-028",
+        "REQ-029",
+        "REQ-060",
+        "REQ-061",
+        "REQ-062",
+        "REQ-063",
+        "REQ-064",
+        "REQ-065",
+        "REQ-066",
+        "REQ-067",
+        "REQ-073",
+        "REQ-074",
+        "REQ-075",
+        "REQ-076",
+        "REQ-088",
+        "REQ-089",
+        "REQ-090",
+        "REQ-091",
+        "REQ-092",
+        "REQ-093",
+        "REQ-094",
+        "REQ-097",
+        "REQ-098",
+        "REQ-099",
+        "REQ-104",
+        "REQ-105",
+        "REQ-106",
+        "REQ-107",
+        "REQ-108",
+        "REQ-109"
+      ]
+    },
+    {
+      "context": "ProductCatalog",
+      "description": "Manages the listing, searching, and detailed viewing of products available on the platform for both registered and non-registered users.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in ProductCatalog.",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0136",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145",
+            "REQ-015",
+            "REQ-016"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in ProductCatalog.",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0136",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145",
+            "REQ-020",
+            "REQ-021"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "SearchForProducts",
+          "description": "A search bar available in the platform can be used to search for the required product. Users can also search through the category of products. Users can input key words in the search bar and if the relevant match is found, then the title matching the word is displayed otherwise, ‘No products found’ message is displayed.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082"
+          ]
+        },
+        {
+          "name": "ViewProductDetails",
+          "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0084",
+            "E0085"
+          ]
+        },
+        {
+          "name": "SearchForProducts",
+          "description": "A search bar available in the platform can be used to search for the required product if available in the database. Both registered and non-registered users can search through the category of products.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0081",
+            "E0082",
+            "E0083"
+          ]
+        },
+        {
+          "name": "ViewProductDetail",
+          "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen like non-registered users.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0084",
+            "E0085",
+            "E0086"
+          ]
+        },
+        {
+          "name": "SearchProduct",
+          "description": "Enable users to find products using keywords or by browsing categories.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082"
+          ]
+        },
+        {
+          "name": "FilterProducts",
+          "description": "Filter products using a focused shopping approach.",
+          "actor": null,
+          "evidence_ids": [
+            "E0108",
+            "REQ-033"
+          ]
+        },
+        {
+          "name": "ViewProducts",
+          "description": "Allow registered users to view products.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "SearchForProducts",
+          "description": "A search bar available in the platform can be used to search for the required product. Users can also search through the category of products. Users can input key words in the search bar and if the relevant match is found, then the title matching the word is displayed otherwise, ‘No products found’ message is displayed.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082",
+            "REQ-015"
+          ]
+        },
+        {
+          "name": "SearchForProducts",
+          "description": "A search bar available in the platform can be used to search for the required product if available in the database. Both registered and non-registered users can search through the category of products.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0081",
+            "E0082",
+            "E0083",
+            "REQ-020"
+          ]
+        },
+        {
+          "name": "SearchProduct",
+          "description": "Enable users to find products using keywords or by browsing categories.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082",
+            "REQ-015"
+          ]
+        },
+        {
+          "name": "ViewProductDetail",
+          "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen like non-registered users.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0084",
+            "E0085",
+            "E0086",
+            "REQ-021"
+          ]
+        },
+        {
+          "name": "ViewProductDetails",
+          "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0084",
+            "E0085",
+            "REQ-016"
+          ]
+        },
+        {
+          "name": "ViewProducts",
+          "description": "Allow registered users to view products.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145",
+            "REQ-049"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "Product",
+          "description": "A product listing available on the platform, serving as a consistency boundary for its basic and detailed information.",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145",
+            "REQ-015",
+            "REQ-016",
+            "REQ-020",
+            "REQ-021",
+            "REQ-049",
+            "REQ-068",
+            "REQ-069",
+            "REQ-077",
+            "REQ-078",
+            "REQ-111",
+            "REQ-112",
+            "REQ-113"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "Product",
+          "description": "An item offered for sale on the platform, with associated details like name, category, picture, description, price, condition, warranty, and delivery information.",
+          "evidence_ids": [
+            "E0028",
+            "E0029",
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0071",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0105",
+            "E0108",
+            "E0127",
+            "E0129",
+            "E0133",
+            "E0135",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145",
+            "REQ-015",
+            "REQ-020",
+            "REQ-049",
+            "REQ-068",
+            "REQ-077",
+            "REQ-111",
+            "REQ-112",
+            "REQ-113"
+          ]
+        },
+        {
+          "name": "ProductDetail",
+          "description": "Comprehensive information about a product, encompassing general, seller, pricing, delivery, and warranty aspects.",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0071",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0128",
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-016",
+            "REQ-021",
+            "REQ-051",
+            "REQ-114",
+            "REQ-115",
+            "REQ-116",
+            "REQ-117",
+            "REQ-118",
+            "REQ-119",
+            "REQ-120",
+            "REQ-121"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ProductAttributes",
+          "description": "Explicitly stated attributes for Product.",
+          "attributes": [
+            "category",
+            "description",
+            "price",
+            "user_email"
+          ],
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "UserAttributes",
+          "description": "Explicitly stated attributes for User.",
+          "attributes": [
+            "birthdate",
+            "contact_number",
+            "gender",
+            "name",
+            "password_hash",
+            "username"
+          ],
+          "evidence_ids": [
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "ProductDetailAttributes",
+          "description": "Explicitly stated attributes for ProductDetail.",
+          "attributes": [
+            "company",
+            "condition",
+            "home_delivery",
+            "keywords",
+            "price",
+            "warranty_conditions",
+            "warranty_period"
+          ],
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductCategory",
+          "description": "The classification under which a product is categorized.",
+          "attributes": [
+            "category"
+          ],
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145",
+            "REQ-015",
+            "REQ-020",
+            "REQ-068",
+            "REQ-077",
+            "REQ-113"
+          ]
+        },
+        {
+          "name": "ProductDescription",
+          "description": "A summary or detailed text describing the product.",
+          "attributes": [
+            "description"
+          ],
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0084",
+            "E0085",
+            "E0086",
+            "REQ-016",
+            "REQ-021",
+            "REQ-069",
+            "REQ-078"
+          ]
+        },
+        {
+          "name": "ProductPrice",
+          "description": "The monetary value of the product.",
+          "attributes": [
+            "price"
+          ],
+          "evidence_ids": [
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145",
+            "REQ-049",
+            "REQ-051",
+            "REQ-112",
+            "REQ-114",
+            "REQ-121"
+          ]
+        },
+        {
+          "name": "ProductCompany",
+          "description": "The company that manufactured or is associated with the product.",
+          "attributes": [
+            "company"
+          ],
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-051",
+            "REQ-115"
+          ]
+        },
+        {
+          "name": "ProductCondition",
+          "description": "The physical state or quality of the product.",
+          "attributes": [
+            "condition"
+          ],
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-051",
+            "REQ-116"
+          ]
+        },
+        {
+          "name": "HomeDeliveryService",
+          "description": "Indicates the availability of home delivery for the product.",
+          "attributes": [
+            "home_delivery"
+          ],
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-051",
+            "REQ-117"
+          ]
+        },
+        {
+          "name": "WarrantyDetails",
+          "description": "Information regarding the warranty period and conditions for the product.",
+          "attributes": [
+            "warranty_period",
+            "warranty_conditions"
+          ],
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-051",
+            "REQ-118",
+            "REQ-119"
+          ]
+        },
+        {
+          "name": "ProductKeywords",
+          "description": "Additional keywords for detailed product information and searchability.",
+          "attributes": [
+            "keywords"
+          ],
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-051",
+            "REQ-120"
+          ]
+        }
+      ],
+      "business_rules": [
+        {
+          "text": "If no relevant product match is found during a search, a 'No products found' message is displayed.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082"
+          ]
+        },
+        {
+          "text": "The 'category' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'description' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'contact_number' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "text": "The 'password_hash' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0075",
+            "E0099",
+            "E0100",
+            "E0101",
+            "E0103",
+            "E0131",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "text": "If no relevant product match is found during a search, a ‘No products found’ message is displayed.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082",
+            "REQ-015"
+          ]
+        },
+        {
+          "text": "There is a focussed shopping approach with searching and filtering functionality.",
+          "category": "performance",
+          "evidence_ids": [
+            "E0108",
+            "REQ-033"
+          ]
+        },
+        {
+          "text": "Field category is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145",
+            "REQ-068",
+            "REQ-077",
+            "REQ-113"
+          ]
+        },
+        {
+          "text": "Field description is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0084",
+            "E0085",
+            "E0086",
+            "REQ-069",
+            "REQ-078"
+          ]
+        },
+        {
+          "text": "Field price is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145",
+            "REQ-112"
+          ]
+        },
+        {
+          "text": "Field company is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-115"
+          ]
+        },
+        {
+          "text": "Field condition is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-116"
+          ]
+        },
+        {
+          "text": "Field home_delivery is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-117"
+          ]
+        },
+        {
+          "text": "Field warranty_period is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-118"
+          ]
+        },
+        {
+          "text": "Field warranty_conditions is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-119"
+          ]
+        },
+        {
+          "text": "Field keywords is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-120"
+          ]
+        },
+        {
+          "text": "Field price is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-121"
+          ]
+        }
+      ],
+      "domain_events": [],
+      "domain_services": [],
+      "allowed_dependencies": [
+        "UserAccount"
+      ],
+      "evidence_ids": [
+        "E0065",
+        "E0066",
+        "E0067",
+        "E0068",
+        "E0069",
+        "E0070",
+        "E0081",
+        "E0082",
+        "E0083",
+        "E0084",
+        "E0085",
+        "E0086",
+        "E0108",
+        "E0127",
+        "E0129",
+        "E0136",
+        "E0137",
+        "E0140",
+        "E0141",
+        "E0144",
+        "E0145",
+        "REQ-015",
+        "REQ-016",
+        "REQ-020",
+        "REQ-021",
+        "REQ-033",
+        "REQ-068",
+        "REQ-069",
+        "REQ-077",
+        "REQ-078",
+        "REQ-111",
+        "REQ-112",
+        "REQ-113",
+        "REQ-114",
+        "REQ-115",
+        "REQ-116",
+        "REQ-117",
+        "REQ-118",
+        "REQ-119",
+        "REQ-120",
+        "REQ-121"
+      ]
+    },
+    {
+      "context": "SalesAndOffers",
+      "description": "Facilitates the process of users adding products for sale, managing offers, requests, and providing a dashboard for tracking these activities.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in SalesAndOffers.",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0097",
+            "E0098",
+            "E0105",
+            "E0138",
+            "E0139",
+            "E0142",
+            "E0143"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in SalesAndOffers.",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0097",
+            "E0098",
+            "E0105",
+            "E0138",
+            "E0139",
+            "E0142",
+            "E0143"
+          ]
+        },
+        {
+          "name": "RegisteredUser",
+          "description": "A user with a verified username and password who can view product dashboards, add products, buy products, and sell products.",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0105",
+            "E0133",
+            "E0135",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0142",
+            "E0143",
+            "E0145"
+          ]
+        },
+        {
+          "name": "Seller",
+          "description": "A consumer who sells products on the C2C e-commerce platform, responsible for listing goods.",
+          "evidence_ids": [
+            "E0138",
+            "E0139",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProbableBuyer",
+          "description": "A registered user who makes requests to other users and offers products to customers.",
+          "evidence_ids": [
+            "E0138",
+            "E0139",
+            "E0142",
+            "E0143"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "AddProduct",
+          "description": "Users can add product and its details with their information. They must specify product name, product category, picture of the product, owner name, and description of product, price details, product condition, warranty and home delivery details.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0105",
+            "E0133",
+            "REQ-022"
+          ]
+        },
+        {
+          "name": "ViewProductDashboard",
+          "description": "Users can view the number of products they have added to sell, requested to buy and been offered for the product they put on sale",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0093",
+            "E0094",
+            "E0095",
+            "REQ-024"
+          ]
+        },
+        {
+          "name": "BuyProduct",
+          "description": "Allow registered users to buy a product.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "SellProduct",
+          "description": "Allow registered users to sell their product by adding it to their profile for public posting.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "Product",
+          "description": "An item offered for sale on the platform, with associated details like name, category, picture, description, price, condition, warranty, and delivery information.",
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-049",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "Offer",
+          "description": "This table stores the data of the buyer and seller name/username/email who offers the product to the customers and also the information of the offers that you have received from the user or probable buyer.",
+          "evidence_ids": [
+            "REQ-048",
+            "E0138",
+            "E0139"
+          ]
+        },
+        {
+          "name": "Request",
+          "description": "This table stores the information of the requests made by the registered user and the requests made to the user by the probable buyer who are also the registered user on the site and the requests are stored on the profile page of the user.",
+          "evidence_ids": [
+            "REQ-050",
+            "E0142",
+            "E0143"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "Product",
+          "description": "An item offered for sale on the platform, with associated details like name, category, picture, description, price, condition, warranty, and delivery information.",
+          "evidence_ids": [
+            "E0028",
+            "E0029",
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0071",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0105",
+            "E0108",
+            "E0127",
+            "E0129",
+            "E0133",
+            "E0135",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145",
+            "REQ-022",
+            "REQ-049"
+          ]
+        },
+        {
+          "name": "Dashboard",
+          "description": "A personalized view containing product details and other user-specific information.",
+          "evidence_ids": [
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0135",
+            "REQ-024"
+          ]
+        },
+        {
+          "name": "Offer",
+          "description": "This table stores the data of the buyer and seller name/username/email who offers the product to the customers and also the information of the offers that you have received from the user or probable buyer.",
+          "evidence_ids": [
+            "E0138",
+            "E0139",
+            "REQ-048"
+          ]
+        },
+        {
+          "name": "Request",
+          "description": "This table stores the information of the requests made by the registered user and the requests made to the user by the probable buyer who are also the registered user on the site and the requests are stored on the profile page of the user.",
+          "evidence_ids": [
+            "E0142",
+            "E0143",
+            "REQ-050"
+          ]
+        },
+        {
+          "name": "ProductDetail",
+          "description": "Comprehensive information about a product, encompassing general, seller, pricing, delivery, and warranty aspects.",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0071",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0128",
+            "E0140",
+            "E0144",
+            "E0145",
+            "REQ-051"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ProductAttributes",
+          "description": "Explicitly stated attributes for Product.",
+          "attributes": [
+            "category",
+            "description",
+            "owner_name",
+            "picture",
+            "price"
+          ],
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "ProductDetailAttributes",
+          "description": "Explicitly stated attributes for ProductDetail.",
+          "attributes": [
+            "condition",
+            "home_delivery",
+            "price"
+          ],
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "OfferAttributes",
+          "description": "Explicitly stated attributes for Offer.",
+          "attributes": [
+            "seller_name"
+          ],
+          "evidence_ids": [
+            "E0138",
+            "E0139"
+          ]
+        },
+        {
+          "name": "ProductName",
+          "description": "Product name",
+          "attributes": [
+            "name"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "ProductCategory",
+          "description": "Product category",
+          "attributes": [
+            "category"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-082",
+            "REQ-113",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductPicture",
+          "description": "Picture of the product",
+          "attributes": [
+            "picture"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-079",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "ProductOwnerName",
+          "description": "Owner name of the product",
+          "attributes": [
+            "owner_name"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-080",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "ProductDescription",
+          "description": "Description of product",
+          "attributes": [
+            "description"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-083",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "ProductPrice",
+          "description": "Price details of the product",
+          "attributes": [
+            "price"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-081",
+            "REQ-112",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductCondition",
+          "description": "Condition of the product",
+          "attributes": [
+            "condition"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-084",
+            "REQ-116",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0140",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductWarranty",
+          "description": "Warranty details of the product",
+          "attributes": [
+            "warranty_period",
+            "warranty_conditions"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-051",
+            "REQ-118",
+            "REQ-119",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0140",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductHomeDelivery",
+          "description": "Home delivery details for the product",
+          "attributes": [
+            "home_delivery"
+          ],
+          "evidence_ids": [
+            "REQ-022",
+            "REQ-085",
+            "REQ-117",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0140",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "OfferSellerName",
+          "description": "Seller name for an offer",
+          "attributes": [
+            "seller_name"
+          ],
+          "evidence_ids": [
+            "REQ-110",
+            "E0138",
+            "E0139"
+          ]
+        },
+        {
+          "name": "ProductUserEmail",
+          "description": "User email associated with a product",
+          "attributes": [
+            "user_email"
+          ],
+          "evidence_ids": [
+            "REQ-111",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductDetailCompany",
+          "description": "Company of the product detail",
+          "attributes": [
+            "company"
+          ],
+          "evidence_ids": [
+            "REQ-115",
+            "E0140",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductDetailKeywords",
+          "description": "Keywords for detailed product information",
+          "attributes": [
+            "keywords"
+          ],
+          "evidence_ids": [
+            "REQ-120",
+            "E0140",
+            "E0144",
+            "E0145"
+          ]
+        }
+      ],
+      "business_rules": [
+        {
+          "text": "Only the registered users can add products.",
+          "category": "security",
+          "evidence_ids": [
+            "E0105",
+            "REQ-030"
+          ]
+        },
+        {
+          "text": "The 'name' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0072",
+            "E0073",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0131"
+          ]
+        },
+        {
+          "text": "The 'category' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'description' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'picture' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'owner_name' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'price' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'condition' field is required for the 'ProductDetail' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'home_delivery' field is required for the 'ProductDetail' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'price' field is required for the 'ProductDetail' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'email' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0104"
+          ]
+        },
+        {
+          "text": "Field picture is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-079",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "Field owner_name is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-080",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "Field price is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145",
+            "REQ-081",
+            "REQ-112"
+          ]
+        },
+        {
+          "text": "Field category is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145",
+            "REQ-082",
+            "REQ-113"
+          ]
+        },
+        {
+          "text": "Field description is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-083",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "Field condition is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-084",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "Field home_delivery is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-085",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "Field price is required for ProductDetail.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-086",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "Field seller_name is required for Offer.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-110",
+            "E0138",
+            "E0139"
+          ]
+        },
+        {
+          "text": "Field user_email is required for Product.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "REQ-111",
+            "E0137",
+            "E0140",
+            "E0141",
+            "E0145"
+          ]
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "ProductAdded",
+          "description": "A product and its details have been added by a user.",
+          "evidence_ids": [
+            "REQ-022",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "OfferReceived",
+          "description": "An offer has been received for a product.",
+          "evidence_ids": [
+            "REQ-048",
+            "E0138",
+            "E0139"
+          ]
+        },
+        {
+          "name": "RequestMade",
+          "description": "A request has been made for a product.",
+          "evidence_ids": [
+            "REQ-050",
+            "E0142",
+            "E0143"
+          ]
+        }
+      ],
+      "domain_services": [
+        {
+          "name": "ProductListingService",
+          "description": "Manages the process of users adding products and their details for sale.",
+          "evidence_ids": [
+            "REQ-022",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "name": "OfferManagementService",
+          "description": "Manages the data of offers made and received for products.",
+          "evidence_ids": [
+            "REQ-048",
+            "E0138",
+            "E0139"
+          ]
+        },
+        {
+          "name": "RequestManagementService",
+          "description": "Manages the information of requests made by and to users for products.",
+          "evidence_ids": [
+            "REQ-050",
+            "E0142",
+            "E0143"
+          ]
+        },
+        {
+          "name": "ProductDashboardService",
+          "description": "Provides a consolidated view of products added for sale, requested to buy, and offers received.",
+          "evidence_ids": [
+            "REQ-024",
+            "E0093",
+            "E0094",
+            "E0095"
+          ]
+        }
+      ],
+      "allowed_dependencies": [
+        "UserAccount"
+      ],
+      "evidence_ids": [
+        "E0071",
+        "E0072",
+        "E0073",
+        "E0087",
+        "E0088",
+        "E0089",
+        "E0093",
+        "E0094",
+        "E0095",
+        "E0097",
+        "E0098",
+        "E0105",
+        "E0133",
+        "E0135",
+        "E0137",
+        "E0138",
+        "E0139",
+        "E0140",
+        "E0141",
+        "E0142",
+        "E0143",
+        "E0144",
+        "E0145",
+        "REQ-022",
+        "REQ-024",
+        "REQ-030",
+        "REQ-048",
+        "REQ-049",
+        "REQ-050",
+        "REQ-051",
+        "REQ-079",
+        "REQ-080",
+        "REQ-081",
+        "REQ-082",
+        "REQ-083",
+        "REQ-084",
+        "REQ-085",
+        "REQ-086",
+        "REQ-087",
+        "REQ-110",
+        "REQ-111",
+        "REQ-112",
+        "REQ-113",
+        "REQ-115",
+        "REQ-116",
+        "REQ-117",
+        "REQ-118",
+        "REQ-119",
+        "REQ-120"
+      ]
+    },
+    {
+      "context": "SupportAndGuidance",
+      "description": "Provides resources for users to get help, view documentation, and contact platform developers.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in SupportAndGuidance.",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0099",
+            "E0100",
+            "E0101",
+            "REQ-017",
+            "REQ-018"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in SupportAndGuidance.",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0099",
+            "E0100",
+            "E0101",
+            "REQ-025",
+            "REQ-026"
+          ]
+        },
+        {
+          "name": "Developer",
+          "description": "An individual associated with the platform who can be contacted by users via social media.",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0096",
+            "E0097",
+            "E0098",
+            "REQ-017",
+            "REQ-025"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "ContactDeveloper",
+          "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0097",
+            "E0098"
+          ]
+        },
+        {
+          "name": "ViewWebsiteUserManual",
+          "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller and so on.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0100"
+          ]
+        },
+        {
+          "name": "ContactDeveloper",
+          "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0072",
+            "E0073",
+            "E0096",
+            "E0097",
+            "E0098"
+          ]
+        },
+        {
+          "name": "ViewWebsiteUserManual",
+          "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0075",
+            "E0099",
+            "E0100",
+            "E0101"
+          ]
+        },
+        {
+          "name": "ViewUserManual",
+          "description": "Allow users to access and read the website's instructional guide.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0100"
+          ]
+        },
+        {
+          "name": "ViewUserManual",
+          "description": "Visit the help page to view the website user manual, which includes instructions on registration, password recovery, product search, and contacting sellers.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0075",
+            "E0099",
+            "E0100",
+            "E0101"
+          ]
+        },
+        {
+          "name": "ContactDeveloper",
+          "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "REQ-017",
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0097",
+            "E0098"
+          ]
+        },
+        {
+          "name": "ViewWebsiteUserManual",
+          "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller and so on.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "REQ-018",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0100"
+          ]
+        },
+        {
+          "name": "ContactDeveloper",
+          "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "REQ-025",
+            "E0072",
+            "E0073",
+            "E0096",
+            "E0097",
+            "E0098"
+          ]
+        },
+        {
+          "name": "ViewWebsiteUserManual",
+          "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "REQ-026",
+            "E0075",
+            "E0099",
+            "E0100",
+            "E0101"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "Developer",
+          "description": "Represents an individual associated with the platform who can be contacted by users, including their name, email, and social media links.",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0096",
+            "E0097",
+            "E0098",
+            "REQ-017",
+            "REQ-025"
+          ]
+        },
+        {
+          "name": "UserManual",
+          "description": "A comprehensive document providing instructions and guidance for using the website, accessible via a help page.",
+          "evidence_ids": [
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0099",
+            "E0100",
+            "E0101",
+            "E0130",
+            "REQ-018",
+            "REQ-026"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "Developer",
+          "description": "An individual or team responsible for the website, contactable via social media.",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0096",
+            "E0097",
+            "E0098",
+            "REQ-017",
+            "REQ-025"
+          ]
+        },
+        {
+          "name": "UserManual",
+          "description": "A document containing instructions and guidance for using the website.",
+          "evidence_ids": [
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0099",
+            "E0100",
+            "E0101",
+            "E0130",
+            "REQ-018",
+            "REQ-026"
+          ]
+        },
+        {
+          "name": "HelpPage",
+          "description": "A dedicated section of the website where users can access the user manual.",
+          "evidence_ids": [
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0099",
+            "E0100",
+            "E0101",
+            "REQ-018",
+            "REQ-026"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "UserAttributes",
+          "description": "Explicitly stated attributes for User.",
+          "attributes": [
+            "birthdate",
+            "contact_number",
+            "email",
+            "gender",
+            "name",
+            "password_hash",
+            "profile_picture",
+            "username"
+          ],
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0099",
+            "E0100",
+            "E0101"
+          ]
+        },
+        {
+          "name": "DeveloperContactDetails",
+          "description": "Details required to contact a developer, including their name, email, and associated social media links.",
+          "attributes": [
+            "name",
+            "email",
+            "social media links"
+          ],
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0096",
+            "E0097",
+            "E0098",
+            "REQ-017",
+            "REQ-025"
+          ]
+        },
+        {
+          "name": "UserContactSubmission",
+          "description": "Information provided by a user when contacting a developer, including the user's name, email, and their message.",
+          "attributes": [
+            "name",
+            "email",
+            "message"
+          ],
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0096",
+            "E0097",
+            "E0098",
+            "REQ-017",
+            "REQ-025"
+          ]
+        },
+        {
+          "name": "UserManualContent",
+          "description": "The instructional content provided within the website user manual.",
+          "attributes": [
+            "instructions on how to register to the platform",
+            "deal with forgotten password",
+            "search for products",
+            "contact the seller"
+          ],
+          "evidence_ids": [
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0099",
+            "E0100",
+            "E0101",
+            "REQ-018",
+            "REQ-026"
+          ]
+        }
+      ],
+      "business_rules": [
+        {
+          "text": "The 'name' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0072",
+            "E0073",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0131"
+          ]
+        },
+        {
+          "text": "The 'category' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'description' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'picture' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'owner_name' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'price' field is required for the 'Product' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'condition' field is required for the 'ProductDetail' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'home_delivery' field is required for the 'ProductDetail' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'price' field is required for the 'ProductDetail' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0071",
+            "E0087",
+            "E0088",
+            "E0089"
+          ]
+        },
+        {
+          "text": "The 'email' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0072",
+            "E0073",
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0096",
+            "E0097",
+            "E0098",
+            "E0104"
+          ]
+        },
+        {
+          "text": "The 'contact_number' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "text": "The 'birthdate' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092"
+          ]
+        },
+        {
+          "text": "The 'gender' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092"
+          ]
+        },
+        {
+          "text": "The 'profile_picture' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092"
+          ]
+        },
+        {
+          "text": "The 'username' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0131"
+          ]
+        },
+        {
+          "text": "The 'password_hash' field is required for the 'User' entity.",
+          "category": "data_integrity",
+          "evidence_ids": [
+            "E0075",
+            "E0099",
+            "E0100",
+            "E0101",
+            "E0103",
+            "E0131",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "text": "When contacting a developer, the user's name, email, and message are required.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0096",
+            "E0097",
+            "E0098",
+            "REQ-017",
+            "REQ-025"
+          ]
+        }
+      ],
+      "domain_events": [],
+      "domain_services": [],
+      "allowed_dependencies": [
+        "UserAccount"
+      ],
+      "evidence_ids": [
+        "E0071",
+        "E0072",
+        "E0073",
+        "E0074",
+        "E0075",
+        "E0076",
+        "E0087",
+        "E0088",
+        "E0089",
+        "E0090",
+        "E0091",
+        "E0092",
+        "E0096",
+        "E0097",
+        "E0098",
+        "E0099",
+        "E0100",
+        "E0101",
+        "E0130",
+        "REQ-017",
+        "REQ-018",
+        "REQ-025",
+        "REQ-026",
+        "REQ-070",
+        "REQ-071",
+        "REQ-072",
+        "REQ-095",
+        "REQ-096",
+        "REQ-097"
+      ]
+    }
+  ]
+}

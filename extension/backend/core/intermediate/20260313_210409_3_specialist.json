@@ -1,0 +1,196 @@
+{
+  "timestamp": "2026-03-13 21:04:09",
+  "contexts_analyzed": 4,
+  "analyses": [
+    {
+      "context": "ProductCatalog",
+      "description": "Searchable product information.",
+      "entities": [
+        {
+          "name": "Product",
+          "description": "Inferred from requirement title: Search for products",
+          "evidence_ids": [
+            "E0002",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0013"
+          ]
+        },
+        {
+          "name": "Category",
+          "description": "Product grouping.",
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "Price",
+          "description": "Product price.",
+          "attributes": [
+            "amount",
+            "currency"
+          ],
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "semantic_rules": [
+        {
+          "text": "Only the registered users can add products.",
+          "category": "security",
+          "evidence_ids": [
+            "E0017"
+          ]
+        },
+        {
+          "text": "Only registered users can add products.",
+          "category": "security",
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "domain_events": [
+        "ProductCreated",
+        "UserRegistered"
+      ],
+      "allowed_dependencies": [
+        "IdentityAndAccess"
+      ],
+      "evidence_ids": [
+        "E0002",
+        "E0003",
+        "E0006",
+        "E0007",
+        "E0008",
+        "E0010",
+        "E0011",
+        "E0012",
+        "E0013",
+        "E0014",
+        "E0015",
+        "E0017",
+        "E0020",
+        "E0021"
+      ]
+    },
+    {
+      "context": "DashboardContext",
+      "description": "Context inferred for DashboardContext.",
+      "entities": [
+        {
+          "name": "Dashboard",
+          "description": "Inferred from requirement title: View product dashboard",
+          "evidence_ids": [
+            "E0006",
+            "E0013",
+            "E0014",
+            "E0015"
+          ]
+        }
+      ],
+      "value_objects": [],
+      "semantic_rules": [],
+      "domain_events": [
+        "UserRegistered"
+      ],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0006",
+        "E0013",
+        "E0014",
+        "E0015"
+      ]
+    },
+    {
+      "context": "IdentityAndAccess",
+      "description": "Registration and account access.",
+      "entities": [
+        {
+          "name": "User",
+          "description": "This table stores user credentials and profile details.",
+          "evidence_ids": [
+            "E0001",
+            "E0018",
+            "E0019"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ContactInformation",
+          "description": "Email and phone details.",
+          "attributes": [
+            "email",
+            "contactNumber"
+          ],
+          "evidence_ids": [
+            "E0001"
+          ]
+        }
+      ],
+      "semantic_rules": [
+        {
+          "text": "Users need to verify their email after registering to enter the platform as registered user.",
+          "category": "security",
+          "evidence_ids": [
+            "E0016"
+          ]
+        },
+        {
+          "text": "Users must verify email before entering the platform.",
+          "category": "security",
+          "evidence_ids": [
+            "E0001"
+          ]
+        }
+      ],
+      "domain_events": [
+        "UserRegistered"
+      ],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0001",
+        "E0003",
+        "E0004",
+        "E0005",
+        "E0010",
+        "E0011",
+        "E0012",
+        "E0016",
+        "E0018",
+        "E0019",
+        "E0020",
+        "E0021",
+        "E0022",
+        "E0023"
+      ]
+    },
+    {
+      "context": "OfferContext",
+      "description": "Context inferred for OfferContext.",
+      "entities": [
+        {
+          "name": "Offer",
+          "description": "This table stores buyer and seller offers.",
+          "evidence_ids": [
+            "E0022",
+            "E0023"
+          ]
+        }
+      ],
+      "value_objects": [],
+      "semantic_rules": [],
+      "domain_events": [],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0022",
+        "E0023"
+      ]
+    }
+  ]
+}

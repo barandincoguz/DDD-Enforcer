@@ -1,0 +1,53 @@
+{
+  "timestamp": "2026-03-13 21:11:34",
+  "verification_report": {
+    "passed": false,
+    "boundary_violations": [
+      "The 'HelpSupport' bounded context implicitly depends on 'UserAccountAuthentication' (to refer to 'users' in its description and for 'contact the seller' in the user manual as per REQ-018/REQ-026) but 'UserAccountAuthentication' is not listed in its 'allowed_dependencies'.",
+      "The 'ProductListingSalesManagement' bounded context implicitly depends on 'OfferRequestManagement' (to display 'offers received' and 'requests made' on the Dashboard as per REQ-024) but 'OfferRequestManagement' is not listed in its 'allowed_dependencies'.",
+      "forbidden_dependency_edge:OfferRequestManagement->ProductCatalogSearch",
+      "forbidden_dependency_edge:OfferRequestManagement->UserAccountAuthentication",
+      "forbidden_dependency_edge:ProductCatalogSearch->UserAccountAuthentication",
+      "forbidden_dependency_edge:ProductListingSalesManagement->ProductCatalogSearch",
+      "forbidden_dependency_edge:ProductListingSalesManagement->UserAccountAuthentication"
+    ],
+    "ownership_conflicts": [
+      "Duplicate Value Object 'ParticipantDetail' exists alongside 'ParticipantInfo' within the 'OfferRequestManagement' bounded context.",
+      "Duplicate Value Object 'Pricing' exists alongside 'PricingDetail' within the 'ProductCatalogSearch' bounded context.",
+      "Duplicate Value Object 'ProductCondition' exists alongside 'ProductConditionDetail' within the 'ProductCatalogSearch' bounded context.",
+      "The 'UserRegistered' domain event is listed under 'ProductListingSalesManagement' but logically belongs to 'UserAccountAuthentication'."
+    ],
+    "semantic_drift": [
+      "REQ-024 specifies that the product dashboard should show 'number of products they have added to sell, requested to buy and been offered for the product they put on sale'. The 'ProductListingSalesManagement' context's description for the 'Dashboard' entity only broadly states 'summarizing their sales activities', and its semantic rules do not explicitly capture the details about 'requested to buy' or 'been offered', indicating a loss of specificity from the requirement.",
+      "domain_event:OfferRequestManagement:OfferMade",
+      "domain_event:OfferRequestManagement:OfferReceived",
+      "domain_event:OfferRequestManagement:UserRegistered",
+      "domain_event:ProductCatalogSearch:UserRegistered",
+      "domain_event:UserAccountAuthentication:EmailVerified",
+      "domain_event:UserAccountAuthentication:UserRegistered",
+      "entity:ProductCatalogSearch:Company",
+      "entity:ProductCatalogSearch:Keyword",
+      "missing_semantic_rule:It gives a pop-up message whenever an error or accidental decision is made.",
+      "missing_semantic_rule:The page loads fast without delay of more than one second.",
+      "missing_semantic_rule:The web design is responsive, attractive and, easy-to-navigate.",
+      "semantic_rule:HelpSupport:Users must provide their name, email, and message to contact a developer.",
+      "semantic_rule:ProductCatalogSearch:If a relevant product match is found, its title is displayed; otherwise, a 'No products found' message is displayed.",
+      "semantic_rule:UserAccountAuthentication:Invalid username or password will result in an error message.",
+      "semantic_rule:UserAccountAuthentication:Login requires a matching username or email and password; otherwise, an error message for invalid credentials is displayed.",
+      "semantic_rule:UserAccountAuthentication:Upon successful email verification, the user is redirected to the login page.",
+      "value_object:OfferRequestManagement:ProductInteractionCount",
+      "value_object:ProductCatalogSearch:ProductDescriptionText",
+      "value_object:ProductCatalogSearch:SearchQuery",
+      "value_object:ProductListingSalesManagement:ProductDetailsForListing",
+      "value_object:UserAccountAuthentication:Gender",
+      "value_object:UserAccountAuthentication:Password",
+      "value_object:UserAccountAuthentication:ProfilePicture",
+      "value_object:UserAccountAuthentication:Username"
+    ],
+    "notes": [
+      "llm_verifier_note:In the 'HelpSupport' context, 'ContactDetail' lists 'ContactInformation' as a synonym to avoid, yet 'ContactInformation' is also defined as an entity within the same context, indicating an internal inconsistency in naming preference or usage.",
+      "llm_verifier_note:Several semantic rules are duplicated between specific bounded contexts and the 'global_rules' section, leading to redundancy.",
+      "non_blocking_requirement_ids:REQ-001,REQ-002,REQ-003,REQ-004,REQ-005,REQ-006,REQ-007,REQ-008,REQ-009,REQ-010,REQ-011,REQ-012,REQ-013,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042,REQ-043,REQ-044,REQ-045,REQ-046,REQ-052,REQ-053,REQ-054,REQ-055,REQ-056,REQ-057,REQ-058,REQ-059"
+    ]
+  }
+}

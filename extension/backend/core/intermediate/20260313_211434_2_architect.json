@@ -1,0 +1,204 @@
+{
+  "timestamp": "2026-03-13 21:19:03",
+  "contexts_identified": 4,
+  "contexts": {
+    "contexts": [
+      {
+        "context_name": "ProductManagement",
+        "description": "Enables registered users to add products for sale, manage their listings, and view their product-related activities (offers, requests). This context is the source of truth for all product listing data.",
+        "ownership_rationale": "This context handles the full lifecycle of a product listing from the seller's perspective, including creation, detailed specification, and managing associated transactional interactions like offers and requests. It enforces that only registered users can add products.",
+        "included_capabilities": [
+          "AddProduct",
+          "AddProductToProfile",
+          "BuyProduct",
+          "SellProduct",
+          "ViewProductDashboard"
+        ],
+        "primary_entities": [
+          "Category",
+          "Dashboard",
+          "DeliveryDetail",
+          "HomeDeliveryDetail",
+          "Offer",
+          "PricingDetail",
+          "Product",
+          "ProductCondition",
+          "ProductDescription",
+          "ProductDetail",
+          "ProductPicture",
+          "Request",
+          "Seller",
+          "WarrantyDetail"
+        ],
+        "allowed_dependencies": [
+          "UserAuthentication"
+        ],
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0071",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0093",
+          "E0094",
+          "E0095",
+          "E0105",
+          "E0108",
+          "E0127",
+          "E0129",
+          "E0133",
+          "E0135",
+          "E0137",
+          "E0138",
+          "E0139",
+          "E0140",
+          "E0141",
+          "E0142",
+          "E0143",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "context_name": "UserAuthentication",
+        "description": "Manages user registration, login, authentication, and personal profile information. Ensures secure access and user identity for both non-registered and registered users.",
+        "ownership_rationale": "This context is solely responsible for the lifecycle of user accounts and their authentication credentials, including personal details and security measures like email verification and password complexity.",
+        "included_capabilities": [
+          "LoginToWebsite",
+          "LoginUser",
+          "RegisterToWebsite",
+          "RegisterUser",
+          "VerifyEmail",
+          "ViewProfile"
+        ],
+        "primary_entities": [
+          "Birthdate",
+          "ContactNumber",
+          "Credential",
+          "Email",
+          "LoginCredential",
+          "Password",
+          "ProfilePicture",
+          "User",
+          "UserProfile",
+          "Username"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0030",
+          "E0031",
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0072",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0100",
+          "E0103",
+          "E0104",
+          "E0134",
+          "E0136",
+          "E0137",
+          "E0140",
+          "E0143"
+        ]
+      },
+      {
+        "context_name": "SupportAndInformation",
+        "description": "Provides users with access to help documentation and a means to contact the platform developers.",
+        "ownership_rationale": "This context centralizes all static and dynamic support resources for users, separating it from core business logic related to user accounts or product transactions.",
+        "included_capabilities": [
+          "ContactDeveloper",
+          "ViewUserManual",
+          "ViewWebsiteUserManual"
+        ],
+        "primary_entities": [
+          "Developer",
+          "HelpPage",
+          "Message",
+          "SocialMediaLink",
+          "UserManual"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0087",
+          "E0090",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0130"
+        ]
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Provides functionality for users to search, filter, and view details of products available on the platform. It acts as a read-only facade over product information managed elsewhere.",
+        "ownership_rationale": "This context is responsible for presenting product information to all users, enabling them to discover products, but does not own the creation or modification of product data. It focuses on the browsing experience.",
+        "included_capabilities": [
+          "FilterProducts",
+          "SearchForProducts",
+          "SearchProduct",
+          "ViewProductDetails",
+          "ViewProducts"
+        ],
+        "primary_entities": [],
+        "allowed_dependencies": [
+          "ProductManagement",
+          "UserAuthentication"
+        ],
+        "evidence_ids": [
+          "E0012",
+          "E0015",
+          "E0024",
+          "E0026",
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0108",
+          "E0127",
+          "E0129",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0144",
+          "E0145"
+        ]
+      }
+    ]
+  }
+}

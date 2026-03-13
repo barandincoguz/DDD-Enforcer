@@ -1,0 +1,74 @@
+{
+  "timestamp": "2026-03-13 20:57:20",
+  "contexts_identified": 4,
+  "contexts": {
+    "contexts": [
+      {
+        "context_name": "ProductCatalog",
+        "description": "Product discovery and listing semantics.",
+        "ownership_rationale": "Owns product discovery terms.",
+        "included_capabilities": [
+          "AddProduct",
+          "SearchProducts"
+        ],
+        "primary_entities": [
+          "Category",
+          "Product"
+        ],
+        "allowed_dependencies": [
+          "IdentityAndAccess"
+        ],
+        "evidence_ids": [
+          "E0002"
+        ]
+      },
+      {
+        "context_name": "DashboardContext",
+        "description": "Context inferred for DashboardContext.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for DashboardContext.",
+        "included_capabilities": [
+          "ViewProductDashboard"
+        ],
+        "primary_entities": [
+          "Dashboard"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0006",
+          "E0013",
+          "E0014",
+          "E0015"
+        ]
+      },
+      {
+        "context_name": "IdentityAndAccess",
+        "description": "Registration and access control.",
+        "ownership_rationale": "Owns registration and identity constraints.",
+        "included_capabilities": [
+          "RegisterAccount"
+        ],
+        "primary_entities": [
+          "User"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0001"
+        ]
+      },
+      {
+        "context_name": "OfferContext",
+        "description": "Context inferred for OfferContext.",
+        "ownership_rationale": "Deterministic fallback inferred ownership for OfferContext.",
+        "included_capabilities": [],
+        "primary_entities": [
+          "Offer"
+        ],
+        "allowed_dependencies": [],
+        "evidence_ids": [
+          "E0022",
+          "E0023"
+        ]
+      }
+    ]
+  }
+}

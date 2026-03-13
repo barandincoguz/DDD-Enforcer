@@ -1,0 +1,280 @@
+{
+  "timestamp": "2026-03-13 21:11:12",
+  "final_model": {
+    "schema_version": "3.0.0",
+    "project_name": "KinmailDomainModel",
+    "project_metadata": {
+      "version": "1.0.0",
+      "generated_at": "SET_BY_CODE",
+      "description": "Constitutional domain model for the Kinmail platform, synthesized from the Software Requirements Specification."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "UserAccountAuthentication",
+        "description": "Manages the lifecycle of user accounts, including registration, login, authentication, and profile management. It ensures secure access and maintains user-specific information.",
+        "allowed_dependencies": [],
+        "semantic_rules": [
+          "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+          "Users need to verify their email after registering to enter the platform as registered user.",
+          "Email verification is required for successful registration.",
+          "Passwords must contain a minimum of 8 alphanumeric characters, including both uppercase and lowercase letters and at least one number.",
+          "Users must verify their email address after registration to gain access to the platform as a registered user.",
+          "Users must verify their email after registering to enter the platform as a registered user."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "UserAccount",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "UserCredential",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "UserProfile",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "LoginCredential",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Email",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "FullName",
+              "attributes": [
+                "first_name",
+                "last_name",
+                "middle_name"
+              ]
+            },
+            {
+              "name": "ContactNumber",
+              "attributes": [
+                "number"
+              ]
+            },
+            {
+              "name": "Birthdate",
+              "attributes": [
+                "date"
+              ]
+            }
+          ],
+          "domain_events": [
+            "UserProfileViewed",
+            "UserLoggedIn"
+          ]
+        }
+      },
+      {
+        "context_name": "ProductCatalogSearch",
+        "description": "Provides functionalities for browsing, searching, and viewing detailed information about products available on the platform. It focuses on product discovery for all users.",
+        "allowed_dependencies": [
+          "UserAccountAuthentication"
+        ],
+        "semantic_rules": [
+          "Products must be available in the database to be searchable.",
+          "The platform must maintain a focused shopping approach with searching and filtering functionality."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "HomeDeliveryService",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductCategory",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductDetail",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "SellerDetail",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "WarrantyPeriod",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "WarrantyCondition",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ProductConditionDetail",
+              "attributes": [
+                "condition",
+                "usage_duration"
+              ]
+            },
+            {
+              "name": "ProductCondition",
+              "attributes": [
+                "condition",
+                "usage_duration"
+              ]
+            },
+            {
+              "name": "PricingDetail",
+              "attributes": [
+                "price"
+              ]
+            },
+            {
+              "name": "Pricing",
+              "attributes": [
+                "price"
+              ]
+            }
+          ],
+          "domain_events": [
+            "ProductDetailsViewed",
+            "ProductSearched"
+          ]
+        }
+      },
+      {
+        "context_name": "ProductListingSalesManagement",
+        "description": "Enables registered users to add new products for sale, manage their existing listings, and view a dashboard summarizing their sales activities (products added, offers received, requests made).",
+        "allowed_dependencies": [
+          "ProductCatalogSearch",
+          "UserAccountAuthentication"
+        ],
+        "semantic_rules": [
+          "Only the registered users can add products.",
+          "Only registered users are authorized to add products to the platform."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "ProductListing",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Dashboard",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [],
+          "domain_events": [
+            "ProductListingPostedPublicly",
+            "ProductListingCreated",
+            "UserRegistered"
+          ]
+        }
+      },
+      {
+        "context_name": "HelpSupport",
+        "description": "Provides users with access to the website's user manual and a mechanism to contact developers for assistance or feedback.",
+        "allowed_dependencies": [],
+        "semantic_rules": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "SocialMediaLink",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ContactInformation",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "UserManual",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ContactDetail",
+              "synonyms_to_avoid": [
+                "ContactInformation"
+              ]
+            },
+            {
+              "name": "Developer",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [],
+          "domain_events": [
+            "DeveloperContacted"
+          ]
+        }
+      },
+      {
+        "context_name": "OfferRequestManagement",
+        "description": "Manages the process of users making and receiving offers and requests for products, storing and tracking these interactions.",
+        "allowed_dependencies": [
+          "ProductCatalogSearch",
+          "UserAccountAuthentication"
+        ],
+        "semantic_rules": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Offer",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Request",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ParticipantInfo",
+              "attributes": [
+                "email",
+                "name",
+                "username"
+              ]
+            },
+            {
+              "name": "ParticipantDetail",
+              "attributes": [
+                "email",
+                "name",
+                "username"
+              ]
+            }
+          ],
+          "domain_events": [
+            "RequestReceived",
+            "RequestMade"
+          ]
+        }
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Data",
+        "Helper",
+        "Info",
+        "Manager",
+        "Util"
+      ],
+      "architectural_constraints": [
+        "Only registered users are authorized to add products to the platform.",
+        "Only the registered users can add products.",
+        "Pages must load within one second.",
+        "Passwords must contain a minimum of 8 alphanumeric characters, including both uppercase and lowercase letters and at least one number.",
+        "The platform is hosted by a secure hosting infrastructure.",
+        "The platform must be hosted by a secure hosting infrastructure.",
+        "The system should meet the following non-functional requirements:",
+        "There is a focussed shopping approach with searching and filtering functionality.",
+        "Users must verify their email address after registration to gain access to the platform as a registered user.",
+        "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+        "Users need to verify their email after registering to enter the platform as registered user."
+      ]
+    }
+  }
+}

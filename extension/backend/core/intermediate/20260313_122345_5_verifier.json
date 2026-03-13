@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-03-13 12:23:45",
+  "verification_report": {
+    "passed": false,
+    "missing_requirement_ids": [],
+    "uncovered_capabilities": [
+      "SearchForProducts"
+    ],
+    "uncovered_actors": [],
+    "uncovered_entities": [],
+    "evidence_less_items": [],
+    "duplicate_entities": [],
+    "missing_fields": [
+      "Product.category (from REQ-017)",
+      "Product.price (from REQ-016)",
+      "User.email (from REQ-015)"
+    ],
+    "contradictions": [],
+    "notes": []
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-03-13 20:57:59",
+  "verification_report": {
+    "passed": false,
+    "boundary_violations": [],
+    "ownership_conflicts": [],
+    "semantic_drift": [
+      "domain_event:DashboardContext:UserRegistered",
+      "domain_event:ProductCatalog:UserRegistered"
+    ],
+    "notes": []
+  }
+}

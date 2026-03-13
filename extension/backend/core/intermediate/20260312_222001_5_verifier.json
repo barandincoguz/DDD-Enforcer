@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-03-12 22:20:01",
+  "verification_report": {
+    "passed": false,
+    "missing_requirement_ids": [],
+    "uncovered_capabilities": [],
+    "uncovered_actors": [
+      "NonRegisteredUser"
+    ],
+    "uncovered_entities": [
+      "Contactinformation"
+    ],
+    "evidence_less_items": [],
+    "duplicate_entities": [],
+    "missing_fields": [
+      "value_object:SellerWorkspace:ProductDetails"
+    ],
+    "contradictions": [],
+    "notes": []
+  }
+}

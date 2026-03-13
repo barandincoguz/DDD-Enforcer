@@ -1,0 +1,260 @@
+{
+  "timestamp": "2026-03-13 20:50:31",
+  "final_model": {
+    "schema_version": "3.0.0",
+    "project_name": "SrsDomainModel",
+    "project_metadata": {
+      "version": "1.0.0",
+      "generated_at": "SET_BY_CODE",
+      "description": "Constitutional domain model synthesized for SrsDomainModel."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "UserAuthentication",
+        "description": "Manages user registration, login, authentication, and personal profile information, ensuring secure access and data integrity for all users.",
+        "allowed_dependencies": [],
+        "semantic_rules": [
+          "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+          "Users need to verify their email after registering to enter the platform as registered user.",
+          "Email verification is required for new user registration to be successful."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "UserCredential",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ContactNumber",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "User",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Profile",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Email",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Password",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "UserEmail",
+              "attributes": [
+                "email"
+              ]
+            },
+            {
+              "name": "UserName",
+              "attributes": [
+                "name"
+              ]
+            },
+            {
+              "name": "ContactNumber",
+              "attributes": [
+                "contact_number"
+              ]
+            },
+            {
+              "name": "Email",
+              "attributes": [
+                "email"
+              ]
+            },
+            {
+              "name": "Name",
+              "attributes": [
+                "name"
+              ]
+            }
+          ],
+          "domain_events": [
+            "UserLoggedIn",
+            "UserEmailVerified",
+            "UserRegistered"
+          ]
+        }
+      },
+      {
+        "context_name": "ProductManagement",
+        "description": "Enables registered users (sellers) to add, update, and manage their products for sale, including all associated details like pricing, condition, and delivery options.",
+        "allowed_dependencies": [
+          "UserAuthentication"
+        ],
+        "semantic_rules": [
+          "Only the registered users can add products."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "HomeDeliveryDetail",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductCategory",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductDetail",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "PricingDetail",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "DeliveryDetail",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "WarrantyDetail",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "PricingDetail",
+              "attributes": [
+                "price"
+              ]
+            }
+          ],
+          "domain_events": [
+            "ProductAdded"
+          ]
+        }
+      },
+      {
+        "context_name": "ProductContext",
+        "description": "Manages the creation, searching, viewing, buying, and selling of products within the platform.",
+        "allowed_dependencies": [],
+        "semantic_rules": [
+          "Only the registered users can add products."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Product",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Offer",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Request",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ProductPrice",
+              "attributes": [
+                "price"
+              ]
+            },
+            {
+              "name": "CompanyName",
+              "attributes": [
+                "company"
+              ]
+            }
+          ],
+          "domain_events": [
+            "ProductSold",
+            "ProductRequested"
+          ]
+        }
+      },
+      {
+        "context_name": "ProductCatalog",
+        "description": "Provides functionality for users (registered and non-registered) to search, browse, and view detailed information about products available on the platform.",
+        "allowed_dependencies": [
+          "ProductManagement"
+        ],
+        "semantic_rules": [
+          "There is a focussed shopping approach with searching and filtering functionality."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "SellerDetail",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "SellerDetail",
+              "attributes": [
+                "email",
+                "name"
+              ]
+            }
+          ],
+          "domain_events": []
+        }
+      },
+      {
+        "context_name": "SupportHelp",
+        "description": "Provides users with access to the website's user manual and a channel to contact developers for assistance or feedback.",
+        "allowed_dependencies": [
+          "UserAuthentication"
+        ],
+        "semantic_rules": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "SocialMediaLink",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "UserManual",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "HelpPage",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Developer",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Message",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [],
+          "domain_events": []
+        }
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Data",
+        "Helper",
+        "Info",
+        "Manager",
+        "Util"
+      ],
+      "architectural_constraints": [
+        "Only the registered users can add products.",
+        "The platform is hosted by a secure hosting infrastructure.",
+        "The system should meet the following non-functional requirements:",
+        "There is a focussed shopping approach with searching and filtering functionality.",
+        "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+        "Users need to verify their email after registering to enter the platform as registered user."
+      ]
+    }
+  }
+}

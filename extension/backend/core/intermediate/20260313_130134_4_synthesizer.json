@@ -1,0 +1,282 @@
+{
+  "timestamp": "2026-03-13 13:01:34",
+  "final_model": {
+    "schema_version": "2.0.0",
+    "project_name": "EcommerceSrsDomainModel",
+    "project_metadata": {
+      "version": "1.0.0",
+      "generated_at": "SET_BY_CODE",
+      "description": "Evidence-backed domain model synthesized for EcommerceSrsDomainModel."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "ProductContext",
+        "description": "Context inferred for ProductContext.",
+        "allowed_dependencies": [],
+        "actors": [
+          {
+            "name": "NonRegisteredUser",
+            "description": "Actor participating in ProductContext.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0006",
+              "E0007",
+              "E0008",
+              "E0010",
+              "E0011",
+              "E0012",
+              "E0013",
+              "E0014",
+              "E0015"
+            ],
+            "sources": []
+          },
+          {
+            "name": "RegisteredUser",
+            "description": "Actor participating in ProductContext.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0004",
+              "E0005",
+              "E0006",
+              "E0007",
+              "E0008",
+              "E0010",
+              "E0011",
+              "E0012",
+              "E0013",
+              "E0014",
+              "E0015"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "AddProduct",
+            "description": "Only registered users can add products with price details and product condition.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0003",
+              "E0010",
+              "E0011",
+              "E0012"
+            ],
+            "sources": []
+          },
+          {
+            "name": "SearchForProducts",
+            "description": "Users can search through product categories and open product details.",
+            "actor": "NonRegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0006",
+              "E0007",
+              "E0008",
+              "E0013"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "User",
+              "description": "Entity supported by explicit field evidence for User.",
+              "confidence": 0.72,
+              "evidence_ids": [
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "ProductDetail",
+              "description": "Entity supported by explicit field evidence for ProductDetail.",
+              "confidence": 0.72,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Product",
+              "description": "Inferred from requirement title: Search for products",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0006",
+                "E0007",
+                "E0008",
+                "E0013"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "UserAttribute",
+              "attributes": [
+                "email"
+              ],
+              "description": "Explicitly stated attributes for User.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0004",
+                "E0005",
+                "E0010",
+                "E0016"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductDetailAttribute",
+              "attributes": [
+                "condition",
+                "price"
+              ],
+              "description": "Explicitly stated attributes for ProductDetail.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            },
+            {
+              "name": "ProductAttribute",
+              "attributes": [
+                "price"
+              ],
+              "description": "Explicitly stated attributes for Product.",
+              "confidence": 0.68,
+              "evidence_ids": [
+                "E0003",
+                "E0010",
+                "E0011",
+                "E0012"
+              ],
+              "sources": []
+            }
+          ],
+          "services": [],
+          "aggregates": [],
+          "domain_events": []
+        },
+        "business_rules": [],
+        "external_references": [],
+        "evidence_ids": [
+          "E0003",
+          "E0004",
+          "E0005",
+          "E0006",
+          "E0007",
+          "E0008",
+          "E0010",
+          "E0011",
+          "E0012",
+          "E0013",
+          "E0014",
+          "E0015",
+          "E0016"
+        ],
+        "evidence": []
+      },
+      {
+        "context_name": "OfferContext",
+        "description": "Context inferred for OfferContext.",
+        "allowed_dependencies": [],
+        "actors": [
+          {
+            "name": "RegisteredUser",
+            "description": "Actor participating in OfferContext.",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0006",
+              "E0013",
+              "E0014",
+              "E0015"
+            ],
+            "sources": []
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "SendOffers",
+            "description": "Registered users can send offers to sellers for products.",
+            "actor": "RegisteredUser",
+            "confidence": 0.72,
+            "evidence_ids": [
+              "E0006",
+              "E0013",
+              "E0014",
+              "E0015"
+            ],
+            "sources": []
+          }
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Offer",
+              "description": "Inferred from requirement title: Send offers",
+              "confidence": 0.7,
+              "evidence_ids": [
+                "E0006",
+                "E0013",
+                "E0014",
+                "E0015"
+              ],
+              "sources": [],
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [],
+          "services": [],
+          "aggregates": [],
+          "domain_events": []
+        },
+        "business_rules": [],
+        "external_references": [],
+        "evidence_ids": [
+          "E0006",
+          "E0013",
+          "E0014",
+          "E0015"
+        ],
+        "evidence": []
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Manager",
+        "Util",
+        "Helper",
+        "Data",
+        "Info"
+      ],
+      "cross_cutting_constraints": [
+        "Field email is required for User.",
+        "Only the registered users can add products.",
+        "Users need to verify their email after registering to enter the platform as registered user."
+      ],
+      "assumptions": []
+    }
+  }
+}

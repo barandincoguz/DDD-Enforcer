@@ -1,0 +1,4322 @@
+{
+  "timestamp": "2026-03-13 02:10:37",
+  "chunks_processed": 6,
+  "requirements": 146,
+  "actors": 3,
+  "entities": 15,
+  "capabilities": 23,
+  "constraints": 55,
+  "tables": 11,
+  "scout_summary": {
+    "requirements": [
+      {
+        "requirement_id": "REQ-001",
+        "title": "C2C e-Commerce",
+        "category": "glossary",
+        "description": "C2C e-commerce is a type of trade relations where both sellers and buyers are consumers, not businesses. Vendors sell their products on the site and buyers purchase what they want. C2C websites benefit from commission fees for listing goods that are normally paid for by the seller. The main advantage of C2C business is that sellers and buyers are reachable. It is also effortless and handy and does not take much time to use.",
+        "actor": null,
+        "evidence_ids": [
+          "E0028",
+          "E0029"
+        ]
+      },
+      {
+        "requirement_id": "REQ-002",
+        "title": "Email Authentication",
+        "category": "glossary",
+        "description": "Email authentication is a technical solution to proving that an email is not forged. It provides a way to verify that an email comes from whom it claims to be from. Email authentication is most often used to block harmful or fraudulent uses of email such as phishing and spam which has been implemented in this platform.",
+        "actor": null,
+        "evidence_ids": [
+          "E0030",
+          "E0031"
+        ]
+      },
+      {
+        "requirement_id": "REQ-003",
+        "title": "Interface",
+        "category": "glossary",
+        "description": "The interaction between a user and system running on a Web server. The user interface is the Web browser and the Web page it downloaded and rendered.",
+        "actor": null,
+        "evidence_ids": [
+          "E0032",
+          "E0033"
+        ]
+      },
+      {
+        "requirement_id": "REQ-004",
+        "title": "Class",
+        "category": "glossary",
+        "description": "Class is a blueprint or prototype that defines the variables and the methods common to all objects of a certain kind.",
+        "actor": null,
+        "evidence_ids": [
+          "E0034",
+          "E0035"
+        ]
+      },
+      {
+        "requirement_id": "REQ-005",
+        "title": "Attribute",
+        "category": "glossary",
+        "description": "A database attribute is a column name and the content of the fields under it in a table in a database.",
+        "actor": null,
+        "evidence_ids": [
+          "E0036",
+          "E0037"
+        ]
+      },
+      {
+        "requirement_id": "REQ-006",
+        "title": "Relational Database",
+        "category": "glossary",
+        "description": "A relational database is any database that follows the relational model provided by traditional relational database management systems. It is a set of formally described tables from which data can be accessed or reassembled in different ways without having to reorganize the database tables.",
+        "actor": null,
+        "evidence_ids": [
+          "E0038",
+          "E0039"
+        ]
+      },
+      {
+        "requirement_id": "REQ-007",
+        "title": "C2C",
+        "category": "glossary",
+        "description": "Customer to Customer",
+        "actor": null,
+        "evidence_ids": [
+          "E0040"
+        ]
+      },
+      {
+        "requirement_id": "REQ-008",
+        "title": "HTML",
+        "category": "glossary",
+        "description": "Hypertext Markup Language",
+        "actor": null,
+        "evidence_ids": [
+          "E0041"
+        ]
+      },
+      {
+        "requirement_id": "REQ-009",
+        "title": "CSS",
+        "category": "glossary",
+        "description": "Cascading Style Sheet",
+        "actor": null,
+        "evidence_ids": [
+          "E0042"
+        ]
+      },
+      {
+        "requirement_id": "REQ-010",
+        "title": "DB",
+        "category": "glossary",
+        "description": "Database",
+        "actor": null,
+        "evidence_ids": [
+          "E0043"
+        ]
+      },
+      {
+        "requirement_id": "REQ-011",
+        "title": "DESC",
+        "category": "glossary",
+        "description": "Description",
+        "actor": null,
+        "evidence_ids": [
+          "E0044"
+        ]
+      },
+      {
+        "requirement_id": "REQ-012",
+        "title": "ER",
+        "category": "glossary",
+        "description": "Entity Relationship",
+        "actor": null,
+        "evidence_ids": [
+          "E0045"
+        ]
+      },
+      {
+        "requirement_id": "REQ-013",
+        "title": "DFD",
+        "category": "glossary",
+        "description": "Data Flow Diagram",
+        "actor": null,
+        "evidence_ids": [
+          "E0046"
+        ]
+      },
+      {
+        "requirement_id": "REQ-014",
+        "title": "RegisterAccount",
+        "category": "functional",
+        "description": "The non-registered users can register into the website by entering first name, middle name, last name, gender, profile picture, contact number, birthdate, username, email, password and then verify email. If verification is successful then the page is redirected to the login page.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-015",
+        "title": "SearchProducts",
+        "category": "functional",
+        "description": "A search bar available in the platform can be used to search for the required product. Users can also search through the category of products. Users can input key words in the search bar and if the relevant match is found, then the title matching the word is displayed otherwise, ‘No products found’ message is displayed.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0081",
+          "E0082"
+        ]
+      },
+      {
+        "requirement_id": "REQ-016",
+        "title": "ViewProductDetails",
+        "category": "functional",
+        "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0084",
+          "E0085"
+        ]
+      },
+      {
+        "requirement_id": "REQ-017",
+        "title": "ContactDeveloper",
+        "category": "functional",
+        "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0087",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-018",
+        "title": "ViewUserManual",
+        "category": "functional",
+        "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller and so on.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0090",
+          "E0100"
+        ]
+      },
+      {
+        "requirement_id": "REQ-019",
+        "title": "Login",
+        "category": "functional",
+        "description": "Registered users can log in to the system using their credentials. If username or email and password match then, users are logged in to the platform otherwise, error message for invalid username and password is displayed.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0078",
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "requirement_id": "REQ-020",
+        "title": "SearchProducts",
+        "category": "functional",
+        "description": "A search bar available in the platform can be used to search for the required product if available in the database. Both registered and non-registered users can search through the category of products.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0081",
+          "E0082",
+          "E0083"
+        ]
+      },
+      {
+        "requirement_id": "REQ-021",
+        "title": "ViewProductDetails",
+        "category": "functional",
+        "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen like non-registered users.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0084",
+          "E0085",
+          "E0086"
+        ]
+      },
+      {
+        "requirement_id": "REQ-022",
+        "title": "AddProduct",
+        "category": "functional",
+        "description": "Users can add product and its details with their information. They must specify product name, product category, picture of the product, owner name, and description of product, price details, product condition, warranty and home delivery details.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-023",
+        "title": "ViewProfile",
+        "category": "functional",
+        "description": "Users can view their name, gender, username, email, contact number, birthdate, profile picture",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-024",
+        "title": "ViewProductDashboard",
+        "category": "functional",
+        "description": "Users can view the number of products they have added to sell, requested to buy and been offered for the product they put on sale",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0093",
+          "E0094",
+          "E0095"
+        ]
+      },
+      {
+        "requirement_id": "REQ-025",
+        "title": "ContactDeveloper",
+        "category": "functional",
+        "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-026",
+        "title": "ViewUserManual",
+        "category": "functional",
+        "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0075",
+          "E0099",
+          "E0100",
+          "E0101"
+        ]
+      },
+      {
+        "requirement_id": "REQ-027",
+        "title": "The system should meet the following non-functional requirements:",
+        "category": "non_functional",
+        "description": "The system should meet the following non-functional requirements:",
+        "actor": null,
+        "evidence_ids": [
+          "E0102"
+        ]
+      },
+      {
+        "requirement_id": "REQ-028",
+        "title": "Users need to create password containing minimum of 8 alphanumeric characters wi",
+        "category": "security",
+        "description": "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+        "actor": null,
+        "evidence_ids": [
+          "E0103"
+        ]
+      },
+      {
+        "requirement_id": "REQ-029",
+        "title": "Users need to verify their email after registering to enter the platform as regi",
+        "category": "security",
+        "description": "Users need to verify their email after registering to enter the platform as registered user.",
+        "actor": null,
+        "evidence_ids": [
+          "E0104"
+        ]
+      },
+      {
+        "requirement_id": "REQ-030",
+        "title": "Only the registered users can add products.",
+        "category": "security",
+        "description": "Only the registered users can add products.",
+        "actor": null,
+        "evidence_ids": [
+          "E0105"
+        ]
+      },
+      {
+        "requirement_id": "REQ-031",
+        "title": "The web design is responsive, attractive and, easy-to-navigate.",
+        "category": "performance",
+        "description": "The web design is responsive, attractive and, easy-to-navigate.",
+        "actor": null,
+        "evidence_ids": [
+          "E0106"
+        ]
+      },
+      {
+        "requirement_id": "REQ-032",
+        "title": "The page loads fast without delay of more than one second.",
+        "category": "performance",
+        "description": "The page loads fast without delay of more than one second.",
+        "actor": null,
+        "evidence_ids": [
+          "E0107"
+        ]
+      },
+      {
+        "requirement_id": "REQ-033",
+        "title": "There is a focussed shopping approach with searching and filtering functionality",
+        "category": "performance",
+        "description": "There is a focussed shopping approach with searching and filtering functionality.",
+        "actor": null,
+        "evidence_ids": [
+          "E0108"
+        ]
+      },
+      {
+        "requirement_id": "REQ-034",
+        "title": "The platform is hosted by a secure hosting infrastructure.",
+        "category": "safety",
+        "description": "The platform is hosted by a secure hosting infrastructure.",
+        "actor": null,
+        "evidence_ids": [
+          "E0109"
+        ]
+      },
+      {
+        "requirement_id": "REQ-035",
+        "title": "It gives a pop-up message whenever an error or accidental decision is made.",
+        "category": "safety",
+        "description": "It gives a pop-up message whenever an error or accidental decision is made.",
+        "actor": null,
+        "evidence_ids": [
+          "E0110"
+        ]
+      },
+      {
+        "requirement_id": "REQ-036",
+        "title": "There are mainly two types of users:",
+        "category": "product_function",
+        "description": "There are mainly two types of users:",
+        "actor": "User",
+        "evidence_ids": [
+          "E0125"
+        ]
+      },
+      {
+        "requirement_id": "REQ-037",
+        "title": "Normal users: Users without signing in to the system.",
+        "category": "product_function",
+        "description": "Normal users: Users without signing in to the system.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0126"
+        ]
+      },
+      {
+        "requirement_id": "REQ-038",
+        "title": "Users can search the products.",
+        "category": "product_function",
+        "description": "Users can search the products.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0127"
+        ]
+      },
+      {
+        "requirement_id": "REQ-039",
+        "title": "Users can view the company profile.",
+        "category": "product_function",
+        "description": "Users can view the company profile.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0128"
+        ]
+      },
+      {
+        "requirement_id": "REQ-040",
+        "title": "Users can view product profile.",
+        "category": "product_function",
+        "description": "Users can view product profile.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0129"
+        ]
+      },
+      {
+        "requirement_id": "REQ-041",
+        "title": "Users can access the user manual.",
+        "category": "product_function",
+        "description": "Users can access the user manual.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0130"
+        ]
+      },
+      {
+        "requirement_id": "REQ-042",
+        "title": "Authorized users: Users with verified username and password.",
+        "category": "product_function",
+        "description": "Authorized users: Users with verified username and password.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0131"
+        ]
+      },
+      {
+        "requirement_id": "REQ-043",
+        "title": "They will have all the privilege of the normal users.",
+        "category": "product_function",
+        "description": "They will have all the privilege of the normal users.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0132"
+        ]
+      },
+      {
+        "requirement_id": "REQ-044",
+        "title": "They can add products.",
+        "category": "product_function",
+        "description": "They can add products.",
+        "actor": null,
+        "evidence_ids": [
+          "E0133"
+        ]
+      },
+      {
+        "requirement_id": "REQ-045",
+        "title": "They have their own profile.",
+        "category": "product_function",
+        "description": "They have their own profile.",
+        "actor": null,
+        "evidence_ids": [
+          "E0134"
+        ]
+      },
+      {
+        "requirement_id": "REQ-046",
+        "title": "They have their own dashboard containing products detail.",
+        "category": "product_function",
+        "description": "They have their own dashboard containing products detail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0135"
+        ]
+      },
+      {
+        "requirement_id": "REQ-047",
+        "title": "Users",
+        "category": "database",
+        "description": "The user table is used to store the new users. This table includes id as primary key which is auto generated and incremented. The user can login to the system by entering valid username and password. This table also stores information like date of birth, gender contact number for contacting while buying and selling the products.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-048",
+        "title": "Offers",
+        "category": "database",
+        "description": "This table stores the data of the buyer and seller name/username/email who offers the product to the customers and also the information of the offers that you have received from the user or probable buyer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "requirement_id": "REQ-049",
+        "title": "Products",
+        "category": "database",
+        "description": "Every registered user can view the products, buy the product as well as sell their product by adding their product in their profile which is then posted publicly. This table contains the basic properties of the products like product name, price, email of the user, and the category under which it is categorized normally.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-050",
+        "title": "Requests",
+        "category": "database",
+        "description": "This table stores the information of the requests made by the registered user and the requests made to the user by the probable buyer who are also the registered user on the site and the requests are stored on the profile page of the user.",
+        "actor": null,
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "requirement_id": "REQ-051",
+        "title": "Product details",
+        "category": "database",
+        "description": "This table contains the detailed information of the products that includes product name,company, price, condition of the product, for how long it has been used till the date which is uploaded in the website for the sale including the home delivery service, warranty period and warranty conditions and extra keywords for the detailed information.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-052",
+        "title": "Users:",
+        "category": "assumptions",
+        "description": "Users:",
+        "actor": "User",
+        "evidence_ids": [
+          "E0150"
+        ]
+      },
+      {
+        "requirement_id": "REQ-053",
+        "title": "We have assumed that all the users using this platform are capable of connecting",
+        "category": "assumptions",
+        "description": "We have assumed that all the users using this platform are capable of connecting their devices to the Internet and navigate the browser on their devices to the address of Kinmail website.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0151"
+        ]
+      },
+      {
+        "requirement_id": "REQ-054",
+        "title": "Provider:",
+        "category": "assumptions",
+        "description": "Provider:",
+        "actor": null,
+        "evidence_ids": [
+          "E0152"
+        ]
+      },
+      {
+        "requirement_id": "REQ-055",
+        "title": "We have assumed that the Kinmail will be running on a properly working web serve",
+        "category": "assumptions",
+        "description": "We have assumed that the Kinmail will be running on a properly working web server and database system with an Internet connection that allows the system to perform all communications between the users.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0153"
+        ]
+      },
+      {
+        "requirement_id": "REQ-056",
+        "title": "The success of the system depends on:",
+        "category": "assumptions",
+        "description": "The success of the system depends on:",
+        "actor": null,
+        "evidence_ids": [
+          "E0154"
+        ]
+      },
+      {
+        "requirement_id": "REQ-057",
+        "title": "The performance of the platform is good.",
+        "category": "assumptions",
+        "description": "The performance of the platform is good.",
+        "actor": null,
+        "evidence_ids": [
+          "E0155"
+        ]
+      },
+      {
+        "requirement_id": "REQ-058",
+        "title": "The information stored are secured and verified.",
+        "category": "assumptions",
+        "description": "The information stored are secured and verified.",
+        "actor": null,
+        "evidence_ids": [
+          "E0156"
+        ]
+      },
+      {
+        "requirement_id": "REQ-059",
+        "title": "The system is built with the perspective of HCI.",
+        "category": "assumptions",
+        "description": "The system is built with the perspective of HCI.",
+        "actor": null,
+        "evidence_ids": [
+          "E0157"
+        ]
+      },
+      {
+        "requirement_id": "REQ-060",
+        "title": "Product.user_email",
+        "category": "glossary",
+        "description": "Field user_email is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0030",
+          "E0031"
+        ]
+      },
+      {
+        "requirement_id": "REQ-061",
+        "title": "User.email",
+        "category": "glossary",
+        "description": "Field email is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0030",
+          "E0031"
+        ]
+      },
+      {
+        "requirement_id": "REQ-062",
+        "title": "User.name",
+        "category": "glossary",
+        "description": "Field name is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0036",
+          "E0037"
+        ]
+      },
+      {
+        "requirement_id": "REQ-063",
+        "title": "Product.description",
+        "category": "glossary",
+        "description": "Field description is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0044"
+        ]
+      },
+      {
+        "requirement_id": "REQ-064",
+        "title": "Productpicture",
+        "category": "functional",
+        "description": "Field picture is required for Product.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-065",
+        "title": "Productuseremail",
+        "category": "functional",
+        "description": "Field user_email is required for Product.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-066",
+        "title": "Useremail",
+        "category": "functional",
+        "description": "Field email is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-067",
+        "title": "Userpasswordhash",
+        "category": "functional",
+        "description": "Field password_hash is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-068",
+        "title": "Usercontactnumber",
+        "category": "functional",
+        "description": "Field contact_number is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-069",
+        "title": "Userbirthdate",
+        "category": "functional",
+        "description": "Field birthdate is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-070",
+        "title": "Usergender",
+        "category": "functional",
+        "description": "Field gender is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-071",
+        "title": "Userprofilepicture",
+        "category": "functional",
+        "description": "Field profile_picture is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-072",
+        "title": "Userusername",
+        "category": "functional",
+        "description": "Field username is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-073",
+        "title": "Username",
+        "category": "functional",
+        "description": "Field name is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "requirement_id": "REQ-074",
+        "title": "Productcategory",
+        "category": "functional",
+        "description": "Field category is required for Product.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0081",
+          "E0082"
+        ]
+      },
+      {
+        "requirement_id": "REQ-075",
+        "title": "Productdescription",
+        "category": "functional",
+        "description": "Field description is required for Product.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0084",
+          "E0085"
+        ]
+      },
+      {
+        "requirement_id": "REQ-076",
+        "title": "Productuseremail",
+        "category": "functional",
+        "description": "Field user_email is required for Product.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0087",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-077",
+        "title": "Useremail",
+        "category": "functional",
+        "description": "Field email is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0087",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-078",
+        "title": "Username",
+        "category": "functional",
+        "description": "Field name is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0087",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-079",
+        "title": "Userpasswordhash",
+        "category": "functional",
+        "description": "Field password_hash is required for User.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0090",
+          "E0100"
+        ]
+      },
+      {
+        "requirement_id": "REQ-080",
+        "title": "Productuseremail",
+        "category": "functional",
+        "description": "Field user_email is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0078",
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "requirement_id": "REQ-081",
+        "title": "Useremail",
+        "category": "functional",
+        "description": "Field email is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0078",
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "requirement_id": "REQ-082",
+        "title": "Userpasswordhash",
+        "category": "functional",
+        "description": "Field password_hash is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0078",
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "requirement_id": "REQ-083",
+        "title": "Userusername",
+        "category": "functional",
+        "description": "Field username is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0078",
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "requirement_id": "REQ-084",
+        "title": "Username",
+        "category": "functional",
+        "description": "Field name is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0078",
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "requirement_id": "REQ-085",
+        "title": "Productcategory",
+        "category": "functional",
+        "description": "Field category is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0081",
+          "E0082",
+          "E0083"
+        ]
+      },
+      {
+        "requirement_id": "REQ-086",
+        "title": "Productdescription",
+        "category": "functional",
+        "description": "Field description is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0084",
+          "E0085",
+          "E0086"
+        ]
+      },
+      {
+        "requirement_id": "REQ-087",
+        "title": "Productpicture",
+        "category": "functional",
+        "description": "Field picture is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-088",
+        "title": "Productownername",
+        "category": "functional",
+        "description": "Field owner_name is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-089",
+        "title": "Productprice",
+        "category": "functional",
+        "description": "Field price is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-090",
+        "title": "Productcategory",
+        "category": "functional",
+        "description": "Field category is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-091",
+        "title": "Productdescription",
+        "category": "functional",
+        "description": "Field description is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-092",
+        "title": "ProductDetailcondition",
+        "category": "functional",
+        "description": "Field condition is required for ProductDetail.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-093",
+        "title": "ProductDetailhomedelivery",
+        "category": "functional",
+        "description": "Field home_delivery is required for ProductDetail.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-094",
+        "title": "ProductDetailprice",
+        "category": "functional",
+        "description": "Field price is required for ProductDetail.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-095",
+        "title": "Username",
+        "category": "functional",
+        "description": "Field name is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "requirement_id": "REQ-096",
+        "title": "Productpicture",
+        "category": "functional",
+        "description": "Field picture is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-097",
+        "title": "Productuseremail",
+        "category": "functional",
+        "description": "Field user_email is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-098",
+        "title": "Useremail",
+        "category": "functional",
+        "description": "Field email is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-099",
+        "title": "Usercontactnumber",
+        "category": "functional",
+        "description": "Field contact_number is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-100",
+        "title": "Userbirthdate",
+        "category": "functional",
+        "description": "Field birthdate is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-101",
+        "title": "Usergender",
+        "category": "functional",
+        "description": "Field gender is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-102",
+        "title": "Userprofilepicture",
+        "category": "functional",
+        "description": "Field profile_picture is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-103",
+        "title": "Userusername",
+        "category": "functional",
+        "description": "Field username is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-104",
+        "title": "Username",
+        "category": "functional",
+        "description": "Field name is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "requirement_id": "REQ-105",
+        "title": "Productuseremail",
+        "category": "functional",
+        "description": "Field user_email is required for Product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-106",
+        "title": "Useremail",
+        "category": "functional",
+        "description": "Field email is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-107",
+        "title": "Username",
+        "category": "functional",
+        "description": "Field name is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "requirement_id": "REQ-108",
+        "title": "Userpasswordhash",
+        "category": "functional",
+        "description": "Field password_hash is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0075",
+          "E0099",
+          "E0100",
+          "E0101"
+        ]
+      },
+      {
+        "requirement_id": "REQ-109",
+        "title": "User.password_hash",
+        "category": "security",
+        "description": "Field password_hash is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0103"
+        ]
+      },
+      {
+        "requirement_id": "REQ-110",
+        "title": "Product.user_email",
+        "category": "security",
+        "description": "Field user_email is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0104"
+        ]
+      },
+      {
+        "requirement_id": "REQ-111",
+        "title": "User.email",
+        "category": "security",
+        "description": "Field email is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0104"
+        ]
+      },
+      {
+        "requirement_id": "REQ-112",
+        "title": "ProductDetail.company",
+        "category": "product_function",
+        "description": "Field company is required for ProductDetail.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0128"
+        ]
+      },
+      {
+        "requirement_id": "REQ-113",
+        "title": "User.password_hash",
+        "category": "product_function",
+        "description": "Field password_hash is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0131"
+        ]
+      },
+      {
+        "requirement_id": "REQ-114",
+        "title": "User.username",
+        "category": "product_function",
+        "description": "Field username is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0131"
+        ]
+      },
+      {
+        "requirement_id": "REQ-115",
+        "title": "User.name",
+        "category": "product_function",
+        "description": "Field name is required for User.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0131"
+        ]
+      },
+      {
+        "requirement_id": "REQ-116",
+        "title": "User.name",
+        "category": "database",
+        "description": "Field name is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-117",
+        "title": "User.gender",
+        "category": "database",
+        "description": "Field gender is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-118",
+        "title": "User.username",
+        "category": "database",
+        "description": "Field username is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-119",
+        "title": "User.email",
+        "category": "database",
+        "description": "Field email is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-120",
+        "title": "User.contact_number",
+        "category": "database",
+        "description": "Field contact_number is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-121",
+        "title": "User.birthdate",
+        "category": "database",
+        "description": "Field birthdate is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-122",
+        "title": "User.profile_picture",
+        "category": "database",
+        "description": "Field profile_picture is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-123",
+        "title": "User.password_hash",
+        "category": "database",
+        "description": "Field password_hash is required for User.",
+        "actor": null,
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "requirement_id": "REQ-124",
+        "title": "Offer.buyer_name",
+        "category": "database",
+        "description": "Field buyer_name is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "requirement_id": "REQ-125",
+        "title": "Offer.buyer_username",
+        "category": "database",
+        "description": "Field buyer_username is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "requirement_id": "REQ-126",
+        "title": "Offer.seller_name",
+        "category": "database",
+        "description": "Field seller_name is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "requirement_id": "REQ-127",
+        "title": "Offer.seller_username",
+        "category": "database",
+        "description": "Field seller_username is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "requirement_id": "REQ-128",
+        "title": "Product.name",
+        "category": "database",
+        "description": "Field name is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-129",
+        "title": "Product.category",
+        "category": "database",
+        "description": "Field category is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-130",
+        "title": "Product.picture",
+        "category": "database",
+        "description": "Field picture is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-131",
+        "title": "Product.owner_name",
+        "category": "database",
+        "description": "Field owner_name is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-132",
+        "title": "Product.description",
+        "category": "database",
+        "description": "Field description is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-133",
+        "title": "Product.price",
+        "category": "database",
+        "description": "Field price is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-134",
+        "title": "Product.user_email",
+        "category": "database",
+        "description": "Field user_email is required for Product.",
+        "actor": null,
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-135",
+        "title": "Offer.buyer_name",
+        "category": "database",
+        "description": "Field buyer_name is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "requirement_id": "REQ-136",
+        "title": "Offer.buyer_username",
+        "category": "database",
+        "description": "Field buyer_username is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "requirement_id": "REQ-137",
+        "title": "Offer.seller_name",
+        "category": "database",
+        "description": "Field seller_name is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "requirement_id": "REQ-138",
+        "title": "Offer.seller_username",
+        "category": "database",
+        "description": "Field seller_username is required for Offer.",
+        "actor": null,
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "requirement_id": "REQ-139",
+        "title": "ProductDetail.company",
+        "category": "database",
+        "description": "Field company is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-140",
+        "title": "ProductDetail.price",
+        "category": "database",
+        "description": "Field price is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-141",
+        "title": "ProductDetail.condition",
+        "category": "database",
+        "description": "Field condition is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-142",
+        "title": "ProductDetail.usage_duration",
+        "category": "database",
+        "description": "Field usage_duration is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-143",
+        "title": "ProductDetail.home_delivery",
+        "category": "database",
+        "description": "Field home_delivery is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-144",
+        "title": "ProductDetail.warranty_period",
+        "category": "database",
+        "description": "Field warranty_period is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-145",
+        "title": "ProductDetail.warranty_conditions",
+        "category": "database",
+        "description": "Field warranty_conditions is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "requirement_id": "REQ-146",
+        "title": "ProductDetail.keywords",
+        "category": "database",
+        "description": "Field keywords is required for ProductDetail.",
+        "actor": null,
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      }
+    ],
+    "actors": [
+      {
+        "name": "NonRegisteredUser",
+        "description": "A user who has not yet created an account on the platform, capable of registering, searching products, viewing product details, contacting developers, and viewing the user manual.",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0078",
+          "E0081",
+          "E0082",
+          "E0084",
+          "E0085",
+          "E0087",
+          "E0090",
+          "E0097",
+          "E0098",
+          "E0100",
+          "E0126",
+          "E0132"
+        ]
+      },
+      {
+        "name": "RegisteredUser",
+        "description": "A user who has successfully created and logged into an account on the platform, capable of logging in, searching products, viewing product details, adding products, and viewing their profile.",
+        "evidence_ids": [
+          "E0062",
+          "E0065",
+          "E0066",
+          "E0068",
+          "E0069",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0093",
+          "E0094",
+          "E0095",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0131",
+          "E0133",
+          "E0134",
+          "E0135",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0142",
+          "E0143",
+          "E0145"
+        ]
+      },
+      {
+        "name": "User",
+        "description": "A general user of the platform, capable of connecting to the internet and navigating the website. This includes both registered and non-registered users, with defined fields like email, name, password hash, contact number, birthdate, gender, profile picture, and username.",
+        "evidence_ids": [
+          "E0030",
+          "E0031",
+          "E0036",
+          "E0037",
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078",
+          "E0125",
+          "E0127",
+          "E0128",
+          "E0129",
+          "E0130",
+          "E0150",
+          "E0151",
+          "E0153"
+        ]
+      }
+    ],
+    "entities": [
+      {
+        "name": "User",
+        "description": "An individual interacting with the platform, possessing attributes like name, gender, username, email, contact number, birthdate, and profile picture.",
+        "evidence_ids": [
+          "E0030",
+          "E0031",
+          "E0036",
+          "E0037",
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0103",
+          "E0104",
+          "E0131",
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "name": "Profile",
+        "description": "Inferred from requirement: Register to the website",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078",
+          "E0134"
+        ]
+      },
+      {
+        "name": "ContactInformation",
+        "description": "Inferred from requirement: Register to the website",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "name": "Product",
+        "description": "An item available for viewing, buying, or selling, with properties like name, price, user email, category, company, condition, usage duration, home delivery service, warranty period, warranty conditions, extra keywords, picture, and description.",
+        "evidence_ids": [
+          "E0030",
+          "E0031",
+          "E0044",
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0104",
+          "E0129",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "name": "Category",
+        "description": "Inferred from requirement: Search for products",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0081",
+          "E0082"
+        ]
+      },
+      {
+        "name": "Seller",
+        "description": "Inferred from requirement: View product details",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0084",
+          "E0085"
+        ]
+      },
+      {
+        "name": "UserManual",
+        "description": "A document providing instructions and guidance on using the platform, including registration, password recovery, and product search.",
+        "evidence_ids": [
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0090",
+          "E0100"
+        ]
+      },
+      {
+        "name": "Price",
+        "description": "Inferred from requirement: Add product",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "name": "Offer",
+        "description": "Represents a product offer, including details about the seller such as name and username.",
+        "evidence_ids": [
+          "E0093",
+          "E0094",
+          "E0095",
+          "E0138",
+          "E0139",
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "name": "Request",
+        "description": "An interaction initiated by a registered user or a probable buyer, stored on the user's profile page.",
+        "evidence_ids": [
+          "E0093",
+          "E0094",
+          "E0095",
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "name": "Dashboard",
+        "description": "Inferred from requirement: View product dashboard",
+        "evidence_ids": [
+          "E0093",
+          "E0094",
+          "E0095"
+        ]
+      },
+      {
+        "name": "Buyer",
+        "description": "Inferred from requirement: Offers",
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "name": "ProductDetail",
+        "description": "This table contains the detailed information of the products that includes product name,company, price, condition of the product, for how long it has been used till the date which is uploaded in the website for the sale including the home delivery service, warranty period and warranty conditions and extra keywords for the detailed information.",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0128",
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "name": "Developer",
+        "description": "An individual or team responsible for the platform's development, contactable by users.",
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "name": "CompanyProfile",
+        "description": "Information about the company that users can view.",
+        "evidence_ids": [
+          "E0128"
+        ]
+      }
+    ],
+    "constraints": [
+      {
+        "text": "The system should meet the following non-functional requirements:",
+        "category": "non_functional",
+        "evidence_ids": [
+          "E0102"
+        ]
+      },
+      {
+        "text": "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+        "category": "security",
+        "evidence_ids": [
+          "E0103"
+        ]
+      },
+      {
+        "text": "Users need to verify their email after registering to enter the platform as registered user.",
+        "category": "security",
+        "evidence_ids": [
+          "E0104"
+        ]
+      },
+      {
+        "text": "Only the registered users can add products.",
+        "category": "security",
+        "evidence_ids": [
+          "E0105"
+        ]
+      },
+      {
+        "text": "The web design is responsive, attractive and, easy-to-navigate.",
+        "category": "performance",
+        "evidence_ids": [
+          "E0106"
+        ]
+      },
+      {
+        "text": "The page loads fast without delay of more than one second.",
+        "category": "performance",
+        "evidence_ids": [
+          "E0107"
+        ]
+      },
+      {
+        "text": "There is a focussed shopping approach with searching and filtering functionality.",
+        "category": "performance",
+        "evidence_ids": [
+          "E0108"
+        ]
+      },
+      {
+        "text": "The platform is hosted by a secure hosting infrastructure.",
+        "category": "safety",
+        "evidence_ids": [
+          "E0109"
+        ]
+      },
+      {
+        "text": "It gives a pop-up message whenever an error or accidental decision is made.",
+        "category": "safety",
+        "evidence_ids": [
+          "E0110"
+        ]
+      },
+      {
+        "text": "Field password_hash is required for User.",
+        "category": "security",
+        "evidence_ids": [
+          "E0062",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0090",
+          "E0100",
+          "E0103"
+        ]
+      },
+      {
+        "text": "Field user_email is required for Product.",
+        "category": "security",
+        "evidence_ids": [
+          "E0062",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0087",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0097",
+          "E0098",
+          "E0104"
+        ]
+      },
+      {
+        "text": "Field email is required for User.",
+        "category": "security",
+        "evidence_ids": [
+          "E0062",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0087",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0097",
+          "E0098",
+          "E0104"
+        ]
+      },
+      {
+        "text": "Email authentication is implemented to verify email authenticity and block fraudulent uses like phishing and spam.",
+        "category": "security",
+        "evidence_ids": [
+          "E0030",
+          "E0031"
+        ]
+      },
+      {
+        "text": "Non-registered users must verify their email after registration to proceed to the login page.",
+        "category": "functional",
+        "evidence_ids": [
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "text": "Login requires valid username/email and password; otherwise, an error message for invalid credentials is displayed.",
+        "category": "functional",
+        "evidence_ids": [
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "text": "Registered users will have all the privilege of the normal users.",
+        "category": "product_function",
+        "evidence_ids": [
+          "E0132"
+        ]
+      },
+      {
+        "text": "Users are assumed to be capable of connecting their devices to the Internet and navigating to the Kinmail website.",
+        "category": "technical_assumption",
+        "evidence_ids": [
+          "E0151"
+        ]
+      },
+      {
+        "text": "Kinmail is assumed to run on a properly working web server and database system with an Internet connection to facilitate user communication.",
+        "category": "technical_assumption",
+        "evidence_ids": [
+          "E0153"
+        ]
+      },
+      {
+        "text": "The platform is assumed to have good performance.",
+        "category": "performance_assumption",
+        "evidence_ids": [
+          "E0155"
+        ]
+      },
+      {
+        "text": "Stored information is assumed to be secured and verified.",
+        "category": "security_assumption",
+        "evidence_ids": [
+          "E0156"
+        ]
+      },
+      {
+        "text": "The system is built with a Human-Computer Interaction (HCI) perspective.",
+        "category": "design_assumption",
+        "evidence_ids": [
+          "E0157"
+        ]
+      },
+      {
+        "text": "Field birthdate is required for User.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "text": "Field category is required for Product.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0071",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "text": "Field condition is required for ProductDetail.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "text": "Field contact_number is required for User.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "text": "Field description is required for Product.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0071",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "text": "Field gender is required for User.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "text": "Field home_delivery is required for ProductDetail.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "text": "Field name is required for User.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0062",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "text": "Field owner_name is required for Product.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "text": "Field picture is required for Product.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0071",
+          "E0074",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "text": "Field price is required for Product.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "text": "Field price is required for ProductDetail.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089"
+        ]
+      },
+      {
+        "text": "Field profile_picture is required for User.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "text": "Field username is required for User.",
+        "category": "DataValidation",
+        "evidence_ids": [
+          "E0062",
+          "E0074",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0090",
+          "E0091",
+          "E0092"
+        ]
+      },
+      {
+        "text": "The 'user_email' field is required for a Product.",
+        "category": "functional",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0104",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "text": "The 'email' field is required for a User.",
+        "category": "functional",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0104",
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'name' field is required for a User.",
+        "category": "functional",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098",
+          "E0131",
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'password_hash' field is required for a User.",
+        "category": "security",
+        "evidence_ids": [
+          "E0075",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0103",
+          "E0131",
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'company' field is required for ProductDetail.",
+        "category": "product_function",
+        "evidence_ids": [
+          "E0128"
+        ]
+      },
+      {
+        "text": "The 'username' field is required for a User.",
+        "category": "functional",
+        "evidence_ids": [
+          "E0131",
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'gender' field is required for a User.",
+        "category": "database",
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'contact_number' field is required for a User.",
+        "category": "database",
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'birthdate' field is required for a User.",
+        "category": "database",
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'profile_picture' field is required for a User.",
+        "category": "database",
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "text": "The 'buyer_name' field is required for an Offer.",
+        "category": "database",
+        "evidence_ids": [
+          "E0138",
+          "E0139",
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "text": "The 'buyer_username' field is required for an Offer.",
+        "category": "database",
+        "evidence_ids": [
+          "E0138",
+          "E0139",
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "text": "The 'seller_name' field is required for an Offer.",
+        "category": "database",
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "text": "The 'seller_username' field is required for an Offer.",
+        "category": "database",
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "text": "The 'name' field is required for a Product.",
+        "category": "database",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "text": "The 'category' field is required for a Product.",
+        "category": "database",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "text": "The 'picture' field is required for a Product.",
+        "category": "database",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "text": "The 'owner_name' field is required for a Product.",
+        "category": "database",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "text": "The 'description' field is required for a Product.",
+        "category": "database",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "text": "The 'price' field is required for a Product.",
+        "category": "database",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "name": "User",
+        "description": "The user table is used to store the new users. This table includes id as primary key which is auto generated and incremented. The user can login to the system by entering valid username and password. This table also stores information like date of birth, gender contact number for contacting while buying and selling the products.",
+        "evidence_ids": [
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "name": "Offer",
+        "description": "This table stores the data of the buyer and seller name/username/email who offers the product to the customers and also the information of the offers that you have received from the user or probable buyer.",
+        "evidence_ids": [
+          "E0138",
+          "E0139",
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "name": "Product",
+        "description": "Every registered user can view the products, buy the product as well as sell their product by adding their product in their profile which is then posted publicly. This table contains the basic properties of the products like product name, price, email of the user, and the category under which it is categorized normally.",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "name": "Request",
+        "description": "This table stores the information of the requests made by the registered user and the requests made to the user by the probable buyer who are also the registered user on the site and the requests are stored on the profile page of the user.",
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "name": "ProductDetail",
+        "description": "This table contains the detailed information of the products that includes product name,company, price, condition of the product, for how long it has been used till the date which is uploaded in the website for the sale including the home delivery service, warranty period and warranty conditions and extra keywords for the detailed information.",
+        "evidence_ids": [
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      },
+      {
+        "name": "ProductDatabase",
+        "description": "Stores information about products available on the platform.",
+        "evidence_ids": [
+          "E0083"
+        ]
+      },
+      {
+        "name": "Users",
+        "description": "Stores new users, including id (primary key), username, password, date of birth, gender, and contact number.",
+        "evidence_ids": [
+          "E0062",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0097",
+          "E0098",
+          "E0100",
+          "E0136",
+          "E0137",
+          "E0140"
+        ]
+      },
+      {
+        "name": "Offers",
+        "description": "Stores data of buyers and sellers who offer products, and information about received offers.",
+        "evidence_ids": [
+          "E0138",
+          "E0139"
+        ]
+      },
+      {
+        "name": "Products",
+        "description": "Stores basic properties of products including product name, price, user email, and category.",
+        "evidence_ids": [
+          "E0062",
+          "E0065",
+          "E0066",
+          "E0068",
+          "E0069",
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0074",
+          "E0078",
+          "E0079",
+          "E0080",
+          "E0081",
+          "E0082",
+          "E0083",
+          "E0084",
+          "E0085",
+          "E0086",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0097",
+          "E0098",
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "name": "Requests",
+        "description": "Stores information about requests made by registered users and requests received by users from probable buyers, stored on the user's profile page.",
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "name": "ProductDetails",
+        "description": "Stores detailed information about products, such as name, company, price, condition, usage duration, home delivery service, warranty period, warranty conditions, and extra keywords.",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0140",
+          "E0144",
+          "E0145"
+        ]
+      }
+    ],
+    "capabilities": [
+      {
+        "name": "RegisterAccount",
+        "description": "The non-registered users can register into the website by entering first name, middle name, last name, gender, profile picture, contact number, birthdate, username, email, password and then verify email. If verification is successful then the page is redirected to the login page.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0063",
+          "E0064",
+          "E0078"
+        ]
+      },
+      {
+        "name": "SearchProducts",
+        "description": "A search bar available in the platform can be used to search for the required product. Users can also search through the category of products. Users can input key words in the search bar and if the relevant match is found, then the title matching the word is displayed otherwise, ‘No products found’ message is displayed.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0081",
+          "E0082"
+        ]
+      },
+      {
+        "name": "ViewProductDetails",
+        "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0084",
+          "E0085"
+        ]
+      },
+      {
+        "name": "ContactDeveloper",
+        "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0072",
+          "E0073",
+          "E0087",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "name": "ViewUserManual",
+        "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller and so on.",
+        "actor": "NonRegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0075",
+          "E0076",
+          "E0090",
+          "E0100"
+        ]
+      },
+      {
+        "name": "Login",
+        "description": "Registered users can log in to the system using their credentials. If username or email and password match then, users are logged in to the platform otherwise, error message for invalid username and password is displayed.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0062",
+          "E0078",
+          "E0079",
+          "E0080"
+        ]
+      },
+      {
+        "name": "SearchProducts",
+        "description": "A search bar available in the platform can be used to search for the required product if available in the database. Both registered and non-registered users can search through the category of products.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0081",
+          "E0082",
+          "E0083"
+        ]
+      },
+      {
+        "name": "ViewProductDetails",
+        "description": "The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen like non-registered users.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0084",
+          "E0085",
+          "E0086"
+        ]
+      },
+      {
+        "name": "AddProduct",
+        "description": "Users can add product and its details with their information. They must specify product name, product category, picture of the product, owner name, and description of product, price details, product condition, warranty and home delivery details.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0071",
+          "E0087",
+          "E0088",
+          "E0089",
+          "E0105",
+          "E0133"
+        ]
+      },
+      {
+        "name": "ViewProfile",
+        "description": "Allows registered users to view their personal account information, including name, gender, username, email, contact number, birthdate, and profile picture.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0074",
+          "E0090",
+          "E0091",
+          "E0092",
+          "E0134"
+        ]
+      },
+      {
+        "name": "ViewProductDashboard",
+        "description": "Users can view the number of products they have added to sell, requested to buy and been offered for the product they put on sale",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0093",
+          "E0094",
+          "E0095",
+          "E0135"
+        ]
+      },
+      {
+        "name": "ContactDeveloper",
+        "description": "Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0072",
+          "E0073",
+          "E0096",
+          "E0097",
+          "E0098"
+        ]
+      },
+      {
+        "name": "ViewUserManual",
+        "description": "User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0075",
+          "E0099",
+          "E0100",
+          "E0101"
+        ]
+      },
+      {
+        "name": "SearchProducts",
+        "description": "Enables both registered and non-registered users to find products using keywords or by browsing categories, displaying relevant matches or a 'No products found' message.",
+        "actor": null,
+        "evidence_ids": [
+          "E0065",
+          "E0066",
+          "E0067",
+          "E0081",
+          "E0082",
+          "E0083"
+        ]
+      },
+      {
+        "name": "ViewProductDetails",
+        "description": "Allows both registered and non-registered users to view comprehensive information about a product, including general, seller, pricing, delivery, and warranty details.",
+        "actor": null,
+        "evidence_ids": [
+          "E0068",
+          "E0069",
+          "E0070",
+          "E0084",
+          "E0085",
+          "E0086"
+        ]
+      },
+      {
+        "name": "ViewUserManual",
+        "description": "Access the help page to view instructions on platform usage, registration, password recovery, product search, and seller contact.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0075",
+          "E0099",
+          "E0100",
+          "E0101",
+          "E0130"
+        ]
+      },
+      {
+        "name": "SearchProducts",
+        "description": "Search for products using filtering functionality.",
+        "actor": "User",
+        "evidence_ids": [
+          "E0108",
+          "E0127"
+        ]
+      },
+      {
+        "name": "ViewProducts",
+        "description": "Allow registered users to view available products.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "name": "BuyProduct",
+        "description": "Allow registered users to purchase a product.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "name": "SellProduct",
+        "description": "Allow registered users to list their products for sale.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "name": "AddProductToProfile",
+        "description": "Allow registered users to add their product to their profile for public posting.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0137",
+          "E0140",
+          "E0141",
+          "E0145"
+        ]
+      },
+      {
+        "name": "MakeRequest",
+        "description": "Allow registered users to make requests.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      },
+      {
+        "name": "ViewRequests",
+        "description": "Allow registered users to view requests made by and to them on their profile page.",
+        "actor": "RegisteredUser",
+        "evidence_ids": [
+          "E0142",
+          "E0143"
+        ]
+      }
+    ],
+    "evidence_spans": [
+      {
+        "evidence_id": "E0001",
+        "document": "SRS.docx",
+        "section": "Document",
+        "excerpt": "List of Figures",
+        "line": 1,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0002",
+        "document": "SRS.docx",
+        "section": "Document",
+        "excerpt": "Figure 1: State Transition Diagram\t6",
+        "line": 3,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0003",
+        "document": "SRS.docx",
+        "section": "Document",
+        "excerpt": "Figure 2: Sequence Diagram\t7",
+        "line": 4,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0004",
+        "document": "SRS.docx",
+        "section": "Document",
+        "excerpt": "Figure 3: Use Case Diagram\t8",
+        "line": 5,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0005",
+        "document": "SRS.docx",
+        "section": "Document",
+        "excerpt": "Figure 4: Level 0 DFD (Context Flow Diagram)\t9",
+        "line": 6,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0006",
+        "document": "SRS.docx",
+        "section": "Document",
+        "excerpt": "Figure 5: ER Diagram\t10",
+        "line": 7,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0007",
+        "document": "SRS.docx",
+        "section": "INTRODUCTION",
+        "excerpt": "This document includes software requirements specifications for an e-commerce website Kinmail. Kinmail is developed to connect buyers and sellers across the country seeking to buy and sell products online conveniently for free without any third parties in between. Internet is a great promotional vehicle and communication channel for connecting buyers and sellers. Consumers can find a product of interest in visiting the website of the retailers (sellers) directly or by searching among the alternatives using a shopping search engine. For the consumers searching for cheap products to buy online and sellers desiring to get some profit out of some unused stuffs, kinmail.com is the best website.",
+        "line": 27,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0008",
+        "document": "SRS.docx",
+        "section": "Purpose",
+        "excerpt": "The purpose of this document is to give a detailed description of the requirements for “Kinmail”. It will explain system constraints, interface and give a complete declaration for the development of the system. The website can be used by users to browse, search and add products to sell to the buyers.",
+        "line": 29,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0009",
+        "document": "SRS.docx",
+        "section": "Scope",
+        "excerpt": "Kinmail will be an e-commerce website designed to facilitate buying and selling of products between consumers without the involvement of businesses and hidden costs. The functions that a user will be able to perform in this platform are:",
+        "line": 31,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0010",
+        "document": "SRS.docx",
+        "section": "Scope",
+        "excerpt": "Register to the platform",
+        "line": 32,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0011",
+        "document": "SRS.docx",
+        "section": "Scope",
+        "excerpt": "Log in to the platform",
+        "line": 33,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0012",
+        "document": "SRS.docx",
+        "section": "Scope",
+        "excerpt": "Browse through the database of available product",
+        "line": 34,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0013",
+        "document": "SRS.docx",
+        "section": "Scope",
+        "excerpt": "View user profile",
+        "line": 35,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0014",
+        "document": "SRS.docx",
+        "section": "Scope",
+        "excerpt": "Get contact information of the seller",
+        "line": 36,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0015",
+        "document": "SRS.docx",
+        "section": "Scope",
+        "excerpt": "View product dashboard",
+        "line": 37,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0016",
+        "document": "SRS.docx",
+        "section": "Problem Definition",
+        "excerpt": "The online market is flooded with the availability of online stores including a third party involved either in the case of storage or in the case of delivery/distribution, which normally includes a huge amount of money being expensed in the both shipping and extra charges.So to overcome such concepts we have decided to make a customer to customer transaction based online system where the buyers and sellers make a reasonable discussion of the product involved to make a deal among themselves. With the partial fulfillment of the semester wise project, a need for the study of database and some designing was a must, and what better a way to study all those than to design a functional website. Current online websites involves a third party with the charges of  shipping involving many extra charges which is completely reduced in our website, also reducing the over prince hike in the normal products.",
+        "line": 40,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0017",
+        "document": "SRS.docx",
+        "section": "Audience",
+        "excerpt": "People interested in buying and selling their products without the involvement of any middleman and free of charges are the targeted audience of this platform.",
+        "line": 42,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0018",
+        "document": "SRS.docx",
+        "section": "Tools to be Used",
+        "excerpt": "Programming Language: HTML, CSS, JavaScript and Bootstrap for front-end.",
+        "line": 44,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0019",
+        "document": "SRS.docx",
+        "section": "Tools to be Used",
+        "excerpt": "PHP for back-end.",
+        "line": 45,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0020",
+        "document": "SRS.docx",
+        "section": "Tools to be Used",
+        "excerpt": "Database: MySQL",
+        "line": 46,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0021",
+        "document": "SRS.docx",
+        "section": "Tools to be Used",
+        "excerpt": "Platform: Sublime Text, XAMPP",
+        "line": 47,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0022",
+        "document": "SRS.docx",
+        "section": "References",
+        "excerpt": "Somerville, Software Engineering, 10th ed. England: Addison-Wesley, 2017",
+        "line": 49,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0023",
+        "document": "SRS.docx",
+        "section": "Overview",
+        "excerpt": "Kinmail will be a C2C based web platform to buy and sell products without any charges, similar to a forum of discussion but for posting and buying online products. Since, it will be designed as a web platform; it can be easily accessed by anyone with Internet access and web browser in their device. The advantages of our platform are:",
+        "line": 51,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0024",
+        "document": "SRS.docx",
+        "section": "Overview",
+        "excerpt": "Browse and search products easily.",
+        "line": 52,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0025",
+        "document": "SRS.docx",
+        "section": "Overview",
+        "excerpt": "Add products without any charges.",
+        "line": 53,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0026",
+        "document": "SRS.docx",
+        "section": "Overview",
+        "excerpt": "View product and its details.",
+        "line": 54,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0027",
+        "document": "SRS.docx",
+        "section": "Overview",
+        "excerpt": "Contact sellers directly.",
+        "line": 55,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0028",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "C2C e-Commerce",
+        "line": 59,
+        "requirement_id": "REQ-001"
+      },
+      {
+        "evidence_id": "E0029",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "C2C e-commerce is a type of trade relations where both sellers and buyers are consumers, not businesses. Vendors sell their products on the site and buyers purchase what they want. C2C websites benefit from commission fees for listing goods that are normally paid for by the seller. The main advantage of C2C business is that sellers and buyers are reachable. It is also effortless and handy and does not take much time to use.",
+        "line": 60,
+        "requirement_id": "REQ-001"
+      },
+      {
+        "evidence_id": "E0030",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "Email Authentication",
+        "line": 61,
+        "requirement_id": "REQ-002"
+      },
+      {
+        "evidence_id": "E0031",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "Email authentication is a technical solution to proving that an email is not forged. It provides a way to verify that an email comes from whom it claims to be from. Email authentication is most often used to block harmful or fraudulent uses of email such as phishing and spam which has been implemented in this platform.",
+        "line": 62,
+        "requirement_id": "REQ-002"
+      },
+      {
+        "evidence_id": "E0032",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "Interface",
+        "line": 63,
+        "requirement_id": "REQ-003"
+      },
+      {
+        "evidence_id": "E0033",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "The interaction between a user and system running on a Web server. The user interface is the Web browser and the Web page it downloaded and rendered.",
+        "line": 64,
+        "requirement_id": "REQ-003"
+      },
+      {
+        "evidence_id": "E0034",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "Class",
+        "line": 65,
+        "requirement_id": "REQ-004"
+      },
+      {
+        "evidence_id": "E0035",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "Class is a blueprint or prototype that defines the variables and the methods common to all objects of a certain kind.",
+        "line": 66,
+        "requirement_id": "REQ-004"
+      },
+      {
+        "evidence_id": "E0036",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "Attribute",
+        "line": 67,
+        "requirement_id": "REQ-005"
+      },
+      {
+        "evidence_id": "E0037",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "A database attribute is a column name and the content of the fields under it in a table in a database.",
+        "line": 68,
+        "requirement_id": "REQ-005"
+      },
+      {
+        "evidence_id": "E0038",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "Relational Database",
+        "line": 69,
+        "requirement_id": "REQ-006"
+      },
+      {
+        "evidence_id": "E0039",
+        "document": "SRS.docx",
+        "section": "Definitions",
+        "excerpt": "A relational database is any database that follows the relational model provided by traditional relational database management systems. It is a set of formally described tables from which data can be accessed or reassembled in different ways without having to reorganize the database tables.",
+        "line": 70,
+        "requirement_id": "REQ-006"
+      },
+      {
+        "evidence_id": "E0040",
+        "document": "SRS.docx",
+        "section": "Acronyms and Abbreviations",
+        "excerpt": "C2C: Customer to Customer",
+        "line": 72,
+        "requirement_id": "REQ-007"
+      },
+      {
+        "evidence_id": "E0041",
+        "document": "SRS.docx",
+        "section": "Acronyms and Abbreviations",
+        "excerpt": "HTML: Hypertext Markup Language",
+        "line": 73,
+        "requirement_id": "REQ-008"
+      },
+      {
+        "evidence_id": "E0042",
+        "document": "SRS.docx",
+        "section": "Acronyms and Abbreviations",
+        "excerpt": "CSS: Cascading Style Sheet",
+        "line": 74,
+        "requirement_id": "REQ-009"
+      },
+      {
+        "evidence_id": "E0043",
+        "document": "SRS.docx",
+        "section": "Acronyms and Abbreviations",
+        "excerpt": "DB: Database",
+        "line": 75,
+        "requirement_id": "REQ-010"
+      },
+      {
+        "evidence_id": "E0044",
+        "document": "SRS.docx",
+        "section": "Acronyms and Abbreviations",
+        "excerpt": "DESC: Description",
+        "line": 76,
+        "requirement_id": "REQ-011"
+      },
+      {
+        "evidence_id": "E0045",
+        "document": "SRS.docx",
+        "section": "Acronyms and Abbreviations",
+        "excerpt": "ER: Entity Relationship",
+        "line": 77,
+        "requirement_id": "REQ-012"
+      },
+      {
+        "evidence_id": "E0046",
+        "document": "SRS.docx",
+        "section": "Acronyms and Abbreviations",
+        "excerpt": "DFD: Data Flow Diagram",
+        "line": 78,
+        "requirement_id": "REQ-013"
+      },
+      {
+        "evidence_id": "E0047",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "State Transition Diagram",
+        "line": 81,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0048",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "Figure 1: State Transition Diagram",
+        "line": 84,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0049",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "State transition diagrams are used to give an abstract description of the behavior of a system. This behavior is analyzed and represented by a series of events that can occur in one or more possible states. Here the system is started with an initial state which is black dot as shown in the above figure. Logged in registered users have privilege to more states than normal users.",
+        "line": 86,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0050",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "Sequence Diagram",
+        "line": 93,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0051",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "A sequence diagram simply depicts interaction between objects in a sequential order i.e. the order in which these interactions take place. The above figure shows the interaction of the user with various objects of the system acted in sequence to carry out several tasks by user.",
+        "line": 97,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0052",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "Use Case Diagram",
+        "line": 102,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0053",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "Figure 3: Use Case Diagram",
+        "line": 105,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0054",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "A use case is a representation of a user’s interaction with the system that shows the relationship between the user and the different use cases in which the user is involved. The above figure shows the use cases of the user in the system. The user must be logged in to perform use cases like add products, view profile, view products dashboard.",
+        "line": 107,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0055",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "Data Flow Diagram",
+        "line": 112,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0056",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "Figure 4: Level 0 DFD (Context Flow Diagram)",
+        "line": 115,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0057",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "A data flow diagram (DFD) is a way of representing a flow of data of a process or a system. DFD describes the processes that are involved in a system to transfer data from the input to the file storage and reports generation. The above figure shows the data flow of various processes in Kinmail.",
+        "line": 117,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0058",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "ER Diagram",
+        "line": 123,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0059",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "Figure 5: ER Diagram",
+        "line": 126,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0060",
+        "document": "SRS.docx",
+        "section": "SYSTEM MODEL",
+        "excerpt": "An Entity Relationship model (ER model) describes the structure of a database with the help of ER diagram. An ER diagram shows the relationship among entity sets and can be later implemented in database. An entity set is a group of similar entities and these entities can have attributes. Above figure shows the entities along with their attributes and relationship among them.",
+        "line": 128,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0061",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "User Class 1- Non Registered Users",
+        "line": 135,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0062",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 1",
+        "line": 136,
+        "requirement_id": "REQ-019"
+      },
+      {
+        "evidence_id": "E0063",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Register to the website",
+        "line": 137,
+        "requirement_id": "REQ-014"
+      },
+      {
+        "evidence_id": "E0064",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: The non-registered users can register into the website by entering first name, middle name, last name, gender, profile picture, contact number, birthdate, username, email, password and then verify email. If verification is successful then the page is redirected to the login page.",
+        "line": 138,
+        "requirement_id": "REQ-014"
+      },
+      {
+        "evidence_id": "E0065",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 2",
+        "line": 139,
+        "requirement_id": "REQ-020"
+      },
+      {
+        "evidence_id": "E0066",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Search for products",
+        "line": 140,
+        "requirement_id": "REQ-020"
+      },
+      {
+        "evidence_id": "E0067",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: A search bar available in the platform can be used to search for the required product. Users can also search through the category of products. Users can input key words in the search bar and if the relevant match is found, then the title matching the word is displayed otherwise, ‘No products found’ message is displayed.",
+        "line": 141,
+        "requirement_id": "REQ-015"
+      },
+      {
+        "evidence_id": "E0068",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 3",
+        "line": 142,
+        "requirement_id": "REQ-021"
+      },
+      {
+        "evidence_id": "E0069",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: View product details",
+        "line": 143,
+        "requirement_id": "REQ-021"
+      },
+      {
+        "evidence_id": "E0070",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen.",
+        "line": 144,
+        "requirement_id": "REQ-016"
+      },
+      {
+        "evidence_id": "E0071",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 4",
+        "line": 145,
+        "requirement_id": "REQ-022"
+      },
+      {
+        "evidence_id": "E0072",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Contact the developer",
+        "line": 146,
+        "requirement_id": "REQ-025"
+      },
+      {
+        "evidence_id": "E0073",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+        "line": 147,
+        "requirement_id": "REQ-025"
+      },
+      {
+        "evidence_id": "E0074",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 5",
+        "line": 148,
+        "requirement_id": "REQ-023"
+      },
+      {
+        "evidence_id": "E0075",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: View the website user manual",
+        "line": 149,
+        "requirement_id": "REQ-026"
+      },
+      {
+        "evidence_id": "E0076",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller and so on.",
+        "line": 150,
+        "requirement_id": "REQ-018"
+      },
+      {
+        "evidence_id": "E0077",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "User Class 2- Registered Users",
+        "line": 151,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0078",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 1",
+        "line": 152,
+        "requirement_id": "REQ-019"
+      },
+      {
+        "evidence_id": "E0079",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Login to the website",
+        "line": 153,
+        "requirement_id": "REQ-019"
+      },
+      {
+        "evidence_id": "E0080",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Registered users can log in to the system using their credentials. If username or email and password match then, users are logged in to the platform otherwise, error message for invalid username and password is displayed.",
+        "line": 154,
+        "requirement_id": "REQ-019"
+      },
+      {
+        "evidence_id": "E0081",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 2",
+        "line": 155,
+        "requirement_id": "REQ-020"
+      },
+      {
+        "evidence_id": "E0082",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Search for products",
+        "line": 156,
+        "requirement_id": "REQ-020"
+      },
+      {
+        "evidence_id": "E0083",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: A search bar available in the platform can be used to search for the required product if available in the database. Both registered and non-registered users can search through the category of products.",
+        "line": 157,
+        "requirement_id": "REQ-020"
+      },
+      {
+        "evidence_id": "E0084",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 3",
+        "line": 158,
+        "requirement_id": "REQ-021"
+      },
+      {
+        "evidence_id": "E0085",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: View product detail",
+        "line": 159,
+        "requirement_id": "REQ-021"
+      },
+      {
+        "evidence_id": "E0086",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: The information like general details, seller details, product description, pricing details, delivery and warranty details can be seen like non-registered users.",
+        "line": 160,
+        "requirement_id": "REQ-021"
+      },
+      {
+        "evidence_id": "E0087",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 4",
+        "line": 161,
+        "requirement_id": "REQ-022"
+      },
+      {
+        "evidence_id": "E0088",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Add product",
+        "line": 162,
+        "requirement_id": "REQ-022"
+      },
+      {
+        "evidence_id": "E0089",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Users can add product and its details with their information. They must specify product name, product category, picture of the product, owner name, and description of product, price details, product condition, warranty and home delivery details.",
+        "line": 163,
+        "requirement_id": "REQ-022"
+      },
+      {
+        "evidence_id": "E0090",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 5",
+        "line": 164,
+        "requirement_id": "REQ-023"
+      },
+      {
+        "evidence_id": "E0091",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: View profile",
+        "line": 165,
+        "requirement_id": "REQ-023"
+      },
+      {
+        "evidence_id": "E0092",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Users can view their name, gender, username, email, contact number, birthdate, profile picture",
+        "line": 166,
+        "requirement_id": "REQ-023"
+      },
+      {
+        "evidence_id": "E0093",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 6",
+        "line": 167,
+        "requirement_id": "REQ-024"
+      },
+      {
+        "evidence_id": "E0094",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: View product dashboard",
+        "line": 168,
+        "requirement_id": "REQ-024"
+      },
+      {
+        "evidence_id": "E0095",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Users can view the number of products they have added to sell, requested to buy and been offered for the product they put on sale",
+        "line": 169,
+        "requirement_id": "REQ-024"
+      },
+      {
+        "evidence_id": "E0096",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 7",
+        "line": 170,
+        "requirement_id": "REQ-025"
+      },
+      {
+        "evidence_id": "E0097",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: Contact the developer",
+        "line": 171,
+        "requirement_id": "REQ-025"
+      },
+      {
+        "evidence_id": "E0098",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: Users can contact any developer by clicking the different social media links associated with the developer for which the information like name, email and message is required.",
+        "line": 172,
+        "requirement_id": "REQ-025"
+      },
+      {
+        "evidence_id": "E0099",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "Functional Requirement 8",
+        "line": 173,
+        "requirement_id": "REQ-026"
+      },
+      {
+        "evidence_id": "E0100",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "TITLE: View the website user manual",
+        "line": 174,
+        "requirement_id": "REQ-026"
+      },
+      {
+        "evidence_id": "E0101",
+        "document": "SRS.docx",
+        "section": "FUNCTIONAL REQUIREMENT",
+        "excerpt": "DESC: User can visit help page to view the website user manual. The user manual contains the instructions on how to register to the platform, deal with forgotten password, search for products, contact the seller.",
+        "line": 175,
+        "requirement_id": "REQ-026"
+      },
+      {
+        "evidence_id": "E0102",
+        "document": "SRS.docx",
+        "section": "NON FUNCTIONAL REQUIREMENTS",
+        "excerpt": "The system should meet the following non-functional requirements:",
+        "line": 178,
+        "requirement_id": "REQ-027"
+      },
+      {
+        "evidence_id": "E0103",
+        "document": "SRS.docx",
+        "section": "Security Requirements",
+        "excerpt": "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+        "line": 180,
+        "requirement_id": "REQ-028"
+      },
+      {
+        "evidence_id": "E0104",
+        "document": "SRS.docx",
+        "section": "Security Requirements",
+        "excerpt": "Users need to verify their email after registering to enter the platform as registered user.",
+        "line": 181,
+        "requirement_id": "REQ-029"
+      },
+      {
+        "evidence_id": "E0105",
+        "document": "SRS.docx",
+        "section": "Security Requirements",
+        "excerpt": "Only the registered users can add products.",
+        "line": 182,
+        "requirement_id": "REQ-030"
+      },
+      {
+        "evidence_id": "E0106",
+        "document": "SRS.docx",
+        "section": "Performance Requirements",
+        "excerpt": "The web design is responsive, attractive and, easy-to-navigate.",
+        "line": 184,
+        "requirement_id": "REQ-031"
+      },
+      {
+        "evidence_id": "E0107",
+        "document": "SRS.docx",
+        "section": "Performance Requirements",
+        "excerpt": "The page loads fast without delay of more than one second.",
+        "line": 185,
+        "requirement_id": "REQ-032"
+      },
+      {
+        "evidence_id": "E0108",
+        "document": "SRS.docx",
+        "section": "Performance Requirements",
+        "excerpt": "There is a focussed shopping approach with searching and filtering functionality.",
+        "line": 186,
+        "requirement_id": "REQ-033"
+      },
+      {
+        "evidence_id": "E0109",
+        "document": "SRS.docx",
+        "section": "Safety Requirements",
+        "excerpt": "The platform is hosted by a secure hosting infrastructure.",
+        "line": 188,
+        "requirement_id": "REQ-034"
+      },
+      {
+        "evidence_id": "E0110",
+        "document": "SRS.docx",
+        "section": "Safety Requirements",
+        "excerpt": "It gives a pop-up message whenever an error or accidental decision is made.",
+        "line": 189,
+        "requirement_id": "REQ-035"
+      },
+      {
+        "evidence_id": "E0111",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "The system evolved by proposing the website with little functionality. We started off by building the basic register and login system with general authentication requirements. We worked on the initial requirements and analyzed it in parallel, and several new requirements came into existence. Later on, we changed the general authentication to robust authentication system with email verification. Then, we added features like customer dashboard and customer profile.",
+        "line": 197,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0112",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Initial Stage of Website:",
+        "line": 198,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0113",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Features:",
+        "line": 199,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0114",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "General Authentication",
+        "line": 200,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0115",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Basic Search",
+        "line": 201,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0116",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Add products",
+        "line": 202,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0117",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Final stage of website:",
+        "line": 204,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0118",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Features:",
+        "line": 205,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0119",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Advanced Search",
+        "line": 206,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0120",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Customer Dashboard",
+        "line": 207,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0121",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Customer Profile",
+        "line": 208,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0122",
+        "document": "SRS.docx",
+        "section": "SYSTEM EVOLUTION",
+        "excerpt": "Website User Manual",
+        "line": 209,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0123",
+        "document": "SRS.docx",
+        "section": "Hardware Interface",
+        "excerpt": "The system can be interfaced through the use of mouse, keyboard and output screen. This system is also accessible and compatible on mobile screen devices provided that the accessing system has internet access.",
+        "line": 218,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0124",
+        "document": "SRS.docx",
+        "section": "Memory Constraint",
+        "excerpt": "No specific constraints on memory.",
+        "line": 220,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0125",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "There are mainly two types of users:",
+        "line": 223,
+        "requirement_id": "REQ-036"
+      },
+      {
+        "evidence_id": "E0126",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "Normal users: Users without signing in to the system.",
+        "line": 224,
+        "requirement_id": "REQ-037"
+      },
+      {
+        "evidence_id": "E0127",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "Users can search the products.",
+        "line": 225,
+        "requirement_id": "REQ-038"
+      },
+      {
+        "evidence_id": "E0128",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "Users can view the company profile.",
+        "line": 226,
+        "requirement_id": "REQ-039"
+      },
+      {
+        "evidence_id": "E0129",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "Users can view product profile.",
+        "line": 227,
+        "requirement_id": "REQ-040"
+      },
+      {
+        "evidence_id": "E0130",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "Users can access the user manual.",
+        "line": 228,
+        "requirement_id": "REQ-041"
+      },
+      {
+        "evidence_id": "E0131",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "Authorized users: Users with verified username and password.",
+        "line": 230,
+        "requirement_id": "REQ-042"
+      },
+      {
+        "evidence_id": "E0132",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "They will have all the privilege of the normal users.",
+        "line": 231,
+        "requirement_id": "REQ-043"
+      },
+      {
+        "evidence_id": "E0133",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "They can add products.",
+        "line": 232,
+        "requirement_id": "REQ-044"
+      },
+      {
+        "evidence_id": "E0134",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "They have their own profile.",
+        "line": 233,
+        "requirement_id": "REQ-045"
+      },
+      {
+        "evidence_id": "E0135",
+        "document": "SRS.docx",
+        "section": "Product Function",
+        "excerpt": "They have their own dashboard containing products detail.",
+        "line": 234,
+        "requirement_id": "REQ-046"
+      },
+      {
+        "evidence_id": "E0136",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "Users",
+        "line": 237,
+        "requirement_id": "REQ-047"
+      },
+      {
+        "evidence_id": "E0137",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "The user table is used to store the new users. This table includes id as primary key which is auto generated and incremented. The user can login to the system by entering valid username and password. This table also stores information like date of birth, gender contact number for contacting while buying and selling the products.",
+        "line": 238,
+        "requirement_id": "REQ-049"
+      },
+      {
+        "evidence_id": "E0138",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "Offers",
+        "line": 253,
+        "requirement_id": "REQ-048"
+      },
+      {
+        "evidence_id": "E0139",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "This table stores the data of the buyer and seller name/username/email who offers the product to the customers and also the information of the offers that you have received from the user or probable buyer.",
+        "line": 255,
+        "requirement_id": "REQ-048"
+      },
+      {
+        "evidence_id": "E0140",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "Products",
+        "line": 261,
+        "requirement_id": "REQ-051"
+      },
+      {
+        "evidence_id": "E0141",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "Every registered user can view the products, buy the product as well as sell their product by adding their product in their profile which is then posted publicly. This table contains the basic properties of the products like product name, price, email of the user, and the category under which it is categorized normally.",
+        "line": 263,
+        "requirement_id": "REQ-049"
+      },
+      {
+        "evidence_id": "E0142",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "Requests",
+        "line": 266,
+        "requirement_id": "REQ-050"
+      },
+      {
+        "evidence_id": "E0143",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "This table stores the information of the requests made by the registered user and the requests made to the user by the probable buyer who are also the registered user on the site and the requests are stored on the profile page of the user.",
+        "line": 268,
+        "requirement_id": "REQ-050"
+      },
+      {
+        "evidence_id": "E0144",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "Product details",
+        "line": 272,
+        "requirement_id": "REQ-051"
+      },
+      {
+        "evidence_id": "E0145",
+        "document": "SRS.docx",
+        "section": "Database Requirement",
+        "excerpt": "This table contains the detailed information of the products that includes product name,company, price, condition of the product, for how long it has been used till the date which is uploaded in the website for the sale including the home delivery service, warranty period and warranty conditions and extra keywords for the detailed information.",
+        "line": 273,
+        "requirement_id": "REQ-051"
+      },
+      {
+        "evidence_id": "E0146",
+        "document": "SRS.docx",
+        "section": "User Characteristics",
+        "excerpt": "The Kinmail platform is used by anyone that has access to the Internet and a web browser. It is assumed that the user is familiar enough with a computer to operate the browser, keyboard and mouse.",
+        "line": 278,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0147",
+        "document": "SRS.docx",
+        "section": "User Characteristics",
+        "excerpt": "There are two types of users: Normal User (Non-Registered) and Registered User.",
+        "line": 279,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0148",
+        "document": "SRS.docx",
+        "section": "User Characteristics",
+        "excerpt": "The normal users can use the platform to create an account, browse and search different products. They can view different products, product details, and contact website user manual.",
+        "line": 280,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0149",
+        "document": "SRS.docx",
+        "section": "User Characteristics",
+        "excerpt": "The registered users have all privilege of normal users. They can add products, view profiles, and view product dashboard.",
+        "line": 281,
+        "requirement_id": null
+      },
+      {
+        "evidence_id": "E0150",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "Users:",
+        "line": 285,
+        "requirement_id": "REQ-052"
+      },
+      {
+        "evidence_id": "E0151",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "We have assumed that all the users using this platform are capable of connecting their devices to the Internet and navigate the browser on their devices to the address of Kinmail website.",
+        "line": 286,
+        "requirement_id": "REQ-053"
+      },
+      {
+        "evidence_id": "E0152",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "Provider:",
+        "line": 287,
+        "requirement_id": "REQ-054"
+      },
+      {
+        "evidence_id": "E0153",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "We have assumed that the Kinmail will be running on a properly working web server and database system with an Internet connection that allows the system to perform all communications between the users.",
+        "line": 288,
+        "requirement_id": "REQ-055"
+      },
+      {
+        "evidence_id": "E0154",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "The success of the system depends on:",
+        "line": 289,
+        "requirement_id": "REQ-056"
+      },
+      {
+        "evidence_id": "E0155",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "The performance of the platform is good.",
+        "line": 290,
+        "requirement_id": "REQ-057"
+      },
+      {
+        "evidence_id": "E0156",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "The information stored are secured and verified.",
+        "line": 291,
+        "requirement_id": "REQ-058"
+      },
+      {
+        "evidence_id": "E0157",
+        "document": "SRS.docx",
+        "section": "Assumptions and Dependencies",
+        "excerpt": "The system is built with the perspective of HCI.",
+        "line": 292,
+        "requirement_id": "REQ-059"
+      }
+    ]
+  }
+}

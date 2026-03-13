@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-03-13 13:01:34",
+  "verification_report": {
+    "passed": true,
+    "missing_requirement_ids": [],
+    "uncovered_capabilities": [
+      "RegisterToWebsite"
+    ],
+    "uncovered_actors": [],
+    "uncovered_entities": [],
+    "evidence_less_items": [],
+    "duplicate_entities": [],
+    "missing_fields": [],
+    "contradictions": [],
+    "notes": []
+  }
+}

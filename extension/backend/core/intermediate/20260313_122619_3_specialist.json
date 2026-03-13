@@ -1,0 +1,667 @@
+{
+  "timestamp": "2026-03-13 12:26:19",
+  "contexts_analyzed": 5,
+  "analyses": [
+    {
+      "context": "NonRegisteredUserWorkflow",
+      "description": "Context inferred for NonRegisteredUserWorkflow.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in NonRegisteredUserWorkflow.",
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in NonRegisteredUserWorkflow.",
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "RegisterToWebsite",
+          "description": "Non-registered users can register and verify email before entering the platform.",
+          "actor": "NonRegisteredUser",
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010"
+          ]
+        }
+      ],
+      "aggregate_roots": [],
+      "entities": [],
+      "value_objects": [
+        {
+          "name": "UserAttributes",
+          "description": "Explicitly stated attributes for User.",
+          "attributes": [
+            "email"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010"
+          ]
+        },
+        {
+          "name": "ProductAttributes",
+          "description": "Explicitly stated attributes for Product.",
+          "attributes": [
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "ProductDetailAttributes",
+          "description": "Explicitly stated attributes for ProductDetail.",
+          "attributes": [
+            "condition",
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        }
+      ],
+      "business_rules": [],
+      "domain_events": [],
+      "domain_services": [],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0003",
+        "E0004",
+        "E0005",
+        "E0010",
+        "E0011",
+        "E0012"
+      ]
+    },
+    {
+      "context": "IdentityAndAccess",
+      "description": "Registration and account access.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in IdentityAndAccess.",
+          "evidence_ids": [
+            "E0001",
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010",
+            "E0011",
+            "E0012",
+            "E0016",
+            "E0018",
+            "E0019",
+            "E0020",
+            "E0021",
+            "E0022",
+            "E0023"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in IdentityAndAccess.",
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010",
+            "E0011",
+            "E0012",
+            "E0016",
+            "E0018",
+            "E0019",
+            "E0020",
+            "E0021",
+            "E0022",
+            "E0023"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "RegisterAccount",
+          "description": "Register an account.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "E0001"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "User",
+          "description": "Identity aggregate.",
+          "evidence_ids": [
+            "E0001"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "User",
+          "description": "This table stores user credentials and profile details.",
+          "evidence_ids": [
+            "E0001",
+            "E0018",
+            "E0019"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "UserAttributes",
+          "description": "Explicitly stated attributes for User.",
+          "attributes": [
+            "email"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010",
+            "E0016"
+          ]
+        },
+        {
+          "name": "ContactInformation",
+          "description": "Email and phone details.",
+          "attributes": [
+            "email",
+            "contactNumber"
+          ],
+          "evidence_ids": [
+            "E0001"
+          ]
+        }
+      ],
+      "business_rules": [
+        {
+          "text": "Users need to verify their email after registering to enter the platform as registered user.",
+          "category": "security",
+          "evidence_ids": [
+            "E0016"
+          ]
+        },
+        {
+          "text": "Field email is required for User.",
+          "category": "security",
+          "evidence_ids": [
+            "E0016"
+          ]
+        },
+        {
+          "text": "Users must verify email before entering the platform.",
+          "category": "security",
+          "evidence_ids": [
+            "E0001"
+          ]
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "UserRegistered",
+          "description": "Registration completed.",
+          "evidence_ids": [
+            "E0001"
+          ]
+        }
+      ],
+      "domain_services": [],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0001",
+        "E0003",
+        "E0004",
+        "E0005",
+        "E0010",
+        "E0011",
+        "E0012",
+        "E0016",
+        "E0018",
+        "E0019",
+        "E0020",
+        "E0021",
+        "E0022",
+        "E0023"
+      ]
+    },
+    {
+      "context": "SellerWorkspace",
+      "description": "Seller-only workspace features.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in SellerWorkspace.",
+          "evidence_ids": [
+            "E0003",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0010",
+            "E0011",
+            "E0012",
+            "E0013",
+            "E0014",
+            "E0015",
+            "E0017",
+            "E0020",
+            "E0021",
+            "E0022",
+            "E0023"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in SellerWorkspace.",
+          "evidence_ids": [
+            "E0003",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0010",
+            "E0011",
+            "E0012",
+            "E0013",
+            "E0014",
+            "E0015",
+            "E0017",
+            "E0020",
+            "E0021",
+            "E0022",
+            "E0023"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "AddProduct",
+          "description": "Only registered users can add products with price details and product condition.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "ViewProductDashboard",
+          "description": "Registered users can view their dashboard.",
+          "actor": "RegisteredUser",
+          "evidence_ids": [
+            "E0006",
+            "E0013",
+            "E0014",
+            "E0015"
+          ]
+        },
+        {
+          "name": "AddProduct",
+          "description": "Add a new product listing.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "E0003"
+          ]
+        },
+        {
+          "name": "ViewProductDashboard",
+          "description": "View seller dashboard.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "E0003"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "Product",
+          "description": "Seller listing aggregate.",
+          "evidence_ids": [
+            "E0003"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "Product",
+          "description": "Inferred from requirement title: Search for products",
+          "evidence_ids": [
+            "E0003",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0013"
+          ]
+        },
+        {
+          "name": "Offer",
+          "description": "This table stores buyer and seller offers.",
+          "evidence_ids": [
+            "E0022",
+            "E0023"
+          ]
+        },
+        {
+          "name": "Dashboard",
+          "description": "Seller dashboard projection.",
+          "evidence_ids": [
+            "E0003"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ProductAttributes",
+          "description": "Explicitly stated attributes for Product.",
+          "attributes": [
+            "category",
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0010",
+            "E0011",
+            "E0012",
+            "E0013",
+            "E0020",
+            "E0021"
+          ]
+        },
+        {
+          "name": "ProductDetailAttributes",
+          "description": "Explicitly stated attributes for ProductDetail.",
+          "attributes": [
+            "condition",
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "ProductDetails",
+          "description": "Condition and delivery details.",
+          "attributes": [
+            "condition",
+            "warranty",
+            "homeDelivery"
+          ],
+          "evidence_ids": [
+            "E0003"
+          ]
+        }
+      ],
+      "business_rules": [
+        {
+          "text": "Only the registered users can add products.",
+          "category": "security",
+          "evidence_ids": [
+            "E0003",
+            "E0017"
+          ]
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "ProductListed",
+          "description": "Product listing published.",
+          "evidence_ids": [
+            "E0003"
+          ]
+        }
+      ],
+      "domain_services": [],
+      "allowed_dependencies": [
+        "IdentityAndAccess",
+        "ProductCatalog"
+      ],
+      "evidence_ids": [
+        "E0003",
+        "E0006",
+        "E0007",
+        "E0008",
+        "E0010",
+        "E0011",
+        "E0012",
+        "E0013",
+        "E0014",
+        "E0015",
+        "E0017",
+        "E0020",
+        "E0021",
+        "E0022",
+        "E0023"
+      ]
+    },
+    {
+      "context": "ProductCatalog",
+      "description": "Searchable product information.",
+      "actors": [
+        {
+          "name": "RegisteredUsers",
+          "description": "Actor participating in ProductCatalog.",
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Visitor who can search products.",
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "SearchProducts",
+          "description": "Search products by category or keywords.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "E0002"
+          ]
+        },
+        {
+          "name": "ViewProductDetails",
+          "description": "View seller and product details.",
+          "actor": "NonRegisteredUsers",
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "Product",
+          "description": "Product information aggregate.",
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "Product",
+          "description": "Inferred from requirement title: Search for products",
+          "evidence_ids": [
+            "E0002",
+            "E0006",
+            "E0007",
+            "E0008",
+            "E0013"
+          ]
+        },
+        {
+          "name": "Category",
+          "description": "Product grouping.",
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ProductAttributes",
+          "description": "Explicitly stated attributes for Product.",
+          "attributes": [
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "ProductDetailAttributes",
+          "description": "Explicitly stated attributes for ProductDetail.",
+          "attributes": [
+            "condition",
+            "price"
+          ],
+          "evidence_ids": [
+            "E0003",
+            "E0010",
+            "E0011",
+            "E0012"
+          ]
+        },
+        {
+          "name": "Price",
+          "description": "Product price.",
+          "attributes": [
+            "amount",
+            "currency"
+          ],
+          "evidence_ids": [
+            "E0002"
+          ]
+        }
+      ],
+      "business_rules": [],
+      "domain_events": [],
+      "domain_services": [],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0002",
+        "E0003",
+        "E0010",
+        "E0011",
+        "E0012"
+      ]
+    },
+    {
+      "context": "NegotiationAndCommunication",
+      "description": "Offer exchange between buyers and sellers.",
+      "actors": [
+        {
+          "name": "NonRegisteredUsers",
+          "description": "Actor participating in NegotiationAndCommunication.",
+          "evidence_ids": [
+            "E0003",
+            "E0004",
+            "E0005",
+            "E0010"
+          ]
+        },
+        {
+          "name": "RegisteredUsers",
+          "description": "Authenticated user who can negotiate.",
+          "evidence_ids": [
+            "E0004"
+          ]
+        }
+      ],
+      "capabilities": [
+        {
+          "name": "SendOffer",
+          "description": "Send offers to sellers.",
+          "actor": "RegisteredUsers",
+          "evidence_ids": [
+            "E0004"
+          ]
+        }
+      ],
+      "aggregate_roots": [
+        {
+          "name": "Offer",
+          "description": "Offer exchange aggregate.",
+          "evidence_ids": [
+            "E0004"
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "name": "Offer",
+          "description": "This table stores buyer and seller offers.",
+          "evidence_ids": [
+            "E0004",
+            "E0022",
+            "E0023"
+          ]
+        }
+      ],
+      "value_objects": [],
+      "business_rules": [],
+      "domain_events": [
+        {
+          "name": "OfferSubmitted",
+          "description": "An offer is submitted.",
+          "evidence_ids": [
+            "E0004"
+          ]
+        }
+      ],
+      "domain_services": [],
+      "allowed_dependencies": [
+        "IdentityAndAccess",
+        "ProductCatalog"
+      ],
+      "evidence_ids": [
+        "E0003",
+        "E0004",
+        "E0005",
+        "E0010"
+      ]
+    }
+  ]
+}

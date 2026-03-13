@@ -1,0 +1,130 @@
+{
+  "timestamp": "2026-03-13 20:21:02",
+  "final_model": {
+    "schema_version": "3.0.0",
+    "project_name": "KinmailDomainModel",
+    "project_metadata": {
+      "version": "1.0.0",
+      "generated_at": "SET_BY_CODE",
+      "description": "Synthesized model."
+    },
+    "bounded_contexts": [
+      {
+        "context_name": "ProductCatalog",
+        "description": "Searchable product information.",
+        "allowed_dependencies": [
+          "IdentityAndAccess"
+        ],
+        "semantic_rules": [
+          "Only the registered users can add products.",
+          "Only registered users can add products."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Product",
+              "synonyms_to_avoid": []
+            },
+            {
+              "name": "Category",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "Price",
+              "attributes": [
+                "amount",
+                "currency"
+              ]
+            }
+          ],
+          "domain_events": [
+            "ProductCreated"
+          ]
+        }
+      },
+      {
+        "context_name": "IdentityAndAccess",
+        "description": "Registration and access control.",
+        "allowed_dependencies": [],
+        "semantic_rules": [
+          "Users need to verify their email after registering to enter the platform as registered user.",
+          "Users must verify email before entering the platform."
+        ],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "User",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [
+            {
+              "name": "ContactInformation",
+              "attributes": [
+                "contactnumber",
+                "email"
+              ]
+            },
+            {
+              "name": "UserEmail",
+              "attributes": [
+                "email"
+              ]
+            }
+          ],
+          "domain_events": [
+            "UserRegistered"
+          ]
+        }
+      },
+      {
+        "context_name": "DashboardContext",
+        "description": "Context inferred for DashboardContext.",
+        "allowed_dependencies": [],
+        "semantic_rules": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Dashboard",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [],
+          "domain_events": []
+        }
+      },
+      {
+        "context_name": "OfferContext",
+        "description": "Context inferred for OfferContext.",
+        "allowed_dependencies": [],
+        "semantic_rules": [],
+        "ubiquitous_language": {
+          "entities": [
+            {
+              "name": "Offer",
+              "synonyms_to_avoid": []
+            }
+          ],
+          "value_objects": [],
+          "domain_events": []
+        }
+      }
+    ],
+    "global_rules": {
+      "naming_convention": "PascalCase",
+      "banned_global_terms": [
+        "Data",
+        "Helper",
+        "Info",
+        "Manager",
+        "Util"
+      ],
+      "architectural_constraints": [
+        "Only the registered users can add products.",
+        "Users need to verify their email after registering to enter the platform as registered user."
+      ]
+    }
+  }
+}

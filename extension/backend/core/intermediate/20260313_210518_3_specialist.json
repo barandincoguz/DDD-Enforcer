@@ -1,0 +1,728 @@
+{
+  "timestamp": "2026-03-13 21:10:37",
+  "contexts_analyzed": 5,
+  "analyses": [
+    {
+      "context": "ProductCatalogSearch",
+      "description": "Provides functionalities for browsing, searching, and viewing detailed information about products available on the platform. It focuses on product discovery for all users.",
+      "entities": [
+        {
+          "name": "Product",
+          "description": "An item available for viewing, buying, or selling, with basic properties like name, price, user email, and category, and detailed information including company, condition, usage, delivery, and warranty.",
+          "evidence_ids": [
+            "E0065",
+            "E0066",
+            "E0067",
+            "E0081",
+            "E0082",
+            "E0083",
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0105",
+            "E0108",
+            "E0127",
+            "E0129",
+            "E0133",
+            "E0135",
+            "E0137",
+            "E0138",
+            "E0139",
+            "E0140",
+            "E0141",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductCategory",
+          "description": "A classification used to organize products for searching.",
+          "evidence_ids": [
+            "E0066",
+            "E0067",
+            "E0083",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductDetail",
+          "description": "Comprehensive information about a product, including general, seller, pricing, delivery, and warranty details.",
+          "evidence_ids": [
+            "E0068",
+            "E0069",
+            "E0070",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0140",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "SellerDetail",
+          "description": "Information pertaining to the seller of a product.",
+          "evidence_ids": [
+            "E0069",
+            "E0070",
+            "E0084",
+            "E0085",
+            "E0086"
+          ]
+        },
+        {
+          "name": "Company",
+          "description": "The company associated with a product.",
+          "evidence_ids": [
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "HomeDeliveryService",
+          "description": "A service offered for product delivery.",
+          "evidence_ids": [
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "WarrantyPeriod",
+          "description": "The duration of a product's warranty.",
+          "evidence_ids": [
+            "E0070",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "WarrantyCondition",
+          "description": "The terms and conditions of a product's warranty.",
+          "evidence_ids": [
+            "E0070",
+            "E0084",
+            "E0085",
+            "E0086",
+            "E0144",
+            "E0145"
+          ]
+        },
+        {
+          "name": "Keyword",
+          "description": "Extra keywords for detailed product information.",
+          "evidence_ids": [
+            "E0067",
+            "E0144",
+            "E0145"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "PricingDetails",
+          "description": "The price information for a product.",
+          "attributes": [
+            "price"
+          ],
+          "evidence_ids": [
+            "E0070",
+            "E0086",
+            "E0141",
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductConditionDetails",
+          "description": "Details about the physical condition and usage history of a product.",
+          "attributes": [
+            "condition",
+            "usage duration"
+          ],
+          "evidence_ids": [
+            "E0145"
+          ]
+        },
+        {
+          "name": "ProductDescriptionText",
+          "description": "The textual description of a product.",
+          "attributes": [
+            "text"
+          ],
+          "evidence_ids": [
+            "E0070",
+            "E0086"
+          ]
+        },
+        {
+          "name": "SearchQuery",
+          "description": "The keywords or category used by a user to search for products.",
+          "attributes": [
+            "keywords",
+            "category"
+          ],
+          "evidence_ids": [
+            "E0066",
+            "E0067",
+            "E0083"
+          ]
+        }
+      ],
+      "semantic_rules": [
+        {
+          "text": "Products must be available in the database to be searchable.",
+          "category": "Functional",
+          "evidence_ids": [
+            "E0083"
+          ]
+        },
+        {
+          "text": "If a relevant product match is found, its title is displayed; otherwise, a 'No products found' message is displayed.",
+          "category": "Functional",
+          "evidence_ids": [
+            "E0067"
+          ]
+        },
+        {
+          "text": "The platform must maintain a focused shopping approach with searching and filtering functionality.",
+          "category": "Performance",
+          "evidence_ids": [
+            "E0108"
+          ]
+        }
+      ],
+      "domain_events": [
+        "ProductDetailsViewed",
+        "ProductSearched",
+        "UserRegistered"
+      ],
+      "allowed_dependencies": [
+        "User Account & Authentication"
+      ],
+      "evidence_ids": [
+        "E0065",
+        "E0066",
+        "E0067",
+        "E0068",
+        "E0069",
+        "E0070",
+        "E0081",
+        "E0082",
+        "E0083",
+        "E0084",
+        "E0085",
+        "E0086",
+        "E0108",
+        "E0136",
+        "E0137",
+        "E0140",
+        "E0141",
+        "E0144",
+        "E0145"
+      ]
+    },
+    {
+      "context": "UserAccountAuthentication",
+      "description": "Manages the lifecycle of user accounts, including registration, login, authentication, and profile management. It ensures secure access and maintains user-specific information.",
+      "entities": [
+        {
+          "name": "UserAccount",
+          "description": "Represents a user's profile and credentials on the website, including personal details and login information.",
+          "evidence_ids": [
+            "E0062",
+            "E0063",
+            "E0064",
+            "E0078",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "UserCredential",
+          "description": "The username/email and password combination used for logging into the system.",
+          "evidence_ids": [
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080"
+          ]
+        },
+        {
+          "name": "UserProfile",
+          "description": "A collection of personal and account information belonging to a registered user.",
+          "evidence_ids": [
+            "E0074",
+            "E0090",
+            "E0091",
+            "E0092",
+            "E0134",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "Email",
+          "description": "An electronic mail address used for user verification and communication.",
+          "evidence_ids": [
+            "E0064",
+            "E0104"
+          ]
+        },
+        {
+          "name": "LoginCredential",
+          "description": "Information used by a user to log into the system, consisting of a valid username and password.",
+          "evidence_ids": [
+            "E0062",
+            "E0078",
+            "E0079",
+            "E0080",
+            "E0136",
+            "E0137",
+            "E0140"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "Password",
+          "description": "A secure string of characters used for user authentication, subject to specific complexity rules.",
+          "attributes": [
+            "alphanumeric characters",
+            "uppercase letters",
+            "lowercase letters",
+            "number"
+          ],
+          "evidence_ids": [
+            "E0064",
+            "E0103"
+          ]
+        },
+        {
+          "name": "Birthdate",
+          "description": "The date of birth of a user, collected during registration and viewable in their profile.",
+          "attributes": [
+            "date"
+          ],
+          "evidence_ids": [
+            "E0064",
+            "E0092",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "ContactNumber",
+          "description": "A phone number provided by the user for contact purposes, collected during registration and viewable in their profile.",
+          "attributes": [
+            "number"
+          ],
+          "evidence_ids": [
+            "E0064",
+            "E0092",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "ProfilePicture",
+          "description": "An image uploaded by the user to represent their profile, provided during registration and viewable in their profile.",
+          "attributes": [
+            "image_data"
+          ],
+          "evidence_ids": [
+            "E0064",
+            "E0092"
+          ]
+        },
+        {
+          "name": "Gender",
+          "description": "The gender of the user, provided during registration and viewable in their profile.",
+          "attributes": [
+            "value"
+          ],
+          "evidence_ids": [
+            "E0064",
+            "E0092",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "Username",
+          "description": "A unique identifier chosen by the user for login and profile display.",
+          "attributes": [
+            "text"
+          ],
+          "evidence_ids": [
+            "E0064",
+            "E0080",
+            "E0092",
+            "E0137",
+            "E0140"
+          ]
+        },
+        {
+          "name": "FullName",
+          "description": "The full name of the user, composed of first, middle, and last names, provided during registration.",
+          "attributes": [
+            "first_name",
+            "middle_name",
+            "last_name"
+          ],
+          "evidence_ids": [
+            "E0064",
+            "E0092"
+          ]
+        }
+      ],
+      "semantic_rules": [
+        {
+          "text": "Users need to create password containing minimum of 8 alphanumeric characters with both uppercase and lowercase letters including a number.",
+          "category": "security",
+          "evidence_ids": [
+            "E0103"
+          ]
+        },
+        {
+          "text": "Users need to verify their email after registering to enter the platform as registered user.",
+          "category": "security",
+          "evidence_ids": [
+            "E0104"
+          ]
+        },
+        {
+          "text": "Email verification is required for successful registration.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0064"
+          ]
+        },
+        {
+          "text": "Invalid username or password will result in an error message.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0080"
+          ]
+        },
+        {
+          "text": "Passwords must contain a minimum of 8 alphanumeric characters, including both uppercase and lowercase letters and at least one number.",
+          "category": "security",
+          "evidence_ids": [
+            "E0103"
+          ]
+        },
+        {
+          "text": "Users must verify their email address after registration to gain access to the platform as a registered user.",
+          "category": "security",
+          "evidence_ids": [
+            "E0104"
+          ]
+        },
+        {
+          "text": "Users must verify their email after registering to enter the platform as a registered user.",
+          "category": "security",
+          "evidence_ids": [
+            "E0104"
+          ]
+        },
+        {
+          "text": "Login requires a matching username or email and password; otherwise, an error message for invalid credentials is displayed.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0080"
+          ]
+        },
+        {
+          "text": "Upon successful email verification, the user is redirected to the login page.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0064"
+          ]
+        }
+      ],
+      "domain_events": [
+        "EmailVerified",
+        "UserLoggedIn",
+        "UserProfileViewed",
+        "UserRegistered"
+      ],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0062",
+        "E0063",
+        "E0064",
+        "E0074",
+        "E0075",
+        "E0076",
+        "E0078",
+        "E0079",
+        "E0080",
+        "E0090",
+        "E0091",
+        "E0092",
+        "E0100",
+        "E0103",
+        "E0104",
+        "E0136",
+        "E0137",
+        "E0140",
+        "E0141",
+        "E0144",
+        "E0145"
+      ]
+    },
+    {
+      "context": "ProductListingSalesManagement",
+      "description": "Enables registered users to add new products for sale, manage their existing listings, and view a dashboard summarizing their sales activities (products added, offers received, requests made).",
+      "entities": [
+        {
+          "name": "Dashboard",
+          "description": "Inferred from requirement title: View product dashboard",
+          "evidence_ids": [
+            "E0093",
+            "E0094",
+            "E0095",
+            "E0135"
+          ]
+        },
+        {
+          "name": "ProductListing",
+          "description": "The complete set of information required to list a product for sale, including product details, owner information, and sales terms.",
+          "evidence_ids": [
+            "E0088",
+            "E0089",
+            "E0141"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ProductDetailsForListing",
+          "description": "The specific set of information required when a registered user adds a product for sale.",
+          "attributes": [
+            "product name",
+            "product category",
+            "picture of the product",
+            "description of product",
+            "price details",
+            "product condition",
+            "warranty",
+            "home delivery details"
+          ],
+          "evidence_ids": [
+            "E0089"
+          ]
+        }
+      ],
+      "semantic_rules": [
+        {
+          "text": "Only the registered users can add products.",
+          "category": "security",
+          "evidence_ids": [
+            "E0105"
+          ]
+        },
+        {
+          "text": "Only registered users are authorized to add products to the platform.",
+          "category": "security",
+          "evidence_ids": [
+            "E0105"
+          ]
+        }
+      ],
+      "domain_events": [
+        "ProductListingCreated",
+        "ProductListingPostedPublicly",
+        "UserRegistered"
+      ],
+      "allowed_dependencies": [
+        "Product Catalog & Search",
+        "User Account & Authentication"
+      ],
+      "evidence_ids": [
+        "E0071",
+        "E0087",
+        "E0088",
+        "E0089",
+        "E0093",
+        "E0094",
+        "E0095",
+        "E0105",
+        "E0133",
+        "E0135",
+        "E0136",
+        "E0137",
+        "E0140",
+        "E0141",
+        "E0145"
+      ]
+    },
+    {
+      "context": "HelpSupport",
+      "description": "Provides users with access to the website's user manual and a mechanism to contact developers for assistance or feedback.",
+      "entities": [
+        {
+          "name": "Developer",
+          "description": "Inferred from requirement title: Contact the developer",
+          "evidence_ids": [
+            "E0071",
+            "E0072",
+            "E0073",
+            "E0087",
+            "E0096",
+            "E0097",
+            "E0098"
+          ]
+        },
+        {
+          "name": "ContactInformation",
+          "description": "Details required to contact a developer, including name, email, and message.",
+          "evidence_ids": [
+            "E0072",
+            "E0073",
+            "E0098"
+          ]
+        },
+        {
+          "name": "UserManual",
+          "description": "A document containing instructions for platform usage, including registration, password recovery, product search, and seller contact, accessible by users.",
+          "evidence_ids": [
+            "E0074",
+            "E0075",
+            "E0076",
+            "E0090",
+            "E0099",
+            "E0100",
+            "E0101",
+            "E0130"
+          ]
+        },
+        {
+          "name": "SocialMediaLink",
+          "description": "A link associated with a developer for contact purposes.",
+          "evidence_ids": [
+            "E0072",
+            "E0073",
+            "E0096",
+            "E0097",
+            "E0098"
+          ]
+        }
+      ],
+      "value_objects": [],
+      "semantic_rules": [
+        {
+          "text": "Users must provide their name, email, and message to contact a developer.",
+          "category": "functional",
+          "evidence_ids": [
+            "E0073",
+            "E0098"
+          ]
+        }
+      ],
+      "domain_events": [
+        "DeveloperContacted"
+      ],
+      "allowed_dependencies": [],
+      "evidence_ids": [
+        "E0071",
+        "E0072",
+        "E0073",
+        "E0074",
+        "E0075",
+        "E0076",
+        "E0087",
+        "E0088",
+        "E0089",
+        "E0090",
+        "E0091",
+        "E0092",
+        "E0096",
+        "E0097",
+        "E0098",
+        "E0099",
+        "E0100",
+        "E0101",
+        "E0130"
+      ]
+    },
+    {
+      "context": "OfferRequestManagement",
+      "description": "Manages the process of users making and receiving offers and requests for products, storing and tracking these interactions.",
+      "entities": [
+        {
+          "name": "Offer",
+          "description": "This table stores the data of the buyer and seller name/username/email who offers the product to the customers and also the information of the offers that you have received from the user or probable buyer.",
+          "evidence_ids": [
+            "E0138",
+            "E0139"
+          ]
+        },
+        {
+          "name": "Request",
+          "description": "This table stores the information of the requests made by the registered user and the requests made to the user by the probable buyer who are also the registered user on the site and the requests are stored on the profile page of the user.",
+          "evidence_ids": [
+            "E0142",
+            "E0143"
+          ]
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ParticipantInfo",
+          "description": "Information identifying a buyer or seller involved in an offer or request.",
+          "attributes": [
+            "name",
+            "username",
+            "email"
+          ],
+          "evidence_ids": [
+            "E0139"
+          ]
+        },
+        {
+          "name": "ProductInteractionCount",
+          "description": "A summary of a user's product-related interactions, including products added to sell, requested to buy, and offers received.",
+          "attributes": [
+            "products_added_to_sell_count",
+            "products_requested_to_buy_count",
+            "products_offered_count"
+          ],
+          "evidence_ids": [
+            "E0095"
+          ]
+        }
+      ],
+      "semantic_rules": [],
+      "domain_events": [
+        "OfferMade",
+        "OfferReceived",
+        "RequestMade",
+        "RequestReceived",
+        "UserRegistered"
+      ],
+      "allowed_dependencies": [
+        "Product Catalog & Search",
+        "User Account & Authentication"
+      ],
+      "evidence_ids": [
+        "E0093",
+        "E0094",
+        "E0095",
+        "E0136",
+        "E0137",
+        "E0138",
+        "E0139",
+        "E0140",
+        "E0141",
+        "E0142",
+        "E0143",
+        "E0145"
+      ]
+    }
+  ]
+}
