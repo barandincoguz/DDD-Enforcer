@@ -213,6 +213,7 @@ RESPOND WITH JSON:
 
 Return empty array [] if no sentences match the criteria."""
 
+        sc = stage_config("Scout")
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
@@ -221,8 +222,8 @@ Return empty array [] if no sentences match the criteria."""
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        temperature=0.05,  # Fully deterministic
-                        seed=42,  # Fixed seed for reproducibility
+                        temperature=sc.temperature,
+                        seed=sc.seed,
                     ),
                 )
                 
@@ -313,6 +314,7 @@ RESPOND WITH JSON:
   "contexts": ["ContextName1", "ContextName2", ...]
 }}"""
 
+        sc = stage_config("Architect")
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
@@ -321,8 +323,8 @@ RESPOND WITH JSON:
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        temperature=0.05,  # Fully deterministic
-                        seed=42,  # Fixed seed for reproducibility
+                        temperature=sc.temperature,
+                        seed=sc.seed,
                     ),
                 )
 
@@ -449,6 +451,7 @@ RESPOND WITH JSON:
 
 If a category has no data, use empty arrays. Do not invent data."""
 
+        sc = stage_config("Specialist")
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
@@ -457,8 +460,8 @@ If a category has no data, use empty arrays. Do not invent data."""
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        temperature=0.05,  # Fully deterministic
-                        seed=42,  # Fixed seed for reproducibility
+                        temperature=sc.temperature,
+                        seed=sc.seed,
                     ),
                 )
                 
@@ -591,6 +594,7 @@ OUTPUT SCHEMA (must match exactly):
 
 CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."""
 
+        sc = stage_config("Synthesizer")
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
@@ -599,8 +603,8 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        temperature=0.05,  # Fully deterministic
-                        seed=42,  # Fixed seed for reproducibility
+                        temperature=sc.temperature,
+                        seed=sc.seed,
                     ),
                 )
 
