@@ -34,6 +34,24 @@ INTERMEDIATE_DIR = os.path.join(os.path.dirname(__file__), "intermediate")
 ProgressCallback = Optional[Callable[[Dict[str, Any]], None]]
 
 
+def _truncate_with_head_tail(text: str, max_chars: int, head_ratio: float = 0.6) -> str:
+    """Truncate `text` to `max_chars` by keeping the head and tail and
+    dropping the middle, with an explicit marker so the LLM knows the
+    document was truncated.
+
+    Default ratio: 60% head / 40% tail. SRS documents typically place
+    intro / core concepts up front and acceptance criteria / domain
+    events near the end; both should survive context-window squeezes.
+    """
+    if len(text) <= max_chars:
+        return text
+    marker = "\n\n... [middle truncated for context window] ...\n\n"
+    budget = max_chars - len(marker)
+    head_size = int(budget * head_ratio)
+    tail_size = budget - head_size
+    return f"{text[:head_size]}{marker}{text[-tail_size:]}"
+
+
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
 
@@ -291,8 +309,8 @@ Return empty array [] if no sentences match the criteria."""
         text = "\n".join(domain_sentences)
         max_chars = 50000
         if len(text) > max_chars:
-            print(f"  ✂️  Truncating input: {len(text):,} → {max_chars:,} chars")
-            text = text[:max_chars]
+            print(f"  ✂️  Truncating input: {len(text):,} → {max_chars:,} chars (head + tail preserved)")
+            text = _truncate_with_head_tail(text, max_chars=max_chars)
 
         prompt = f"""Identify distinct Bounded Contexts from the domain knowledge below.
 
@@ -423,8 +441,8 @@ RESPOND WITH JSON:
 
         max_chars = 60000
         if len(sentences_text) > max_chars:
-            print(f"  ✂️  Truncating input: {len(sentences_text):,} → {max_chars:,} chars")
-            sentences_text = sentences_text[:max_chars]
+            print(f"  ✂️  Truncating input: {len(sentences_text):,} → {max_chars:,} chars (head + tail preserved)")
+            sentences_text = _truncate_with_head_tail(sentences_text, max_chars=max_chars)
 
         prompt = f"""Analyze the domain knowledge for these Bounded Contexts: {contexts_text}
 

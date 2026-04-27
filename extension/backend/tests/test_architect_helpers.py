@@ -65,3 +65,25 @@ class TestQuotaErrorBackoff:
             )
         assert result is True
         mock_sleep.assert_called_once()  # backoff happened
+
+
+class TestTruncateWithHeadTail:
+    """Module-level helper that preserves head + tail when truncating."""
+
+    def test_no_truncation_when_under_budget(self):
+        from core.architect import _truncate_with_head_tail
+        assert _truncate_with_head_tail("short text", 100) == "short text"
+
+    def test_keeps_head_and_tail(self):
+        from core.architect import _truncate_with_head_tail
+        text = "A" * 1000 + "B" * 1000
+        result = _truncate_with_head_tail(text, max_chars=400, head_ratio=0.6)
+        assert "A" in result[:200]   # head present
+        assert "B" in result[-200:]  # tail present
+        assert "[middle truncated" in result
+
+    def test_total_length_within_budget(self):
+        from core.architect import _truncate_with_head_tail
+        text = "X" * 10_000
+        result = _truncate_with_head_tail(text, max_chars=500)
+        assert len(result) <= 500
