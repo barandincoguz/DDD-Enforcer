@@ -23,7 +23,7 @@ from google.genai import types
 
 from core.schemas import DomainModel, GlobalRules, ProjectMetadata
 from core.token_tracker import TokenTracker
-from config import ArchitectConfig
+from configs.models import stage_config
 
 load_dotenv()
 
@@ -37,15 +37,13 @@ ProgressCallback = Optional[Callable[[Dict[str, Any]], None]]
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
 
-    LLMConfig = ArchitectConfig()
-
-    def __init__(self, model: str = LLMConfig.MODEL_NAME, progress_callback: ProgressCallback = None):
+    def __init__(self, model: Optional[str] = None, progress_callback: ProgressCallback = None):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
 
         self.client = genai.Client(api_key=api_key)
-        self.model_name = model
+        self.model_name = model or stage_config("Architect").model_id
         self.last_request_time = 0
         self.min_delay = 6.0
         self.request_count = 0
@@ -822,7 +820,10 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
         print(f"      ⚠️  Response incomplete: finish_reason={finish_reason}")
         
         if finish_reason == "MAX_TOKENS":
-            print(f"      💡 Hit token limit ({self.LLMConfig.MAX_OUTPUT_TOKENS})")
+            # TODO(architect-bug-001): self.LLMConfig.MAX_OUTPUT_TOKENS does not exist
+            # in any config class. This branch raises AttributeError when triggered.
+            # Tracked separately from the model-registry refactor.
+            print(f"      💡 Hit token limit (output truncated)")
             print(f"      💡 Response was cut mid-generation")
         elif finish_reason == "SAFETY":
             print(f"      🛡️  Response blocked by safety filters")
