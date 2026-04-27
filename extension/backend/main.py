@@ -881,7 +881,7 @@ def get_combined_metrics():
     token_report = token_tracker.get_report(detailed=False)
     validation_report = validation_tracker.get_report(detailed=False)
     
-    # Calculate per-validation averages (using flash-lite pricing for validation)
+    # Calculate per-validation averages (using the Validator stage's registry-pinned model).
     total_validations = validation_report.get("summary", {}).get("total_validations", 0)
     per_validation_metrics = {}
     monthly_projections = {}
