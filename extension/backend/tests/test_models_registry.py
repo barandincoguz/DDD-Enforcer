@@ -86,5 +86,5 @@ class TestPricing:
         from configs.models import PricingTier
 
         t = PricingTier(max_prompt_tokens=None, input_per_1m_usd=0.5, output_per_1m_usd=3.0)
-        with pytest.raises((AttributeError, Exception)):
+        with pytest.raises(AttributeError):
             t.input_per_1m_usd = 1.0  # type: ignore[misc]
