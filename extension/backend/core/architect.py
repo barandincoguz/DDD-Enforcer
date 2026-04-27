@@ -57,7 +57,7 @@ class DomainArchitect:
         print("\n" + "="*70)
         print("🏗️  DOMAIN ARCHITECT INITIALIZED")
         print("="*70)
-        print(f"  Model: {model}")
+        print(f"  Model: {self.model_name}")
         print(f"  Rate Limit: {self.min_delay}s between requests")
         print("="*70 + "\n")
 

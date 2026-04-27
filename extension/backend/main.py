@@ -734,9 +734,10 @@ def validate_code(submission: CodeSubmission):
     llm_output_delta = max(0, post_output - pre_output)
     llm_calls_delta = max(0, post_calls - pre_calls)
 
-    lite_price_in = 0.10 / 1_000_000
-    lite_price_out = 0.40 / 1_000_000
-    call_cost = (llm_input_delta * lite_price_in) + (llm_output_delta * lite_price_out)
+    call_cost = model_for_stage("Validator").pricing.cost_for(
+        prompt_tokens=llm_input_delta,
+        completion_tokens=llm_output_delta,
+    )
 
     validation_metrics = {
         "validation_time_ms": round(validation_time_ms, 2),
@@ -920,9 +921,9 @@ def get_combined_metrics():
             "currency": "USD",
             "model": validator_id,
             "pricing": {
-                "input_per_1m": 0.075,
-                "output_per_1m": 0.30
-            }
+                "input_per_1m": model_for_stage("Validator").pricing.cost_for(1_000_000, 0),
+                "output_per_1m": model_for_stage("Validator").pricing.cost_for(0, 1_000_000),
+            },
         }
     
     # Domain model information (generated with flash model)
