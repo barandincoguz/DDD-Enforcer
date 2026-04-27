@@ -233,7 +233,7 @@ Return empty array [] if no sentences match the criteria."""
                         time.sleep(2)
                         continue
                 
-                result = self._parse_json_response(response.text)
+                result = self._parse_json_response(self._safe_response_text(response))
 
                 if (
                     isinstance(result, dict)
@@ -334,7 +334,7 @@ RESPOND WITH JSON:
                         time.sleep(2)
                         continue
                 
-                result = self._parse_json_response(response.text)
+                result = self._parse_json_response(self._safe_response_text(response))
 
                 if (
                     isinstance(result, dict)
@@ -471,7 +471,7 @@ If a category has no data, use empty arrays. Do not invent data."""
                         time.sleep(2)
                         continue
                 
-                result = self._parse_json_response(response.text)
+                result = self._parse_json_response(self._safe_response_text(response))
 
                 if (
                     isinstance(result, dict)
@@ -614,7 +614,7 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                         time.sleep(2)
                         continue
                 
-                result = self._parse_json_response(response.text)
+                result = self._parse_json_response(self._safe_response_text(response))
 
                 if (
                     isinstance(result, dict)
@@ -802,7 +802,19 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                 "banned_global_terms": ["Manager", "Util"],
             },
         }
-    
+
+    def _safe_response_text(self, response) -> str:
+        """Return response.text or empty string if None.
+
+        Gemini may return `response.text = None` when finish_reason is SAFETY,
+        RECITATION, or when no candidates were produced. The existing
+        _parse_json_response treats empty input as a JSON parse failure and
+        routes through the retry path; surfacing None directly would raise
+        AttributeError instead.
+        """
+        text = getattr(response, "text", None)
+        return text if text is not None else ""
+
     def _check_response_completion(self, response, retry: int) -> bool:
         """
         Check if API response was complete or truncated.
