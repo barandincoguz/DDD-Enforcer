@@ -51,7 +51,9 @@ class TestQuotaErrorBackoff:
 
     def test_returns_false_for_non_quota_error(self):
         a = self._make_architect()
-        result = a._is_quota_error_and_backoff(ValueError("not a quota error"), retry_count=0)
+        # Note: error message must NOT contain "quota", "429", or "ResourceExhausted"
+        # — those substrings trigger the heuristic match.
+        result = a._is_quota_error_and_backoff(ValueError("connection timeout"), retry_count=0)
         assert result is False
 
     def test_returns_true_for_429(self):
