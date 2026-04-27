@@ -30,6 +30,11 @@ load_dotenv()
 # Intermediate outputs directory
 INTERMEDIATE_DIR = os.path.join(os.path.dirname(__file__), "intermediate")
 
+# Conservative default — free-tier safe. Override via env var
+# DDD_MIN_DELAY_SECONDS or constructor kwarg `min_delay` (Pro tier supports
+# higher RPM and benefits from lower delays, e.g. 1.0s).
+DEFAULT_MIN_DELAY_SECONDS = 6.0
+
 # Type alias for progress callback
 ProgressCallback = Optional[Callable[[Dict[str, Any]], None]]
 
@@ -55,7 +60,12 @@ def _truncate_with_head_tail(text: str, max_chars: int, head_ratio: float = 0.6)
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
 
-    def __init__(self, model: Optional[str] = None, progress_callback: ProgressCallback = None):
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        progress_callback: ProgressCallback = None,
+        min_delay: Optional[float] = None,
+    ):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
@@ -63,7 +73,11 @@ class DomainArchitect:
         self.client = genai.Client(api_key=api_key)
         self.model_name = model or stage_config("Architect").model_id
         self.last_request_time = 0
-        self.min_delay = 6.0
+        self.min_delay = (
+            min_delay
+            if min_delay is not None
+            else float(os.getenv("DDD_MIN_DELAY_SECONDS", DEFAULT_MIN_DELAY_SECONDS))
+        )
         self.request_count = 0
         self.token_tracker = TokenTracker.get_instance()
         self.progress_callback = progress_callback
