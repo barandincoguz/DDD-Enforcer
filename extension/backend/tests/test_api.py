@@ -525,17 +525,21 @@ class TestCombinedMetricsEndpoint:
         assert architect_id in pricing
         assert validator_id in pricing
 
-        # Verify correct pricing values from registry
+        # Verify pricing values are derived from the registry (not hardcoded numerics).
+        # This couples the test to the registry so a future pricing snapshot update
+        # propagates to both main.py's response and these assertions automatically.
+        architect_info = model_for_stage("Architect")
+        validator_info = model_for_stage("Validator")
         architect_pricing = pricing[architect_id]
-        assert architect_pricing["input_per_1m_tokens"] == 4.0
-        assert architect_pricing["output_per_1m_tokens"] == 12.0
-        assert architect_pricing["provider"] == "gemini"
+        assert architect_pricing["input_per_1m_tokens"] == architect_info.pricing.cost_for(1_000_000, 0)
+        assert architect_pricing["output_per_1m_tokens"] == architect_info.pricing.cost_for(0, 1_000_000)
+        assert architect_pricing["provider"] == architect_info.provider
         assert architect_pricing["use_case"] == "Domain Model Generation"
 
         validator_pricing = pricing[validator_id]
-        assert validator_pricing["input_per_1m_tokens"] == 0.5
-        assert validator_pricing["output_per_1m_tokens"] == 3.0
-        assert validator_pricing["provider"] == "gemini"
+        assert validator_pricing["input_per_1m_tokens"] == validator_info.pricing.cost_for(1_000_000, 0)
+        assert validator_pricing["output_per_1m_tokens"] == validator_info.pricing.cost_for(0, 1_000_000)
+        assert validator_pricing["provider"] == validator_info.provider
         assert validator_pricing["use_case"] == "Code Validation"
     
     def test_combined_metrics_projections(self, client):
