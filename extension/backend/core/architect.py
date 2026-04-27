@@ -824,36 +824,34 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
             False if truncated (needs retry)
         """
         if not response.candidates:
-            print(f"      ⚠️  No candidates in response")
+            print("      ⚠️  No candidates in response")
             return False
-            
+
         finish_reason = response.candidates[0].finish_reason
-        
+
         if finish_reason == "STOP":
-            return True  # Normal completion
-            
-        # Response was cut off
-        print(f"      ⚠️  Response incomplete: finish_reason={finish_reason}")
-        
+            return True
+
         if finish_reason == "MAX_TOKENS":
-            # TODO(architect-bug-001): self.LLMConfig.MAX_OUTPUT_TOKENS does not exist
-            # in any config class. This branch raises AttributeError when triggered.
-            # Tracked separately from the model-registry refactor.
-            print(f"      💡 Hit token limit (output truncated)")
-            print(f"      💡 Response was cut mid-generation")
-        elif finish_reason == "SAFETY":
-            print(f"      🛡️  Response blocked by safety filters")
+            # Same prompt would re-truncate; accept whatever JSON arrived and
+            # let _parse_json_response handle truncated/incomplete output.
+            print("      💡 Hit max output tokens — accepting partial response")
+            return True
+
+        # SAFETY / RECITATION / OTHER may be transient — retry can help.
+        print(f"      ⚠️  Response incomplete: finish_reason={finish_reason}")
+        if finish_reason == "SAFETY":
+            print("      🛡️  Response blocked by safety filters")
         elif finish_reason == "RECITATION":
-            print(f"      📝 Response blocked due to citation/recitation")
+            print("      📝 Response blocked due to citation/recitation")
         elif finish_reason == "OTHER":
-            print(f"      ❓ Response stopped for unknown reason")
-            
+            print("      ❓ Response stopped for unknown reason")
+
         if retry < 4:
             print(f"      🔄 Retrying ({retry + 1}/5)...")
             return False
-        else:
-            print(f"      ❌ Max retries reached")
-            return False
+        print("      ❌ Max retries reached")
+        return False
 
     def _save_intermediate(self, stage: str, data: Dict[str, Any]):
         """Save intermediate pipeline output to JSON file."""
