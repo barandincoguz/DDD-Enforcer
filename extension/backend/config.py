@@ -93,24 +93,33 @@ class RAGConfig:
 # =============================================================================
 # LLM CONFIGURATION
 # =============================================================================
+#
+# Model selection, temperature, and seed are pulled from configs/models.py
+# (the single source of truth). To upgrade a model, edit STAGE_GROUPS there.
+
+from configs.models import stage_config
+
 
 class AnalyzerConfig:
-    """Configuration for the Code Analyzer LLM client (violation detection)."""
+    """Configuration for the Code Analyzer LLM client (validation stage)."""
 
-    MODEL_NAME: str = "gemini-2.5-flash-lite"
+    _STAGE_CONFIG = stage_config("Validator")
+    MODEL_NAME: str = _STAGE_CONFIG.model_id
+    TEMPERATURE: float = _STAGE_CONFIG.temperature
+    SEED: int = _STAGE_CONFIG.seed
     RESPONSE_MIME_TYPE: str = "application/json"
-    TEMPERATURE: float = 0.05  # Very low temperature for consistent validation results
     VALIDATION_RETRIES: int = 2
     RETRY_BACKOFF_SECONDS: float = 1.0
 
 
 class ArchitectConfig:
-    """Configuration for the Domain Architect LLM client (domain model generation)."""
+    """Configuration for the Domain Architect LLM client (domain extraction stages)."""
 
-    MODEL_NAME: str = "gemini-2.5-flash"
+    _STAGE_CONFIG = stage_config("Architect")
+    MODEL_NAME: str = _STAGE_CONFIG.model_id
+    TEMPERATURE: float = _STAGE_CONFIG.temperature
+    SEED: int = _STAGE_CONFIG.seed
     RESPONSE_MIME_TYPE: str = "application/json"
-    TEMPERATURE: float = 0.05  # low temperature for consistent results
-    SEED: int = 42  # Fixed seed for reproducibility
  
 
 # =============================================================================

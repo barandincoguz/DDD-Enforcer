@@ -393,34 +393,48 @@ class TestDocumentParser:
 # =============================================================================
 
 class TestConfig:
-    """Test configuration values."""
-    
-    def test_model_names(self):
-        """Test model name configurations."""
+    """Configuration constants — derived from configs/models.py registry."""
+
+    def test_model_names_match_registry(self):
         from config import AnalyzerConfig, ArchitectConfig
-        
-        # Validation uses flash-lite
-        assert AnalyzerConfig.MODEL_NAME == "gemini-2.5-flash-lite"
-        
-        # Domain model generation uses flash
-        assert ArchitectConfig.MODEL_NAME == "gemini-2.5-flash"
-    
+        from configs.models import stage_config
+
+        assert AnalyzerConfig.MODEL_NAME == stage_config("Validator").model_id
+        assert ArchitectConfig.MODEL_NAME == stage_config("Architect").model_id
+
+    def test_model_defaults(self):
+        """Snapshot guard: changing these defaults must be a conscious commit."""
+        from config import AnalyzerConfig, ArchitectConfig
+
+        assert AnalyzerConfig.MODEL_NAME == "gemini-3-flash-preview"
+        assert ArchitectConfig.MODEL_NAME == "gemini-3.1-pro-preview"
+
+    def test_temperatures_are_low(self):
+        from config import AnalyzerConfig, ArchitectConfig
+
+        assert AnalyzerConfig.TEMPERATURE == 0.05
+        assert ArchitectConfig.TEMPERATURE == 0.05
+
+    def test_seed_present(self):
+        from config import AnalyzerConfig, ArchitectConfig
+
+        assert AnalyzerConfig.SEED == 42
+        assert ArchitectConfig.SEED == 42
+
     def test_server_config(self):
         """Test server configuration."""
         from config import ServerConfig
-        
+
         assert ServerConfig.HOST == "127.0.0.1"
         assert ServerConfig.PORT == 8000
-    
+
     def test_rag_config(self):
         """Test RAG configuration."""
         from config import RAGConfig
-        
-        config = RAGConfig()
-        
-        assert config.CHUNK_SIZE > 0
-        assert config.TOP_K > 0
-        assert 0 <= config.MIN_RELEVANCE_SCORE <= 1
+
+        assert RAGConfig.COLLECTION_NAME == "srs_documents"
+        assert RAGConfig.CHUNK_SIZE > 0
+        assert RAGConfig.TOP_K > 0
 
 
 # =============================================================================
