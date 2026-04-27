@@ -303,3 +303,53 @@ class TestRegistryValidation:
 
         # Should not raise.
         _validate_registry(STAGE_GROUPS, MODELS)
+
+    def test_validate_pricing_tiers_passes_for_flat(self):
+        """Single unbounded tier (flat pricing) is the canonical valid case."""
+        from configs.models import _validate_pricing_tiers, flat
+
+        _validate_pricing_tiers("test-model", flat(0.1, 0.2))  # no raise
+
+    def test_validate_pricing_tiers_raises_on_missing_unbounded_final(self):
+        """A finite-cap final tier would let cost_for raise on a large prompt — fail at import instead."""
+        from configs.models import Pricing, PricingTier, _validate_pricing_tiers
+
+        bad = Pricing(tiers=(
+            PricingTier(max_prompt_tokens=200_000, input_per_1m_usd=2.0, output_per_1m_usd=12.0),
+        ))
+        with pytest.raises(RuntimeError) as excinfo:
+            _validate_pricing_tiers("bad-model", bad)
+        assert "last tier" in str(excinfo.value)
+        assert "bad-model" in str(excinfo.value)
+
+    def test_validate_pricing_tiers_raises_on_misordered_tiers(self):
+        """First-match algorithm silently routes to wrong tier if max_prompt_tokens is not strictly increasing."""
+        from configs.models import Pricing, PricingTier, _validate_pricing_tiers
+
+        bad = Pricing(tiers=(
+            PricingTier(max_prompt_tokens=500_000, input_per_1m_usd=4.0, output_per_1m_usd=18.0),
+            PricingTier(max_prompt_tokens=200_000, input_per_1m_usd=2.0, output_per_1m_usd=12.0),
+            PricingTier(max_prompt_tokens=None,    input_per_1m_usd=8.0, output_per_1m_usd=24.0),
+        ))
+        with pytest.raises(RuntimeError) as excinfo:
+            _validate_pricing_tiers("misordered", bad)
+        assert "strictly increasing" in str(excinfo.value)
+
+    def test_validate_registry_calls_pricing_tier_validator(self):
+        """_validate_registry must run _validate_pricing_tiers over each model's pricing."""
+        from configs.models import (
+            ModelInfo,
+            Pricing,
+            PricingTier,
+            StageConfig,
+            _validate_registry,
+        )
+
+        bad_pricing = Pricing(tiers=(
+            PricingTier(max_prompt_tokens=100, input_per_1m_usd=1.0, output_per_1m_usd=2.0),
+        ))  # missing unbounded final tier
+        models = {"bad": ModelInfo("bad", "demo", bad_pricing, None)}
+        groups = {"g": StageConfig(model_id="bad", temperature=0.0, seed=None)}
+        with pytest.raises(RuntimeError) as excinfo:
+            _validate_registry(groups, models)
+        assert "bad" in str(excinfo.value)

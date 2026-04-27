@@ -160,7 +160,11 @@ def _validate_registry(
     stage_groups: Dict[str, StageConfig],
     models: Dict[str, ModelInfo],
 ) -> None:
-    """Fail loudly if any STAGE_GROUPS entry references an unknown model_id.
+    """Fail loudly on any structural inconsistency in the registry.
+
+    Two checks run:
+    1. Every `STAGE_GROUPS` entry must reference a model_id that exists in `MODELS`.
+    2. Every `MODELS[*].pricing` must have well-formed tiers (see `_validate_pricing_tiers`).
 
     Called at import time on the module-level defaults; also used in unit tests
     with synthetic dicts to exercise the validation logic.
@@ -170,6 +174,48 @@ def _validate_registry(
             raise RuntimeError(
                 f"STAGE_GROUPS[{group_name!r}].model_id={sc.model_id!r} "
                 f"not present in MODELS (known models: {sorted(models.keys())!r})"
+            )
+    for model_id, info in models.items():
+        _validate_pricing_tiers(model_id, info.pricing)
+
+
+def _validate_pricing_tiers(model_id: str, pricing: Pricing) -> None:
+    """Validate that a Pricing's tiers are well-formed for the first-match algorithm.
+
+    Required structure:
+    - At least one tier.
+    - The LAST tier must have `max_prompt_tokens=None` (unbounded fallback) so
+      `Pricing.cost_for` cannot raise on a large prompt_tokens at runtime.
+    - Non-last tiers must each have `max_prompt_tokens` set (an intermediate
+      unbounded tier would shadow every later tier).
+    - Non-last tiers' `max_prompt_tokens` must be strictly increasing (otherwise
+      the first-match loop silently routes traffic to the wrong tier).
+    """
+    tiers = pricing.tiers
+    if not tiers:
+        raise RuntimeError(f"MODELS[{model_id!r}].pricing.tiers is empty")
+
+    if tiers[-1].max_prompt_tokens is not None:
+        raise RuntimeError(
+            f"MODELS[{model_id!r}].pricing: last tier must have max_prompt_tokens=None "
+            f"(got {tiers[-1].max_prompt_tokens})"
+        )
+
+    for i, tier in enumerate(tiers[:-1]):
+        if tier.max_prompt_tokens is None:
+            raise RuntimeError(
+                f"MODELS[{model_id!r}].pricing: only the last tier may have "
+                f"max_prompt_tokens=None (offending index: {i})"
+            )
+
+    for i in range(1, len(tiers) - 1):
+        prev_cap = tiers[i - 1].max_prompt_tokens
+        cur_cap = tiers[i].max_prompt_tokens
+        # prev_cap and cur_cap are both not-None here (caught by the loop above).
+        if cur_cap is not None and prev_cap is not None and cur_cap <= prev_cap:
+            raise RuntimeError(
+                f"MODELS[{model_id!r}].pricing: tier max_prompt_tokens not strictly "
+                f"increasing (tier[{i-1}]={prev_cap}, tier[{i}]={cur_cap})"
             )
 
 
