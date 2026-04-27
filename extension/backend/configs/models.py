@@ -56,3 +56,27 @@ class Pricing:
 def flat(input_per_1m_usd: float, output_per_1m_usd: float) -> Pricing:
     """Pricing helper for models with a single flat rate."""
     return Pricing(tiers=(PricingTier(None, input_per_1m_usd, output_per_1m_usd),))
+
+
+# =============================================================================
+# MODEL & STAGE TYPES
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class ModelInfo:
+    """Static information about an LLM model: id, provider, pricing, context window."""
+
+    model_id: str
+    provider: str
+    pricing: Pricing
+    context_window: Optional[int]
+
+
+@dataclass(frozen=True)
+class StageConfig:
+    """Per-stage knobs: which model, what temperature, what seed."""
+
+    model_id: str
+    temperature: float
+    seed: Optional[int]

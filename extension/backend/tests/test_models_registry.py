@@ -88,3 +88,58 @@ class TestPricing:
         t = PricingTier(max_prompt_tokens=None, input_per_1m_usd=0.5, output_per_1m_usd=3.0)
         with pytest.raises(AttributeError):
             t.input_per_1m_usd = 1.0  # type: ignore[misc]
+
+
+class TestModelInfo:
+    """ModelInfo dataclass."""
+
+    def test_model_info_holds_required_fields(self):
+        from configs.models import ModelInfo, flat
+
+        info = ModelInfo(
+            model_id="example-1.0",
+            provider="example",
+            pricing=flat(0.10, 0.40),
+            context_window=128_000,
+        )
+        assert info.model_id == "example-1.0"
+        assert info.provider == "example"
+        assert info.context_window == 128_000
+        assert info.pricing.cost_for(1_000_000, 0) == pytest.approx(0.10)
+
+    def test_model_info_is_frozen(self):
+        from configs.models import ModelInfo, flat
+
+        info = ModelInfo(
+            model_id="example-1.0",
+            provider="example",
+            pricing=flat(0.10, 0.40),
+            context_window=None,
+        )
+        with pytest.raises(AttributeError):
+            info.model_id = "other"  # type: ignore[misc]
+
+
+class TestStageConfig:
+    """StageConfig dataclass."""
+
+    def test_stage_config_holds_required_fields(self):
+        from configs.models import StageConfig
+
+        sc = StageConfig(model_id="example-1.0", temperature=0.05, seed=42)
+        assert sc.model_id == "example-1.0"
+        assert sc.temperature == 0.05
+        assert sc.seed == 42
+
+    def test_stage_config_seed_can_be_none(self):
+        from configs.models import StageConfig
+
+        sc = StageConfig(model_id="example-1.0", temperature=0.0, seed=None)
+        assert sc.seed is None
+
+    def test_stage_config_is_frozen(self):
+        from configs.models import StageConfig
+
+        sc = StageConfig(model_id="example-1.0", temperature=0.05, seed=42)
+        with pytest.raises(AttributeError):
+            sc.temperature = 0.1  # type: ignore[misc]
