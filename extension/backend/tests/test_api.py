@@ -504,30 +504,39 @@ class TestCombinedMetricsEndpoint:
     
     def test_combined_metrics(self, client):
         """Test /metrics/combined endpoint."""
+        from configs.models import model_for_stage
+
         response = client.get("/metrics/combined")
         assert response.status_code == 200
-        
+
         data = response.json()
-        
+
         # Check all sections present
         assert "domain_model" in data
         assert "token_usage" in data
         assert "validation_metrics" in data
         assert "pricing_reference" in data
-        
-        # Check pricing reference structure
+
+        # Check pricing reference structure using registry-derived model IDs
         pricing = data["pricing_reference"]
-        assert "gemini-2.5-flash" in pricing
-        assert "gemini-2.5-flash-lite" in pricing
-        
-        # Verify correct pricing values
-        flash = pricing["gemini-2.5-flash"]
-        assert flash["input_per_1m_tokens"] == 0.30
-        assert flash["output_per_1m_tokens"] == 2.50
-        
-        flash_lite = pricing["gemini-2.5-flash-lite"]
-        assert flash_lite["input_per_1m_tokens"] == 0.10
-        assert flash_lite["output_per_1m_tokens"] == 0.40
+        architect_id = model_for_stage("Architect").model_id
+        validator_id = model_for_stage("Validator").model_id
+
+        assert architect_id in pricing
+        assert validator_id in pricing
+
+        # Verify correct pricing values from registry
+        architect_pricing = pricing[architect_id]
+        assert architect_pricing["input_per_1m_tokens"] == 4.0
+        assert architect_pricing["output_per_1m_tokens"] == 12.0
+        assert architect_pricing["provider"] == "gemini"
+        assert architect_pricing["use_case"] == "Domain Model Generation"
+
+        validator_pricing = pricing[validator_id]
+        assert validator_pricing["input_per_1m_tokens"] == 0.5
+        assert validator_pricing["output_per_1m_tokens"] == 3.0
+        assert validator_pricing["provider"] == "gemini"
+        assert validator_pricing["use_case"] == "Code Validation"
     
     def test_combined_metrics_projections(self, client):
         """Test monthly projections in combined metrics."""
