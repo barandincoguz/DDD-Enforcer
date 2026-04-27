@@ -3,14 +3,15 @@
 ## Overview
 
 Tracks per-call token usage and computes USD cost using the registry-driven
-pricing in `configs/models.py`. Supports flat and context-tiered pricing.
+pricing in [`configs/models.py`](configs/models.py). Supports flat and
+context-tiered pricing.
 
 ## Features
 
 - ✅ **Automatic Tracking**: Every Gemini API call is automatically tracked
 - ✅ **Stage Breakdown**: Token usage separated by pipeline stage (Scout, Architect, Specialist, Synthesizer, Validator)
-- ✅ **Cost Estimation**: Real-time cost calculation based on multi-model pricing
-- ✅ **Detailed Logs**: Per-call timestamp, operation name, and token counts
+- ✅ **Cost Estimation**: Real-time cost calculation derived from the registry
+- ✅ **Detailed Logs**: Per-call timestamp, operation name, token counts, model_id, provider
 - ✅ **JSON Export**: Full reports exportable for analysis
 
 ## Model Selection
@@ -32,9 +33,9 @@ which supports tiered context-based pricing for models like
 - Domain extraction: `gemini-3.1-pro-preview`
 - Validation: `gemini-3-flash-preview`
 
-All Gemini 3 models are currently in **preview**; pricing and availability
-are subject to change provider-side. The registry's `MODELS` dict carries
-a snapshot date in its docstring.
+All Gemini 3 models are currently in **preview**; pricing and availability are
+subject to change provider-side. The registry's `MODELS` dict carries a snapshot
+date in its docstring (currently 2026-04-27).
 
 After the model-registry consolidation refactor, the tracking implementation
 spans three files for separation of concerns:
@@ -45,31 +46,27 @@ spans three files for separation of concerns:
 
 ### Token Types
 
-1. **Prompt Tokens**: Input code, domain rules, and prompts sent to the model (INCLUDES cached count)
-2. **Completion Tokens**: Generated output - violations, analysis, suggestions (includes any reasoning)
-3. **Cached Tokens**: Previously sent context reused from cache (billed at cache rate, NOT free!)
-4. **Total Tokens**: Prompt + Completion
+1. **Prompt Tokens**: Input code, domain rules, and prompts sent to the model (cached count is subtracted before billing — see "Billing"). 
+2. **Completion Tokens**: Generated output — violations, analysis, suggestions (includes any reasoning).
+3. **Cached Tokens**: Previously sent context reused from cache. **Subtracted from billable input** by `TokenTracker.track_api_call` (`token_tracker.py:62-63`); not billed separately by this codebase.
+4. **Total Tokens**: Billable prompt + completion.
 
-### Billing Formula
+### Billing
 
-```python
-# For Flash model (Domain Model Generation)
-flash_input_cost = prompt_tokens × $0.30 / 1M
-flash_output_cost = completion_tokens × $2.50 / 1M
+Cost is computed at call time by `Pricing.cost_for(prompt_tokens, completion_tokens)` for the model bound to the stage. Algorithm (`configs/models.py:42-53`):
 
-# For Flash-Lite model (Validation)
-lite_input_cost = prompt_tokens × $0.10 / 1M
-lite_output_cost = completion_tokens × $0.40 / 1M
+1. Walk the model's `tiers` in declaration order.
+2. First tier whose `max_prompt_tokens` is `None` or `>= prompt_tokens` wins.
+3. Cost = `prompt_tokens × tier.input_per_1m_usd + completion_tokens × tier.output_per_1m_usd`, divided by 1M.
 
-total_cost = flash_total + lite_total
-```
+For tiered models (e.g., `gemini-3.1-pro-preview` with a 200k breakpoint), the prompt-token count selects the tier; the completion-token component is priced at the same tier.
 
 ### Important Notes
 
-- ⚠️ **All reasoning/thinking is included in completion tokens** (output price covers thinking)
-- 💾 **Context caching is NOT free** - It's cheaper but still billed
-- 🔄 **Implicit caching** is enabled by default for prompts > 1024 tokens
-- 📊 **Cached tokens are INCLUDED in prompt_token_count** - Must subtract for billing accuracy
+- ⚠️ **Reasoning/thinking tokens are included in completion tokens** (output price covers thinking)
+- 💾 **Context caching**: cached prompt tokens are excluded from billable input — see `token_tracker.py:62-63`
+- 🔄 **Implicit caching** is enabled by default for prompts > 1024 tokens (Gemini side)
+- 📊 **All tracking auto-derives from the registry** — pricing changes propagate by editing `configs/models.py` only
 
 ## API Endpoints
 
@@ -83,7 +80,8 @@ Returns:
 
 - Total tokens (prompt + completion)
 - Per-stage breakdown with costs
-- Detailed call history with timestamps
+- Per-model breakdown (`by_model`) with provider, costs, token counts
+- Detailed call history with timestamps + model_id
 
 ### Get Summary
 
@@ -111,93 +109,135 @@ Resets all counters to zero.
 
 ## Console Output
 
-After domain model generation, the system automatically prints:
+After domain model generation, `print_summary` prints to stdout:
 
 ```
 ======================================================================
 📊 TOKEN USAGE & COST REPORT
 ======================================================================
-  Total API Calls: 5
-  Total Tokens: 12,450
-    ↳ Input:  8,230 tokens
-    ↳ Output: 4,220 tokens
+  Total API Calls:        5
+  Total Tokens:           12,450
+    ↳ Input:              8,230
+    ↳ Output:             4,220
 
 ----------------------------------------------------------------------
-💰 COST ESTIMATION (Gemini 2.5 Flash)
+🤖 MODEL BREAKDOWN
 ----------------------------------------------------------------------
-  Input Cost:  $0.000617
-  Output Cost: $0.001266
-  Total Cost:  $0.001883 USD
+
+  gemini-3.1-pro-preview (provider: gemini):
+    Calls:  4
+    Input:  6,500 tokens
+    Output: 3,800 tokens
+    Cost:   $0.058600
+
+  gemini-3-flash-preview (provider: gemini):
+    Calls:  1
+    Input:  1,730 tokens
+    Output: 420 tokens
+    Cost:   $0.002125
+
+----------------------------------------------------------------------
+💰 TOTAL COST ESTIMATION
+----------------------------------------------------------------------
+  Input Cost:  $0.013865
+  Output Cost: $0.046860
+  Total Cost:  $0.060725 USD
 
 ----------------------------------------------------------------------
 📈 STAGE BREAKDOWN
 ----------------------------------------------------------------------
 
-  Scout:
-    Calls: 2
+  Scout (gemini-3.1-pro-preview):
+    Calls:  2
     Tokens: 5,120
-    Cost: $0.000768
-
-  Architect:
-    Calls: 1
-    Tokens: 2,340
-    Cost: $0.000351
-
-  Specialist:
-    Calls: 1
-    Tokens: 3,150
-    Cost: $0.000473
-
-  Synthesizer:
-    Calls: 1
-    Tokens: 1,840
-    Cost: $0.000276
+    Cost:   $0.030240
+…
 ======================================================================
 ```
+
+(Numbers are illustrative; actual values depend on the prompt sizes seen in your run.)
 
 ## JSON Export Format
 
 ```json
 {
-  "session_start": "2025-12-15T10:30:45.123456",
-  "session_end": "2025-12-15T10:32:12.789012",
+  "session_start": "2026-04-27T10:30:45.123456",
+  "session_end": "2026-04-27T10:32:12.789012",
   "summary": {
     "total_api_calls": 5,
     "total_prompt_tokens": 8230,
     "total_completion_tokens": 4220,
     "total_tokens": 12450
   },
+  "model_usage": {
+    "gemini-3.1-pro-preview": {
+      "prompt_tokens": 6500,
+      "completion_tokens": 3800,
+      "total_tokens": 10300,
+      "stages": ["Architect", "Scout", "Specialist", "Synthesizer"],
+      "provider": "gemini",
+      "call_count": 4
+    },
+    "gemini-3-flash-preview": {
+      "prompt_tokens": 1730,
+      "completion_tokens": 420,
+      "total_tokens": 2150,
+      "stages": ["Validator"],
+      "provider": "gemini",
+      "call_count": 1
+    }
+  },
   "cost_estimation": {
-    "input_cost": 0.000617,
-    "output_cost": 0.001266,
-    "total_cost": 0.001883,
+    "by_model": {
+      "gemini-3.1-pro-preview": {
+        "input_cost": 0.013000,
+        "output_cost": 0.045600,
+        "total_cost": 0.058600,
+        "input_tokens": 6500,
+        "output_tokens": 3800
+      },
+      "gemini-3-flash-preview": {
+        "input_cost": 0.000865,
+        "output_cost": 0.001260,
+        "total_cost": 0.002125,
+        "input_tokens": 1730,
+        "output_tokens": 420
+      }
+    },
+    "total_input_cost": 0.013865,
+    "total_output_cost": 0.046860,
+    "total_cost": 0.060725,
     "currency": "USD"
   },
   "stage_breakdown": {
     "Scout": {
+      "model_id": "gemini-3.1-pro-preview",
       "call_count": 2,
       "prompt_tokens": 3500,
       "completion_tokens": 1620,
       "total_tokens": 5120,
-      "estimated_cost": 0.000768
-    },
-    "Architect": { ... },
-    "Specialist": { ... },
-    "Synthesizer": { ... }
+      "estimated_cost": 0.030240
+    }
+    /* … one entry per pipeline stage … */
   },
   "call_history": [
     {
-      "timestamp": "2025-12-15T10:30:46.234567",
+      "timestamp": "2026-04-27T10:30:46.234567",
       "stage": "Scout",
       "operation": "extract_sentences_chunk_1",
+      "model_id": "gemini-3.1-pro-preview",
+      "provider": "gemini",
       "prompt_tokens": 1800,
       "completion_tokens": 850,
-      "total_tokens": 2650
-    },
-    ...
+      "total_tokens": 2650,
+      "estimated_cost": 0.013800
+    }
+    /* … one entry per call … */
   ]
 }
 ```
+
+The `by_model` keys are full model_id strings (no `gemini-2.5-` legacy keys, no `flash_model` / `flash_lite_model` legacy shape).
 
 ## Usage in Code
 
@@ -212,7 +252,7 @@ response = self.client.models.generate_content(...)
 self.token_tracker.track_api_call(
     response,
     stage="Scout",
-    operation="extract_sentences"
+    operation="extract_sentences",
 )
 ```
 
@@ -226,7 +266,14 @@ tracker = TokenTracker.get_instance()
 # Track a call
 tracker.track_api_call(response, stage="Custom", operation="custom_op")
 
-# Get report
+# Query a stage's running totals
+validator_accum = tracker.tokens_for_stage("Validator")
+print(validator_accum.cost_usd, validator_accum.call_count)
+
+# Query a model's running totals
+model_accum = tracker.tokens_for_model("gemini-3-flash-preview")
+
+# Get a full report (data structures: see "JSON Export Format" above)
 report = tracker.get_report(detailed=True)
 
 # Print summary
@@ -238,84 +285,29 @@ tracker.export_to_json("report.json")
 
 ## Files Generated
 
-1. **`token_usage_report.json`** - Generated after domain model creation (startup)
-2. **`token_usage_export.json`** - Generated via `/tokens/export` endpoint
+1. **`token_usage_report.json`** — Generated after domain model creation (startup).
+2. **`token_usage_export.json`** — Generated via `/tokens/export` endpoint.
 
-## For UBMK Presentation
+## Cost Estimation (Order-of-Magnitude)
 
-### Key Metrics to Include:
+These are rough envelopes; real costs depend on the model bound to each stage in the registry, your prompt sizes, and Gemini's preview-tier pricing changes. Compute exact numbers from the live `cost_estimation` block in any token report.
 
-1. **Average tokens per validation request**
-2. **Total cost for domain model generation**
-3. **Cost per violation detection** (per file validation)
-4. **Stage-wise cost breakdown** (which stage is most expensive)
+For the current defaults (`gemini-3.1-pro-preview` for domain extraction, `gemini-3-flash-preview` for validation):
 
-### Test Scenarios:
+| Workload | Domain extraction (4 stages × Pro) | Per validation (Flash) |
+|---|---|---|
+| Small SRS (~15k input, ~5k output) | ~$0.090 USD | ~$0.0008 USD |
+| Medium SRS (~60k input, ~20k output) | ~$0.36 USD | n/a |
+| 100 file validations |  | ~$0.080 USD |
 
-```bash
-# Scenario 1: Generate domain model
-python main.py
-# Check: token_usage_report.json
+(Domain-extraction cost uses the cheap tier; if a stage's prompt exceeds the 200k breakpoint, the Pro model's expensive tier kicks in automatically — `Pricing.cost_for` handles this.)
 
-# Scenario 2: Multiple validations
-curl -X POST http://localhost:8000/validate \
-  -H "Content-Type: application/json" \
-  -d '{"code": "...", "filename": "test.py"}'
+## Updating Pricing
 
-# Check cumulative stats:
-curl http://localhost:8000/tokens/stats
+When provider rates change, edit the relevant `MODELS` entry in `configs/models.py`. The registry's `_validate_registry` runs at import time so a typo in `model_id` fails loudly. The `tests/test_registry_snapshot.py` drift guard fails when the default model_ids change, forcing the change to be acknowledged in the same commit.
 
-# Scenario 3: Export for analysis
-curl http://localhost:8000/tokens/export
-```
+## Source
 
-## Cost Estimation Examples
-
-### Small Project (1 SRS file, ~50 KB)
-
-- Input: ~15,000 tokens
-- Output: ~5,000 tokens
-- **NEW Estimated Cost: ~$0.017 USD** (Input: $0.0045 + Output: $0.0125)
-- _Old price was: $0.002-0.003 USD (5.7x-8.5x cheaper)_
-
-### Medium Project (Multiple SRS files, ~200 KB)
-
-- Input: ~60,000 tokens
-- Output: ~20,000 tokens
-- **NEW Estimated Cost: ~$0.068 USD** (Input: $0.018 + Output: $0.050)
-- _Old price was: $0.010-0.015 USD (4.5x-6.8x cheaper)_
-
-### Per Validation Request
-
-- Input: ~500-1000 tokens (code + domain rules)
-- Output: ~200-500 tokens (violations)
-- **NEW Estimated Cost: ~$0.0008-0.0015 USD** per validation
-- _Old price was: $0.0001-0.0002 USD (4x-7.5x cheaper)_
-
-### Academic Paper Example (UBMK)
-
-**Scenario**: 10 SRS files, 100 code files validated
-
-- Domain model generation: ~150,000 input + 50,000 output tokens = $0.170
-- Code validations (100 files): ~50,000 input + 25,000 output tokens = $0.078
-- **Total Project Cost: ~$0.25 USD** (approximately ₺8.75 TRY at 35 TRY/USD)
-- _Old pricing would have been: $0.037 USD (6.8x difference)_
-
-## Important Price Update Notice (Dec 12, 2025)
-
-⚠️ **CRITICAL**: Gemini 2.5 Flash pricing has been updated to official PAID tier rates:
-
-- Input: $0.30/1M (was incorrectly $0.075/1M - **4x increase**)
-- Output: $2.50/1M (was incorrectly $0.30/1M - **8.3x increase**)
-- Context Caching: $0.03/1M (was incorrectly listed as FREE)
-
-The FREE tier exists but has strict rate limits. Production applications should use PAID tier pricing.
-
-## Notes
-
-- Token counts include **both** input (prompt) and output (completion)
-- Prices are based on **Gemini 2.5 Flash PAID tier** (December 12, 2025)
-- Source: https://ai.google.dev/gemini-api/docs/pricing
-- For large projects, consider **Gemini 2.5 Flash Lite** ($0.10/$0.40 per 1M - 3x cheaper)
-- All tracking is automatic and doesn't affect performance
-- **Cached tokens cost $0.03/1M (10x cheaper than fresh input)**
+- Pricing: <https://ai.google.dev/gemini-api/docs/pricing>
+- Snapshot date: see the docstring at the top of `configs/models.py`.
+- All Gemini 3 entries are currently **preview**; expect provider-side pricing/availability changes.
