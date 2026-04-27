@@ -2,7 +2,8 @@
 
 ## Overview
 
-This system automatically tracks all LLM API calls and calculates cost estimations for the UBMK presentation and research paper.
+Tracks per-call token usage and computes USD cost using the registry-driven
+pricing in `configs/models.py`. Supports flat and context-tiered pricing.
 
 ## Features
 
@@ -12,34 +13,35 @@ This system automatically tracks all LLM API calls and calculates cost estimatio
 - ✅ **Detailed Logs**: Per-call timestamp, operation name, and token counts
 - ✅ **JSON Export**: Full reports exportable for analysis
 
-## Model Configuration
+## Model Selection
 
-We use two different models for different purposes:
+Model selection and pricing live in [`configs/models.py`](configs/models.py).
 
-| Model                 | Use Case                | Stages                                    |
-| --------------------- | ----------------------- | ----------------------------------------- |
-| gemini-2.5-flash      | Domain Model Generation | Scout, Architect, Specialist, Synthesizer |
-| gemini-2.5-flash-lite | Code Validation         | Validator                                 |
+To upgrade a model: edit the relevant entry in `STAGE_GROUPS`. No other file
+should require changes. Pricing is read from the same module via `MODELS`,
+which supports tiered context-based pricing for models like
+`gemini-3.1-pro-preview` (different rates above and below 200k input tokens).
 
-## Pricing (PAID Tier - January 2026)
+### Stage → group mapping
 
-**Official Source**: https://ai.google.dev/gemini-api/docs/pricing
+- **`domain_extraction`**: Scout, Architect, Specialist, Synthesizer
+- **`validation`**: Validator
 
-### Gemini 2.5 Flash (Domain Model Generation)
+### Defaults (verify by reading `configs/models.py`)
 
-| Type                | Price per 1M tokens | Price per token | Notes                    |
-| ------------------- | ------------------- | --------------- | ------------------------ |
-| Input (Prompt)      | $0.30               | $0.000000300    | Text/Image/Video input   |
-| Output (Completion) | $2.50               | $0.000002500    | Includes thinking tokens |
-| Context Caching     | $0.03               | $0.000000030    | Cached input reuse       |
+- Domain extraction: `gemini-3.1-pro-preview`
+- Validation: `gemini-3-flash-preview`
 
-### Gemini 2.5 Flash-Lite (Validation)
+All Gemini 3 models are currently in **preview**; pricing and availability
+are subject to change provider-side. The registry's `MODELS` dict carries
+a snapshot date in its docstring.
 
-| Type                | Price per 1M tokens | Price per token | Notes                    |
-| ------------------- | ------------------- | --------------- | ------------------------ |
-| Input (Prompt)      | $0.10               | $0.000000100    | Text/Image/Video input   |
-| Output (Completion) | $0.40               | $0.000000400    | Includes thinking tokens |
-| Context Caching     | $0.01               | $0.000000010    | Cached input reuse       |
+After the model-registry consolidation refactor, the tracking implementation
+spans three files for separation of concerns:
+
+- `core/token_tracker.py` — stateful singleton recording API call usage
+- `core/token_tracker_report.py` — pure functions that build reports / format console output / serialize JSON
+- `core/token_tracker_types.py` — shared dataclasses (`TokenUsageStats`, `ModelTokenAccumulator`, `StageTokenAccumulator`, `APICallRecord`)
 
 ### Token Types
 
