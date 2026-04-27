@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.ast_model_signals import ASTModelSignalExtractor
+from core.AST.ast_model_signals import ASTModelSignalExtractor
 from core.schemas import DomainModel
 
 class TestASTSignalExtractor(unittest.TestCase):

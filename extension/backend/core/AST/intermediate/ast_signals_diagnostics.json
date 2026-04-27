@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-04-27 22:21:04",
+  "workspace_path": "/private/var/folders/g_/jlsd_6ln6pvdtskyr2f9hf3h0000gn/T/pytest-of-barandincoguz/pytest-43/test_enrich_domain_model_adds_0/workspace",
+  "counts": {
+    "entities": {
+      "detected": 1,
+      "grounded": 1,
+      "merged": 1,
+      "dropped": 0,
+      "unassigned": 0
+    },
+    "value_objects": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
+    },
+    "services": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
+    },
+    "aggregates": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
+    },
+    "domain_events": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
+    }
+  },
+  "samples": {
+    "dropped": [],
+    "unassigned": []
+  },
+  "rates": {
+    "grounding_hit_rate": 1.0,
+    "context_assignment_success_rate": 1.0
+  }
+}

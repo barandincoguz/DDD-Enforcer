@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import AnalyzerConfig
+from core.code_parser import build_advanced_validation_payload
 from core.token_tracker import TokenTracker
 
 load_dotenv()
@@ -551,9 +552,10 @@ OUTPUT RULES
         self, ast_data: Dict[str, Any], domain_rules: Dict[str, Any]
     ) -> str:
         """Build compact prompt for advanced checks only."""
-        imports = ast_data.get("imports", [])
-        assignments = ast_data.get("assignments", [])
-        function_calls = ast_data.get("function_calls", [])
+        parser_signals = build_advanced_validation_payload(ast_data)
+        imports = parser_signals["imports"]
+        assignments = parser_signals["assignments"]
+        function_calls = parser_signals["function_calls"]
 
         compact_rules: Dict[str, Any] = {"bounded_contexts": []}
         for ctx in domain_rules.get("bounded_contexts", []) or []:

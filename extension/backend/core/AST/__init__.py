@@ -1,4 +1,4 @@
-"""Backward-compatible import shim for AST signals package."""
+"""AST signal extraction package."""
 
 from core.AST.ast_model_signals import ASTModelSignalExtractor
 
