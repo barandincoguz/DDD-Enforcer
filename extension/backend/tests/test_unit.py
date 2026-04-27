@@ -22,90 +22,42 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # TOKEN TRACKER TESTS
 # =============================================================================
 
-class TestTokenTracker:
-    """Test TokenTracker functionality."""
-    
-    def test_pricing_constants(self):
-        """Test pricing constants are correctly set."""
-        from core.token_tracker import FLASH_PRICING, FLASH_LITE_PRICING
-        
-        # Flash pricing (gemini-2.5-flash)
-        assert FLASH_PRICING["input"] == 0.30 / 1_000_000
-        assert FLASH_PRICING["output"] == 2.50 / 1_000_000
-        
-        # Flash-Lite pricing (gemini-2.5-flash-lite)
-        assert FLASH_LITE_PRICING["input"] == 0.10 / 1_000_000
-        assert FLASH_LITE_PRICING["output"] == 0.40 / 1_000_000
-    
-    def test_stage_model_mapping(self):
-        """Test stage to model mapping."""
-        from core.token_tracker import STAGE_MODEL_MAP
-        
-        # Domain model stages use flash
-        assert STAGE_MODEL_MAP["Scout"] == "flash"
-        assert STAGE_MODEL_MAP["Architect"] == "flash"
-        assert STAGE_MODEL_MAP["Specialist"] == "flash"
-        assert STAGE_MODEL_MAP["Synthesizer"] == "flash"
-        
-        # Validation stage uses flash-lite
-        assert STAGE_MODEL_MAP["Validator"] == "flash-lite"
-    
+class TestTokenTrackerLegacyMigration:
+    """Smoke tests guarding the post-refactor TokenTracker contract.
+    Detailed behavior is in tests/test_token_tracker_v2.py.
+    """
+
+    def test_no_flash_pricing_module_constants(self):
+        """Old module-level pricing dicts must be gone."""
+        from core import token_tracker
+
+        for name in ("FLASH_PRICING", "FLASH_LITE_PRICING", "STAGE_MODEL_MAP"):
+            assert not hasattr(token_tracker, name), f"Legacy symbol {name!r} still exported"
+
     def test_tracker_singleton(self):
-        """Test TokenTracker singleton pattern."""
         from core.token_tracker import TokenTracker
-        
-        # Reset first
+
         TokenTracker.reset()
-        
-        tracker1 = TokenTracker.get_instance()
-        tracker2 = TokenTracker.get_instance()
-        
-        assert tracker1 is tracker2
-    
-    def test_calculate_call_cost_flash(self):
-        """Test cost calculation for flash model."""
-        from core.token_tracker import TokenTracker, FLASH_PRICING
-        
+        a = TokenTracker.get_instance()
+        b = TokenTracker.get_instance()
+        assert a is b
         TokenTracker.reset()
-        tracker = TokenTracker.get_instance()
-        
-        prompt_tokens = 1000
-        completion_tokens = 500
-        
-        cost = tracker._calculate_call_cost("flash", prompt_tokens, completion_tokens)
-        
-        expected = (prompt_tokens * FLASH_PRICING["input"] + 
-                   completion_tokens * FLASH_PRICING["output"])
-        
-        assert abs(cost - expected) < 0.000001
-    
-    def test_calculate_call_cost_flash_lite(self):
-        """Test cost calculation for flash-lite model."""
-        from core.token_tracker import TokenTracker, FLASH_LITE_PRICING
-        
-        TokenTracker.reset()
-        tracker = TokenTracker.get_instance()
-        
-        prompt_tokens = 1000
-        completion_tokens = 500
-        
-        cost = tracker._calculate_call_cost("flash-lite", prompt_tokens, completion_tokens)
-        
-        expected = (prompt_tokens * FLASH_LITE_PRICING["input"] + 
-                   completion_tokens * FLASH_LITE_PRICING["output"])
-        
-        assert abs(cost - expected) < 0.000001
-    
-    def test_get_model_for_stage(self):
-        """Test model selection based on stage."""
+        c = TokenTracker.get_instance()
+        assert c is not a
+
+    def test_no_legacy_stats_fields(self):
+        """TokenUsageStats no longer carries flash_*_tokens fields."""
         from core.token_tracker import TokenTracker
-        
+
         TokenTracker.reset()
         tracker = TokenTracker.get_instance()
-        
-        assert tracker._get_model_for_stage("Scout") == "flash"
-        assert tracker._get_model_for_stage("Validator") == "flash-lite"
-        assert tracker._get_model_for_stage("Unknown") == "flash-lite"  # default
+        for legacy in (
+            "flash_prompt_tokens",
+            "flash_completion_tokens",
+            "flash_lite_prompt_tokens",
+            "flash_lite_completion_tokens",
+        ):
+            assert not hasattr(tracker.stats, legacy), f"Legacy field {legacy!r} still present"
 
 
 # =============================================================================
@@ -264,7 +216,7 @@ class TestASTModelSignals:
     """Test AST candidate extraction and model enrichment."""
 
     def test_extract_candidates_with_traceability(self, tmp_path):
-        from core.ast_model_signals import ASTModelSignalExtractor
+        from core.AST.ast_model_signals import ASTModelSignalExtractor
 
         sample = tmp_path / "domain_model.py"
         sample.write_text(
@@ -314,7 +266,7 @@ class OrderAggregate:
         assert "rule" in order_entity["sources"][0]
 
     def test_enrich_domain_model_adds_confidence_and_sources(self, tmp_path):
-        from core.ast_model_signals import ASTModelSignalExtractor
+        from core.AST.ast_model_signals import ASTModelSignalExtractor
         from core.schemas import DomainModel, ProjectMetadata
 
         workspace = tmp_path / "workspace"
