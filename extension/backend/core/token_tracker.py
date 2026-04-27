@@ -6,6 +6,7 @@ data classes live in `token_tracker_types.py`.
 """
 
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
@@ -40,6 +41,7 @@ class TokenTracker:
     def __init__(self) -> None:
         self.stats = TokenUsageStats()
         self.session_start = datetime.now().isoformat()
+        self._lock = threading.Lock()
 
     @classmethod
     def get_instance(cls) -> "TokenTracker":
@@ -91,33 +93,32 @@ class TokenTracker:
             estimated_cost=round(cost, 8),
         )
 
-        # Update totals.
-        self.stats.total_prompt_tokens += billable_prompt
-        self.stats.total_completion_tokens += completion_tokens
-        self.stats.total_tokens += billable_total
-        self.stats.total_api_calls += 1
+        # Lock-protected mutations — counters and dict updates atomic across threads.
+        with self._lock:
+            self.stats.total_prompt_tokens += billable_prompt
+            self.stats.total_completion_tokens += completion_tokens
+            self.stats.total_tokens += billable_total
+            self.stats.total_api_calls += 1
 
-        # Update per-model accumulator.
-        accum_m = self.stats.by_model.setdefault(
-            info.model_id,
-            ModelTokenAccumulator(model_id=info.model_id, provider=info.provider),
-        )
-        accum_m.prompt_tokens += billable_prompt
-        accum_m.completion_tokens += completion_tokens
-        accum_m.cost_usd += cost
-        accum_m.call_count += 1
+            accum_m = self.stats.by_model.setdefault(
+                info.model_id,
+                ModelTokenAccumulator(model_id=info.model_id, provider=info.provider),
+            )
+            accum_m.prompt_tokens += billable_prompt
+            accum_m.completion_tokens += completion_tokens
+            accum_m.cost_usd += cost
+            accum_m.call_count += 1
 
-        # Update per-stage accumulator.
-        accum_s = self.stats.by_stage.setdefault(
-            stage,
-            StageTokenAccumulator(stage=stage, model_id=info.model_id),
-        )
-        accum_s.prompt_tokens += billable_prompt
-        accum_s.completion_tokens += completion_tokens
-        accum_s.cost_usd += cost
-        accum_s.call_count += 1
+            accum_s = self.stats.by_stage.setdefault(
+                stage,
+                StageTokenAccumulator(stage=stage, model_id=info.model_id),
+            )
+            accum_s.prompt_tokens += billable_prompt
+            accum_s.completion_tokens += completion_tokens
+            accum_s.cost_usd += cost
+            accum_s.call_count += 1
 
-        self.stats.call_history.append(record)
+            self.stats.call_history.append(record)
 
     # ---- public: query ----------------------------------------------------
 
