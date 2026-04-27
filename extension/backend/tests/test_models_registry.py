@@ -262,3 +262,44 @@ class TestRegistryHelpers:
 
         with pytest.raises(KeyError):
             model_info("not-a-real-model")
+
+
+class TestRegistryValidation:
+    """Import-time validation: STAGE_GROUPS model_ids must exist in MODELS."""
+
+    def test_validate_registry_passes_for_valid_pair(self):
+        """Helper passes when every STAGE_GROUPS model_id is present in MODELS."""
+        from configs.models import (
+            MODELS,
+            ModelInfo,
+            StageConfig,
+            _validate_registry,
+            flat,
+        )
+
+        models = {"x": ModelInfo("x", "demo", flat(0.1, 0.2), None)}
+        groups = {"g": StageConfig(model_id="x", temperature=0.0, seed=None)}
+        _validate_registry(groups, models)  # no raise
+
+    def test_validate_registry_raises_when_model_id_missing(self):
+        from configs.models import (
+            ModelInfo,
+            StageConfig,
+            _validate_registry,
+            flat,
+        )
+
+        models = {"x": ModelInfo("x", "demo", flat(0.1, 0.2), None)}
+        groups = {"g": StageConfig(model_id="missing-model", temperature=0.0, seed=None)}
+        with pytest.raises(RuntimeError) as excinfo:
+            _validate_registry(groups, models)
+        # Message must name the offending group and model_id for diagnostic clarity.
+        assert "g" in str(excinfo.value)
+        assert "missing-model" in str(excinfo.value)
+
+    def test_default_registry_passes_validation(self):
+        """The shipping defaults (MODELS, STAGE_GROUPS) are internally consistent."""
+        from configs.models import MODELS, STAGE_GROUPS, _validate_registry
+
+        # Should not raise.
+        _validate_registry(STAGE_GROUPS, MODELS)

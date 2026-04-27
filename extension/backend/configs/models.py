@@ -149,3 +149,29 @@ def model_for_stage(stage: str) -> ModelInfo:
 def model_info(model_id: str) -> ModelInfo:
     """Return ModelInfo for a given model_id. Raises KeyError on unknown model."""
     return MODELS[model_id]
+
+
+# =============================================================================
+# IMPORT-TIME VALIDATION
+# =============================================================================
+
+
+def _validate_registry(
+    stage_groups: Dict[str, StageConfig],
+    models: Dict[str, ModelInfo],
+) -> None:
+    """Fail loudly if any STAGE_GROUPS entry references an unknown model_id.
+
+    Called at import time on the module-level defaults; also used in unit tests
+    with synthetic dicts to exercise the validation logic.
+    """
+    for group_name, sc in stage_groups.items():
+        if sc.model_id not in models:
+            raise RuntimeError(
+                f"STAGE_GROUPS[{group_name!r}].model_id={sc.model_id!r} "
+                f"not present in MODELS (known models: {sorted(models.keys())!r})"
+            )
+
+
+# Validate the shipping defaults at import time.
+_validate_registry(STAGE_GROUPS, MODELS)
