@@ -87,3 +87,39 @@ class TestTruncateWithHeadTail:
         text = "X" * 10_000
         result = _truncate_with_head_tail(text, max_chars=500)
         assert len(result) <= 500
+
+
+class TestScoutParallel:
+    """Parallel Scout chunk smoke — opt-in via scout_max_workers > 1."""
+
+    def _make_architect(self, scout_max_workers=None):
+        from core.architect import DomainArchitect
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "fake_for_test"}):
+            with patch("core.architect.genai"):
+                return DomainArchitect(scout_max_workers=scout_max_workers)
+
+    def test_default_is_sequential(self):
+        a = self._make_architect()
+        assert a.scout_max_workers == 1
+
+    def test_kwarg_overrides_default(self):
+        a = self._make_architect(scout_max_workers=4)
+        assert a.scout_max_workers == 4
+
+    def test_parallel_preserves_order(self):
+        """ex.map preserves submission order; mocked _extract returns chunk index list."""
+        a = self._make_architect(scout_max_workers=3)
+
+        def fake_extract(chunk, num, total):
+            return [f"sentence_from_chunk_{num}"]
+
+        with patch.object(a, "_extract_sentences_from_chunk", side_effect=fake_extract):
+            with patch.object(a, "_save_intermediate"):
+                long_text = "X" * 25_000  # ~3 chunks at chunk_size=10000
+                result = a.extract_domain_sentences(long_text)
+
+        assert result == [
+            "sentence_from_chunk_1",
+            "sentence_from_chunk_2",
+            "sentence_from_chunk_3",
+        ]

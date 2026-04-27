@@ -14,7 +14,9 @@ Pipeline stages:
 import json
 import os
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional
 
 from dotenv import load_dotenv
@@ -34,6 +36,10 @@ INTERMEDIATE_DIR = os.path.join(os.path.dirname(__file__), "intermediate")
 # DDD_MIN_DELAY_SECONDS or constructor kwarg `min_delay` (Pro tier supports
 # higher RPM and benefits from lower delays, e.g. 1.0s).
 DEFAULT_MIN_DELAY_SECONDS = 6.0
+
+# Default sequential (1 worker). Set DDD_SCOUT_MAX_WORKERS > 1 (Pro tier with
+# headroom on RPM) for parallel chunk extraction. Free tier should keep 1.
+DEFAULT_SCOUT_MAX_WORKERS = max(1, int(os.getenv("DDD_SCOUT_MAX_WORKERS", "1")))
 
 # Type alias for progress callback
 ProgressCallback = Optional[Callable[[Dict[str, Any]], None]]
@@ -65,6 +71,7 @@ class DomainArchitect:
         model: Optional[str] = None,
         progress_callback: ProgressCallback = None,
         min_delay: Optional[float] = None,
+        scout_max_workers: Optional[int] = None,
     ):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
@@ -79,6 +86,12 @@ class DomainArchitect:
             else float(os.getenv("DDD_MIN_DELAY_SECONDS", DEFAULT_MIN_DELAY_SECONDS))
         )
         self.request_count = 0
+        self._rate_limit_lock = threading.Lock()
+        self.scout_max_workers = (
+            scout_max_workers
+            if scout_max_workers is not None
+            else DEFAULT_SCOUT_MAX_WORKERS
+        )
         self.token_tracker = TokenTracker.get_instance()
         self.progress_callback = progress_callback
         
@@ -108,15 +121,16 @@ class DomainArchitect:
     # =========================================================================
 
     def _wait_for_rate_limit(self):
-        """Enforce minimum delay between API requests."""
-        elapsed = time.time() - self.last_request_time
-        if elapsed < self.min_delay:
-            sleep_time = self.min_delay - elapsed
-            print(f"  ⏳ Rate limiting... waiting {sleep_time:.1f}s")
-            time.sleep(sleep_time)
-        self.last_request_time = time.time()
-        self.request_count += 1
-        print(f"  📡 API Request #{self.request_count}")
+        """Enforce minimum delay between API requests. Thread-safe."""
+        with self._rate_limit_lock:
+            elapsed = time.time() - self.last_request_time
+            if elapsed < self.min_delay:
+                sleep_time = self.min_delay - elapsed
+                print(f"  ⏳ Rate limiting... waiting {sleep_time:.1f}s")
+                time.sleep(sleep_time)
+            self.last_request_time = time.time()
+            self.request_count += 1
+            print(f"  📡 API Request #{self.request_count}")
 
     def _is_quota_error_and_backoff(self, error: Exception, retry_count: int) -> bool:
         """Return True iff `error` was a quota / rate-limit error AND we slept
@@ -168,12 +182,34 @@ class DomainArchitect:
         print(f"  📄 Document: {len(clean_text):,} characters")
         print(f"  🔪 Chunks: {len(chunks)} (max {chunk_size:,} chars each)")
 
-        for i, chunk in enumerate(chunks):
-            progress = int((i + 1) / len(chunks) * 100)
-            print(f"  ▶️  Chunk {i + 1}/{len(chunks)} ({len(chunk):,} chars) [{progress}%]")
-            self._report_progress("Scout", "in_progress", f"Processing chunk {i + 1}/{len(chunks)}", progress)
-            sentences = self._extract_sentences_from_chunk(chunk, i + 1, len(chunks))
-            all_sentences.extend(sentences)
+        if self.scout_max_workers <= 1:
+            # Sequential — preserves original behavior exactly.
+            for i, chunk in enumerate(chunks):
+                progress = int((i + 1) / len(chunks) * 100)
+                print(f"  ▶️  Chunk {i + 1}/{len(chunks)} ({len(chunk):,} chars) [{progress}%]")
+                self._report_progress(
+                    "Scout", "in_progress",
+                    f"Processing chunk {i + 1}/{len(chunks)}",
+                    progress,
+                )
+                sentences = self._extract_sentences_from_chunk(chunk, i + 1, len(chunks))
+                all_sentences.extend(sentences)
+        else:
+            # Parallel — coalesce per-chunk progress to start/end.
+            print(f"  ⚡ Parallel mode: {self.scout_max_workers} workers")
+            self._report_progress(
+                "Scout", "in_progress",
+                f"Processing {len(chunks)} chunks in parallel ({self.scout_max_workers} workers)",
+                50,
+            )
+            args = [(chunk, i + 1, len(chunks)) for i, chunk in enumerate(chunks)]
+            with ThreadPoolExecutor(max_workers=self.scout_max_workers) as ex:
+                chunk_results = list(ex.map(
+                    lambda a: self._extract_sentences_from_chunk(*a),
+                    args,
+                ))
+            for r in chunk_results:
+                all_sentences.extend(r)
 
         print(f"  ✅ Extracted {len(all_sentences)} domain-relevant sentences\n")
         self._report_progress("Scout", "completed", f"Extracted {len(all_sentences)} sentences", 100)
