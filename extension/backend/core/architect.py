@@ -627,7 +627,18 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                     print("  ❌ All retries failed - Using fallback model")
                     return self._create_fallback_model()
 
-                # Verify required fields exist
+                # Verify required fields exist. A list-typed result (which can
+                # arrive from _parse_json_response since Gemini occasionally
+                # returns a top-level array) is treated as missing-everything
+                # and falls through to the fallback path below.
+                if not isinstance(result, dict):
+                    print(f"  ⚠️  Synthesizer returned {type(result).__name__} not dict - Retry {retry + 1}/5")
+                    if retry < 4:
+                        time.sleep(2)
+                        continue
+                    print("  ❌ Non-dict response - Using fallback model")
+                    return self._create_fallback_model()
+
                 required = ["project_name", "project_metadata", "bounded_contexts"]
                 missing = [f for f in required if f not in result]
 
