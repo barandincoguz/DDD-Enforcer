@@ -866,8 +866,15 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
         except Exception as e:
             print(f"  ⚠️  Failed to save intermediate output: {e}")
     
-    def _parse_json_response(self, response_text: str) -> Dict[str, Any]:
-        """Parse JSON from LLM response. Simple strategy since we use response_mime_type='application/json'."""
+    def _parse_json_response(self, response_text: str) -> Dict[str, Any] | List[Any]:
+        """Parse JSON from LLM response.
+
+        Returns the parsed structure (dict or list — Gemini sometimes returns
+        a top-level array). On parse failure returns the sentinel
+        {"error": "json_parse_failed", "raw_response": <first 500 chars>}.
+        Callers detect failure with:
+            isinstance(result, dict) and result.get("error") == "json_parse_failed"
+        """
         try:
             # Direct parse - Gemini returns valid JSON with application/json mime type
             return json.loads(response_text)
