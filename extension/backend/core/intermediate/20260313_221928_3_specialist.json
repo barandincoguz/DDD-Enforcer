@@ -1,0 +1,320 @@
+{
+  "timestamp": "2026-03-13 22:21:06",
+  "contexts_analyzed": 6,
+  "analyses": [
+    {
+      "context": "UserManagement",
+      "analysis": {
+        "context": "UserManagement",
+        "aggregate_roots": [
+          "User"
+        ],
+        "entities": [
+          {
+            "name": "User",
+            "attributes": [
+              "id",
+              "firstName",
+              "middleName",
+              "lastName",
+              "gender",
+              "username",
+              "email",
+              "passwordHash",
+              "contactNumber",
+              "birthdate",
+              "profilePictureUrl",
+              "isEmailVerified",
+              "registrationDate",
+              "lastLoginDate"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "EmailAddress",
+            "attributes": [
+              "value"
+            ]
+          },
+          {
+            "name": "Password",
+            "attributes": [
+              "value"
+            ]
+          },
+          {
+            "name": "FullName",
+            "attributes": [
+              "firstName",
+              "middleName",
+              "lastName"
+            ]
+          },
+          {
+            "name": "ContactNumber",
+            "attributes": [
+              "value"
+            ]
+          },
+          {
+            "name": "Birthdate",
+            "attributes": [
+              "value"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Users must register with first name, last name, gender, contact number, birthdate, username, email, and password.",
+          "Password must contain a minimum of 8 alphanumeric characters, including uppercase, lowercase letters, and a number.",
+          "Email must be verified for a user to become a registered user.",
+          "Only registered users can log in.",
+          "Login requires a valid username/email and password.",
+          "Only logged-in registered users can add products, view their profile, and view their product dashboard.",
+          "Username and email must be unique."
+        ]
+      }
+    },
+    {
+      "context": "ProductCatalog",
+      "analysis": {
+        "context": "ProductCatalog",
+        "aggregate_roots": [
+          "Product"
+        ],
+        "entities": [
+          {
+            "name": "Product",
+            "attributes": [
+              "id",
+              "name",
+              "company",
+              "category",
+              "description",
+              "price",
+              "condition",
+              "warrantyDetails",
+              "homeDeliveryAvailable",
+              "sellerUserId",
+              "postedDate",
+              "status",
+              "keywords",
+              "usageDuration"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Price",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "ProductCategory",
+            "attributes": [
+              "name"
+            ]
+          },
+          {
+            "name": "ProductCondition",
+            "attributes": [
+              "value"
+            ]
+          },
+          {
+            "name": "WarrantyDetails",
+            "attributes": [
+              "period",
+              "conditions"
+            ]
+          },
+          {
+            "name": "Image",
+            "attributes": [
+              "url"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Only registered users can add products.",
+          "A product must have a name, category, picture, owner (seller), description, price, condition, warranty details, and home delivery details.",
+          "Products are posted publicly once added."
+        ]
+      }
+    },
+    {
+      "context": "Search",
+      "analysis": {
+        "context": "Search",
+        "aggregate_roots": [],
+        "entities": [],
+        "value_objects": [
+          {
+            "name": "Keywords",
+            "attributes": [
+              "value"
+            ]
+          },
+          {
+            "name": "SearchCriteria",
+            "attributes": [
+              "keywords",
+              "category"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Both registered and non-registered users can search for products.",
+          "Search can be performed using keywords and/or product categories.",
+          "If no relevant match is found, a 'No products found' message is displayed.",
+          "Search results display product titles matching the keywords."
+        ]
+      }
+    },
+    {
+      "context": "BuyerSellerInteraction",
+      "analysis": {
+        "context": "BuyerSellerInteraction",
+        "aggregate_roots": [
+          "Offer"
+        ],
+        "entities": [
+          {
+            "name": "Offer",
+            "attributes": [
+              "id",
+              "productId",
+              "buyerUserId",
+              "sellerUserId",
+              "offeredPrice",
+              "status",
+              "offerDate",
+              "lastUpdateDate",
+              "message"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "Price",
+            "attributes": [
+              "amount",
+              "currency"
+            ]
+          },
+          {
+            "name": "ContactDetails",
+            "attributes": [
+              "email",
+              "contactNumber"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Buyers and sellers make a reasonable discussion to make a deal.",
+          "Offers/requests are made by registered users.",
+          "Offers/requests are stored on the user's profile page.",
+          "Sellers' contact information can be obtained by buyers."
+        ]
+      }
+    },
+    {
+      "context": "UserDashboard",
+      "analysis": {
+        "context": "UserDashboard",
+        "aggregate_roots": [],
+        "entities": [],
+        "value_objects": [
+          {
+            "name": "DashboardSummary",
+            "attributes": [
+              "productsAddedCount",
+              "productsRequestedToBuyCount",
+              "offersReceivedCount"
+            ]
+          },
+          {
+            "name": "ProductSummary",
+            "attributes": [
+              "productId",
+              "productName",
+              "price",
+              "status"
+            ]
+          },
+          {
+            "name": "OfferSummary",
+            "attributes": [
+              "offerId",
+              "productId",
+              "productName",
+              "offeredPrice",
+              "buyerSellerName",
+              "status"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Only logged-in registered users can view their dashboard.",
+          "The dashboard displays products added by the user, requests made by the user to buy, and offers received for products on sale."
+        ]
+      }
+    },
+    {
+      "context": "HelpAndSupport",
+      "analysis": {
+        "context": "HelpAndSupport",
+        "aggregate_roots": [
+          "SupportTicket",
+          "UserManual"
+        ],
+        "entities": [
+          {
+            "name": "SupportTicket",
+            "attributes": [
+              "id",
+              "senderName",
+              "senderEmail",
+              "message",
+              "submissionDate",
+              "status",
+              "associatedUserId"
+            ]
+          },
+          {
+            "name": "UserManual",
+            "attributes": [
+              "id",
+              "title",
+              "content",
+              "lastUpdatedDate"
+            ]
+          }
+        ],
+        "value_objects": [
+          {
+            "name": "ContactFormSubmission",
+            "attributes": [
+              "name",
+              "email",
+              "message"
+            ]
+          },
+          {
+            "name": "ManualSection",
+            "attributes": [
+              "title",
+              "content"
+            ]
+          }
+        ],
+        "business_rules": [
+          "Users can contact developers by providing their name, email, and a message.",
+          "The user manual provides instructions on platform usage (registration, password reset, search, seller contact)."
+        ]
+      }
+    }
+  ]
+}

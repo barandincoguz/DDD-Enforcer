@@ -1,37 +1,43 @@
 {
-  "session_start": "2026-03-13T21:31:18.628937",
-  "session_end": "2026-03-13T21:31:19.191640",
+  "session_start": "2026-04-27T22:21:04.660136",
+  "session_end": "2026-04-27T22:21:04.660402",
   "summary": {
     "total_validations": 1,
-    "files_with_violations": 0,
-    "files_without_violations": 1,
-    "violation_rate_percent": 0.0,
-    "total_violations_found": 0,
-    "avg_violations_per_file": 0.0
+    "files_with_violations": 1,
+    "files_without_violations": 0,
+    "violation_rate_percent": 100.0,
+    "total_violations_found": 2,
+    "avg_violations_per_file": 2.0
   },
   "performance": {
-    "avg_validation_time_ms": 562.27,
-    "total_validation_time_ms": 562.27,
-    "avg_code_size_chars": 911.0,
-    "total_code_size_chars": 911,
-    "avg_code_tokens": 228.0,
-    "total_code_tokens": 228
+    "avg_validation_time_ms": 50.0,
+    "total_validation_time_ms": 50.0,
+    "avg_code_size_chars": 100.0,
+    "total_code_size_chars": 100,
+    "avg_code_tokens": 50.0,
+    "total_code_tokens": 50
   },
   "rag_integration": {
-    "validations_with_sources": 0,
-    "source_attachment_rate_percent": 0.0
+    "validations_with_sources": 1,
+    "source_attachment_rate_percent": 100.0
   },
-  "violation_breakdown": {},
+  "violation_breakdown": {
+    "SynonymViolation": 1,
+    "BannedTermViolation": 1
+  },
   "validation_history": [
     {
-      "timestamp": "2026-03-13T21:31:19.191220",
-      "filename": "/Users/barandincoguz/Desktop/Testforddd/DomainDrivenDesignEnforcer.py",
-      "file_size_chars": 911,
-      "code_file_tokens": 228,
-      "validation_time_ms": 562.2720718383789,
-      "violations_count": 0,
-      "violation_types": [],
-      "has_sources": false
+      "timestamp": "2026-04-27T22:21:04.660311",
+      "filename": "test.py",
+      "file_size_chars": 100,
+      "code_file_tokens": 50,
+      "validation_time_ms": 50.0,
+      "violations_count": 2,
+      "violation_types": [
+        "SynonymViolation",
+        "BannedTermViolation"
+      ],
+      "has_sources": true
     }
   ]
 }
