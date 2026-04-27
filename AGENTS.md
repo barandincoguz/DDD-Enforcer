@@ -31,7 +31,7 @@ The goal is not just to make the code work, but to keep it understandable, exten
 ## Modularity
 
 - Build modular first.
-- No code file may exceed **300 lines**.
+- No code file may exceed **400 lines (without comment lines and sections )**.
 - If more code is needed, split it into more files, modules, or helper functions.
 - Do not keep growing a file just to move faster.
 - Keep responsibilities narrow and clear.
