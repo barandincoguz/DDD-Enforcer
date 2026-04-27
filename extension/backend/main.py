@@ -29,14 +29,16 @@ from config import (
     ParserConfig,
 )
 from core.architect import DomainArchitect
+from core.code_parser import has_advanced_validation_signals
 from core.document_parser import SRSDocumentParser
 from core.llm_client import LLMClient
 from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel
+from configs.models import model_for_stage
 from core.token_tracker import TokenTracker
 from core.validation_metrics import ValidationMetricsTracker
-from core.ast_model_signals import ASTModelSignalExtractor
+from core.AST.ast_model_signals import ASTModelSignalExtractor
 
 app_state: Dict[str, Any] = {}
 rag_config = RAGConfig()
@@ -262,11 +264,7 @@ def _is_semantically_empty_python(content: str) -> bool:
 
 def _needs_llm_advanced_checks(ast_data: Dict[str, Any]) -> bool:
     """Run LLM only when advanced signals exist in AST."""
-    return bool(
-        ast_data.get("imports")
-        or ast_data.get("assignments")
-        or ast_data.get("function_calls")
-    )
+    return has_advanced_validation_signals(ast_data)
 
 
 def _merge_violations(*groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -651,8 +649,9 @@ def validate_code(submission: CodeSubmission):
         }
 
     token_tracker = TokenTracker.get_instance()
-    pre_input = token_tracker.stats.flash_lite_prompt_tokens
-    pre_output = token_tracker.stats.flash_lite_completion_tokens
+    _pre_validator = token_tracker.tokens_for_stage("Validator")
+    pre_input = _pre_validator.prompt_tokens
+    pre_output = _pre_validator.completion_tokens
     pre_calls = token_tracker.stats.total_api_calls
 
     # Run deterministic checks first (no LLM token cost)
@@ -727,8 +726,9 @@ def validate_code(submission: CodeSubmission):
     )
     
     # Get token usage delta for this validation call
-    post_input = token_tracker.stats.flash_lite_prompt_tokens
-    post_output = token_tracker.stats.flash_lite_completion_tokens
+    _post_validator = token_tracker.tokens_for_stage("Validator")
+    post_input = _post_validator.prompt_tokens
+    post_output = _post_validator.completion_tokens
     post_calls = token_tracker.stats.total_api_calls
     llm_input_delta = max(0, post_input - pre_input)
     llm_output_delta = max(0, post_output - pre_output)
@@ -870,11 +870,10 @@ def get_validation_summary():
 def get_combined_metrics():
     """
     Get combined metrics for UBMK presentation.
-    
+
     Returns both token usage and validation metrics with per-validation averages
     and monthly cost projections. Now supports multi-model pricing:
-    - gemini-2.5-flash for Domain Model Generation
-    - gemini-2.5-flash-lite for Validation
+    - Models read from configs/models.py registry; current defaults below.
     """
     token_tracker = TokenTracker.get_instance()
     validation_tracker = ValidationMetricsTracker.get_instance()
@@ -888,35 +887,38 @@ def get_combined_metrics():
     monthly_projections = {}
     
     if total_validations > 0 and total_validations is not None:
-        # Get flash-lite specific costs (validation model)
-        flash_lite_cost = token_report.get("cost_estimation", {}).get("flash_lite_model", {}).get("total_cost", 0)
-        flash_lite_input = token_report.get("model_usage", {}).get("gemini-2.5-flash-lite", {}).get("prompt_tokens", 0)
-        flash_lite_output = token_report.get("model_usage", {}).get("gemini-2.5-flash-lite", {}).get("completion_tokens", 0)
-        
+        # Get validator-specific costs using registry model id
+        validator_id = model_for_stage("Validator").model_id
+        by_model_costs = token_report.get("cost_estimation", {}).get("by_model", {})
+        validator_cost = by_model_costs.get(validator_id, {}).get("total_cost", 0)
+        validator_model_usage = token_report.get("model_usage", {}).get(validator_id, {})
+        validator_input = validator_model_usage.get("prompt_tokens", 0)
+        validator_output = validator_model_usage.get("completion_tokens", 0)
+
         avg_latency = validation_report.get("performance", {}).get("avg_validation_time_ms", 0)
-        
+
         per_validation_metrics = {
-            "model": "gemini-2.5-flash-lite",
-            "avg_cost_per_validation": round(flash_lite_cost / total_validations, 8) if total_validations > 0 else 0,
+            "model": validator_id,
+            "avg_cost_per_validation": round(validator_cost / total_validations, 8) if total_validations > 0 else 0,
             "avg_latency_ms": round(avg_latency, 2),
-            "avg_input_tokens": round(flash_lite_input / total_validations, 2) if total_validations > 0 else 0,
-            "avg_output_tokens": round(flash_lite_output / total_validations, 2) if total_validations > 0 else 0,
-            "avg_total_tokens": round((flash_lite_input + flash_lite_output) / total_validations, 2) if total_validations > 0 else 0
+            "avg_input_tokens": round(validator_input / total_validations, 2) if total_validations > 0 else 0,
+            "avg_output_tokens": round(validator_output / total_validations, 2) if total_validations > 0 else 0,
+            "avg_total_tokens": round((validator_input + validator_output) / total_validations, 2) if total_validations > 0 else 0
         }
-        
-        # Monthly projections (1000 validations/day * 30 days) - using flash-lite pricing
+
+        # Monthly projections (1000 validations/day * 30 days) - using validator model pricing
         validations_per_month = 1000 * 30  # 30,000 validations
-        cost_per_validation = flash_lite_cost / total_validations if total_validations > 0 else 0
+        cost_per_validation = validator_cost / total_validations if total_validations > 0 else 0
         monthly_cost = cost_per_validation * validations_per_month
-        
+
         monthly_projections = {
             "validations_per_day": 1000,
             "validations_per_month": validations_per_month,
             "estimated_monthly_cost": round(monthly_cost, 4),
-            "estimated_monthly_input_tokens": round((flash_lite_input / total_validations) * validations_per_month, 0) if total_validations > 0 else 0,
-            "estimated_monthly_output_tokens": round((flash_lite_output / total_validations) * validations_per_month, 0) if total_validations > 0 else 0,
+            "estimated_monthly_input_tokens": round((validator_input / total_validations) * validations_per_month, 0) if total_validations > 0 else 0,
+            "estimated_monthly_output_tokens": round((validator_output / total_validations) * validations_per_month, 0) if total_validations > 0 else 0,
             "currency": "USD",
-            "model": "gemini-2.5-flash-lite",
+            "model": validator_id,
             "pricing": {
                 "input_per_1m": 0.075,
                 "output_per_1m": 0.30
@@ -927,23 +929,25 @@ def get_combined_metrics():
     domain_info = {
         "domain_model_tokens": app_state.get("domain_model_tokens", 0),
         "domain_model_path": str(DOMAIN_MODEL_PATH) if DOMAIN_MODEL_PATH.exists() else None,
-        "generation_model": "gemini-2.5-flash"
+        "generation_model": model_for_stage("Architect").model_id
     }
     
-    # Model pricing reference
+    # Model pricing reference (derived from configs/models.py registry)
+    architect_info = model_for_stage("Architect")
+    validator_info = model_for_stage("Validator")
     pricing_reference = {
-        "gemini-2.5-flash": {
+        architect_info.model_id: {
             "use_case": "Domain Model Generation",
             "stages": ["Scout", "Architect", "Specialist", "Synthesizer"],
-            "input_per_1m_tokens": 0.30,
-            "output_per_1m_tokens": 2.50,
+            "input_per_1m_tokens": architect_info.pricing.cost_for(1_000_000, 0) * 1_000_000,
+            "output_per_1m_tokens": architect_info.pricing.cost_for(0, 1_000_000) * 1_000_000,
             "note": "Output price includes thinking tokens"
         },
-        "gemini-2.5-flash-lite": {
+        validator_info.model_id: {
             "use_case": "Code Validation",
             "stages": ["Validator"],
-            "input_per_1m_tokens": 0.10,
-            "output_per_1m_tokens": 0.40,
+            "input_per_1m_tokens": validator_info.pricing.cost_for(1_000_000, 0) * 1_000_000,
+            "output_per_1m_tokens": validator_info.pricing.cost_for(0, 1_000_000) * 1_000_000,
             "note": "Output price includes thinking tokens"
         }
     }
