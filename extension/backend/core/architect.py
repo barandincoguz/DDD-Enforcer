@@ -742,7 +742,7 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
             print("✅ PIPELINE COMPLETED SUCCESSFULLY")
             print("="*70)
             print(f"  📊 Total API Requests: {self.request_count}")
-            print(f"  🎯 Ready for final synthesis")
+            print(f"  🎯 Returning {len(results)} context analyses; caller invokes synthesize() next")
             print("="*70 + "\n")
             return results
 
