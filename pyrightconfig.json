@@ -1,0 +1,14 @@
+{
+  "include": ["extension/backend"],
+  "extraPaths": ["extension/backend"],
+  "exclude": [
+    "**/__pycache__",
+    "**/intermediate",
+    "**/node_modules",
+    "**/.pytest_cache",
+    "extension/out"
+  ],
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": "none",
+  "pythonVersion": "3.13"
+}
