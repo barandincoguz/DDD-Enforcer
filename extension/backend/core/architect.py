@@ -86,29 +86,30 @@ class DomainArchitect:
         self.request_count += 1
         print(f"  📡 API Request #{self.request_count}")
 
-    def _handle_quota_error(self, error: Exception, retry_count: int) -> float:
-        """Handle quota exceeded errors with exponential backoff."""
+    def _is_quota_error_and_backoff(self, error: Exception, retry_count: int) -> bool:
+        """Return True iff `error` was a quota / rate-limit error AND we slept
+        for the recommended backoff duration. Return False for any other error
+        (caller decides how to handle).
+        """
         error_str = str(error)
-        is_quota_error = (
+        is_quota = (
             "429" in error_str
             or "quota" in error_str.lower()
             or "ResourceExhausted" in str(type(error))
         )
+        if not is_quota:
+            return False
 
-        if not is_quota_error:
-            return 0
-
-        # Try to extract suggested retry delay
         retry_match = re.search(r"retry in (\d+\.?\d*)", error_str)
         if retry_match:
             wait_time = max(float(retry_match.group(1)), 10)
         else:
             # Exponential backoff: 15s, 30s, 60s, 120s
-            wait_time = min(15 * (2**retry_count), 300)
+            wait_time = min(15 * (2 ** retry_count), 300)
 
         print(f"  ⚠️  QUOTA EXCEEDED - Backing off {wait_time:.1f}s...")
         time.sleep(wait_time)
-        return wait_time
+        return True
 
     # =========================================================================
     # STAGE 1: SCOUT - Extract Domain Sentences
@@ -261,7 +262,7 @@ Return empty array [] if no sentences match the criteria."""
                 return []
 
             except Exception as e:
-                if self._handle_quota_error(e, retry) == 0:
+                if not self._is_quota_error_and_backoff(e, retry):
                     print(f"      [WARN] Chunk {chunk_num} error: {e}")
                     if retry >= 4:
                         return [
@@ -390,7 +391,7 @@ RESPOND WITH JSON:
                 return ["CoreDomain"]
 
             except Exception as e:
-                if self._handle_quota_error(e, retry) == 0:
+                if not self._is_quota_error_and_backoff(e, retry):
                     print(f"   [WARN] Context identification error: {e}")
                     self._report_progress("Architect", "error", str(e), 100)
                     return ["CoreDomain"]
@@ -514,7 +515,7 @@ If a category has no data, use empty arrays. Do not invent data."""
                 return [{"context": ctx, "analysis": {}} for ctx in contexts]
 
             except Exception as e:
-                if self._handle_quota_error(e, retry) == 0:
+                if not self._is_quota_error_and_backoff(e, retry):
                     print(f"   [WARN] Analysis error: {e}")
                     if retry >= 4:
                         self._report_progress("Specialist", "error", str(e), 100)
@@ -671,7 +672,7 @@ CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."
                 return result
 
             except Exception as e:
-                if self._handle_quota_error(e, retry) == 0:
+                if not self._is_quota_error_and_backoff(e, retry):
                     print(f"   [WARN] Synthesis error: {e}")
                     if retry >= 4:
                         self._report_progress("Synthesizer", "error", str(e), 100)
