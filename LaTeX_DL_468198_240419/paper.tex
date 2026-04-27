@@ -1,0 +1,1019 @@
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DDD-Enforcer Journal Paper — Empirical Software Engineering (EMSE)
+% Springer svjour3 template
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage{fix-cm}
+\documentclass[smallextended]{svjour3}
+\smartqed
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{enumitem}
+
+% Custom command for placeholder text
+\newcommand{\placeholder}[1]{\textcolor{red}{\textbf{[PLACEHOLDER: #1]}}}
+
+\journalname{Empirical Software Engineering}
+
+\begin{document}
+
+\title{DDD-Enforcer: An Empirical Study of LLM-Powered Domain-Driven Design Enforcement in Microservice Systems}
+
+\author{Ahmet Baran Dincoguz \and
+        Ali Kendir \and
+        Murat Karakaya}
+
+\institute{A. B. Dincoguz \at
+              Department of Software Engineering, TED University, Ankara, T\"urkiye \\
+              \email{baran.dincoguz@tedu.edu.tr}
+           \and
+           A. Kendir \at
+              Department of Software Engineering, TED University, Ankara, T\"urkiye \\
+              \email{ali.kendir@tedu.edu.tr}
+           \and
+           M. Karakaya \at
+              Department of Software Engineering, TED University, Ankara, T\"urkiye \\
+              \email{murat.karakaya@tedu.edu.tr}
+}
+
+\date{Received: date / Accepted: date}
+
+\maketitle
+
+% ====================================================================
+% ABSTRACT
+% ====================================================================
+\begin{abstract}
+Domain-Driven Design (DDD) provides a principled approach to structuring software around business domains, yet maintaining DDD compliance in evolving codebases remains a persistent challenge.
+Traditional static analysis tools enforce syntactic and structural rules but lack the semantic understanding necessary to detect domain-concept-level violations such as ubiquitous language misuse or bounded context boundary crossings.
+Prior LLM-assisted DDD work has focused on supporting up-front \emph{design} activities (event storming, bounded-context discovery) rather than the continuous \emph{enforcement} of an existing domain model against an evolving codebase.
+In this paper, we present DDD-Enforcer, a proof-of-concept framework for LLM-powered DDD enforcement that automatically extracts a machine-readable rulebook from a Software Requirements Specification (SRS) and uses it to flag DDD violations in source code through an IDE integration.
+We instantiate the framework with a four-stage multi-agent pipeline (Scout, Architect, Specialist, Synthesizer) that produces the rulebook, an AST-guided validator that checks code against it, and a VS~Code extension that surfaces violations to the developer.
+The rulebook is a durable artifact in its own right: beyond enabling automated enforcement, it serves as a machine-checked onboarding document for new developers joining a project.
+Because expert-annotated ground truth at the scale we require is infeasible to obtain, we evaluate the framework using \emph{LLM-Assisted Human Evaluation}: a strictly stronger Judge LLM classifies each reported violation against a detailed rubric, and the authors audit a sample of its verdicts.
+We compare three pipeline variants (naive single-call, retrieval-augmented single-call, and the multi-agent pipeline), four LLM providers (Google Gemini, OpenAI ChatGPT, Anthropic Claude, and an open-source model), and three SRS domains, and we additionally measure recall on codebases into which we deliberately seed DDD violations.
+Our goal is not to prove that DDD-Enforcer is a finished product, but to demonstrate that LLM-enforced DDD is feasible at today's capability level and to provide a reusable framework that other researchers can extend.
+
+\keywords{Domain-Driven Design \and Large Language Models \and Microservices \and Software Architecture \and Static Analysis \and Multi-Agent Systems \and LLM-as-a-Judge}
+\end{abstract}
+
+% ====================================================================
+% 1. INTRODUCTION
+% ====================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Domain-Driven Design (DDD)~\cite{evans2003ddd} provides a systematic methodology for structuring complex software systems around business domain concepts.
+Central to DDD are the notions of \emph{ubiquitous language}---a shared vocabulary between domain experts and developers---and \emph{bounded contexts}, which define clear conceptual boundaries within which a domain model is consistent and applicable~\cite{vernon2013implementing}.
+These principles are particularly relevant in microservice architectures, where each service ideally corresponds to a bounded context with its own domain model~\cite{microsoft2024tactical}.
+
+Despite the widespread adoption of DDD principles in microservice design~\cite{loukides2020microservices}, maintaining DDD compliance as codebases evolve remains a significant challenge.
+\emph{Domain model degradation}---the gradual erosion of DDD principles through development iterations---manifests in several forms: violations of the ubiquitous language (e.g., introducing synonyms such as ``Client'' where the domain model defines ``Customer''), breaches of bounded context boundaries (e.g., one service directly importing entities from another without declared dependencies), and the emergence of anti-patterns such as the Anaemic Domain Model~\cite{ozkan2023refactoring}.
+
+Existing architecture enforcement tools such as ArchUnit~\cite{archunit2024} and NDepend~\cite{ndepend2024} enable developers to define and verify structural constraints through unit test assertions and static analysis queries.
+However, these tools operate at the syntactic and structural level---they can verify that a class resides in a specific package or that a dependency direction is correct, but they cannot determine whether a naming choice violates the ubiquitous language or whether a service's responsibilities have drifted beyond its bounded context.
+This semantic gap leaves a significant class of DDD violations undetectable by current tooling.
+
+Recent advances in Large Language Models (LLMs) have demonstrated remarkable capabilities in code understanding, program comprehension, and software engineering tasks~\cite{hou2024llm_se_survey}.
+LLMs possess the semantic reasoning ability to understand domain concepts, detect naming inconsistencies, and reason about architectural boundaries in ways that rule-based tools cannot.
+A small but growing body of work has begun applying LLMs to DDD itself~\cite{automatingddd2024, evans2024infoq}, but the published efforts concentrate on the \emph{design} side of DDD---using LLMs as collaborative sparring partners for event storming, ubiquitous-language establishment, and bounded-context discovery.
+The complementary problem of \emph{continuously enforcing} an already-established domain model against a growing codebase has, to the best of our knowledge, not been systematically studied.
+This is the gap that this paper aims to open up.
+
+In this paper, we present DDD-Enforcer, a \emph{proof-of-concept framework} for LLM-powered DDD enforcement.
+Rather than arguing that a single finished system is production-ready, our aim is to demonstrate the feasibility of LLM-enforced DDD at today's capability level and to provide a reusable scaffolding that other researchers can extend, swap components out of, and re-evaluate as LLMs improve.
+We instantiate the framework with a four-stage multi-agent pipeline (Scout, Architect, Specialist, Synthesizer) that produces a structured rulebook from an SRS document, an AST-guided validator that checks source code against that rulebook, and a VS~Code extension that surfaces violations to the developer.
+The rulebook is a first-class artifact in its own right: because it is derived from the SRS and is machine-checkable, it doubles as an onboarding document for developers newly assigned to the project.
+We extend our earlier conference publication~\cite{dincoguz2025ddd_conference} with a substantially expanded empirical study organized around the following research questions:
+
+\begin{description}[leftmargin=1.5cm, labelwidth=1cm]
+\item[\textbf{RQ1}] \emph{Pipeline comparison.} Holding the LLM fixed, how do alternative pipeline architectures (naive single-call, retrieval-augmented single-call, and our multi-agent pipeline) compare in rulebook quality and DDD violation detection?
+\item[\textbf{RQ2}] \emph{Model comparison.} Using the best pipeline from RQ1, how do four LLM providers (Google Gemini, OpenAI ChatGPT, Anthropic Claude, and an open-source local model) compare on detection accuracy, latency, and cost?
+\item[\textbf{RQ3}] \emph{Cross-domain generalization.} Using the best pipeline and model combination, how does the framework perform across three SRS domains drawn from distinct application areas?
+\item[\textbf{RQ4}] \emph{Synthetic-violation recognition.} On codebases into which we have deliberately seeded DDD violations, how well does the framework recover the planted violations?
+\end{description}
+
+Our key contributions are:
+\begin{itemize}
+    \item A \textbf{framework for LLM-powered DDD enforcement} that separates rulebook extraction from violation detection and is designed so that each component can be replaced independently.
+    \item A concrete \textbf{four-stage multi-agent instantiation} of the rulebook-extraction component (Scout, Architect, Specialist, Synthesizer), compared head-to-head against naive and retrieval-augmented alternatives.
+    \item An \textbf{LLM-Assisted Human Evaluation protocol} that substitutes a strictly stronger Judge LLM plus author audit for expert-annotated ground truth, providing a practical evaluation methodology for proof-of-concept studies where expert annotation is infeasible.
+    \item An \textbf{empirical snapshot} across three pipelines, four LLM providers, and three SRS domains that demonstrates feasibility without claiming optimality.
+    \item An \textbf{open release} of the framework, configuration files, rubric prompts, and raw results, so that other researchers can swap in new pipelines, models, or domains and re-run the study.
+\end{itemize}
+
+The remainder of this paper is organized as follows.
+Section~\ref{sec:background} reviews the background and related work.
+Section~\ref{sec:architecture} describes the DDD-Enforcer framework and its current instantiation.
+Section~\ref{sec:experimental_design} presents the experimental design, including the LLM-Assisted Human Evaluation protocol.
+Sections~\ref{sec:results_rq1} through~\ref{sec:results_rq4} report our results organized by research question.
+Section~\ref{sec:discussion} discusses findings, implications, and threats to validity, and
+Section~\ref{sec:conclusion} concludes the paper.
+
+
+% ====================================================================
+% 2. BACKGROUND AND RELATED WORK
+% ====================================================================
+\section{Background and Related Work}
+\label{sec:background}
+
+\subsection{Domain-Driven Design Principles and Practices}
+\label{sec:bg_ddd}
+
+Domain-Driven Design, introduced by Evans~\cite{evans2003ddd} and further elaborated by Vernon~\cite{vernon2013implementing}, provides a set of strategic and tactical patterns for modeling complex software around business domains.
+\emph{Strategic patterns} include bounded contexts (defining the applicability boundary of a domain model), context maps (documenting relationships between bounded contexts), and the ubiquitous language (a shared structured vocabulary connecting domain activities with code).
+\emph{Tactical patterns} include entities, value objects, aggregates, domain events, repositories, and domain services---building blocks for expressing domain logic within a bounded context.
+
+In microservice architectures, DDD's strategic patterns provide natural guidance for service decomposition: each microservice ideally aligns with a bounded context, encapsulating a coherent slice of domain logic~\cite{microsoft2024tactical}.
+However, applying DDD in practice is challenging.
+Ozkan et al.~\cite{ozkan2023refactoring} conducted an industrial action research study in which they refactored a Java/Spring backend system using DDD principles.
+Their findings revealed that while DDD significantly improved modularity, testability, and reusability (achieving an mTAM score of 84/100), the approach introduced substantial cognitive load---engineers without prior DDD experience found the abstractions difficult to grasp.
+Importantly, their study was conducted entirely manually: domain experts identified bounded contexts, domain services, and domain objects through focus groups and expert judgment.
+Our work aims to automate this process through LLM-powered analysis.
+
+\placeholder{Add 2--3 more DDD-related references: studies on DDD adoption challenges, DDD in microservices decomposition (Mazlami et al. 2017, Kapferer and Zimmermann 2020), DDD anti-patterns.}
+
+\subsection{Architecture Enforcement and Static Analysis}
+\label{sec:bg_enforcement}
+
+Several tools enable developers to enforce architectural constraints through automated checks.
+ArchUnit~\cite{archunit2024} allows Java developers to express architecture rules as unit tests, verifying package dependencies, class naming conventions, and layer access restrictions.
+NDepend~\cite{ndepend2024} provides similar capabilities for .NET through LINQ-based queries and comprehensive code metrics.
+NetArchTest offers comparable functionality for .NET Core.
+
+While these tools are effective for structural constraints, they share a fundamental limitation: rules must be manually defined and maintained, and the tools lack semantic understanding of domain concepts.
+ArchUnit can verify that a class in the \texttt{order} package does not import from the \texttt{inventory} package, but it cannot determine whether a class named \texttt{ClientProfile} violates the ubiquitous language that defines the concept as \texttt{CustomerProfile}.
+This semantic gap is precisely what LLM-powered analysis can address.
+
+\placeholder{Add references to more architecture enforcement literature: architectural erosion studies, architecture conformance checking (Knodel and Popescu 2007, Passos et al. 2010).}
+
+\subsection{Microservice Quality Analysis}
+\label{sec:bg_microservice_quality}
+
+Research on automated quality analysis of microservice systems has explored various dimensions.
+Abdelfattah et al.~\cite{abdelfattah2023semantic} proposed a Component-based Semantic Clone (CSC) detection method for microservices, using Component Call Graphs and logistic regression to identify functionally similar code across services.
+Their approach achieved an F1-score of 0.813 on the TrainTicket benchmark and demonstrated that semantic clones (code that is functionally equivalent but syntactically different) represent a distinct phenomenon from syntactic clones.
+However, their method relies on handcrafted features (method names, types, HTTP methods) combined with WordNet-based similarity and supervised learning on manually labeled datasets of over 27,000 pairs.
+
+Our work addresses a complementary problem: while semantic clone detection identifies \emph{symptoms} of poor microservice decomposition (duplicated functionality), DDD violation detection targets the \emph{root causes} (misaligned bounded contexts, ubiquitous language drift).
+Furthermore, our LLM-based approach requires no manual feature engineering or labeled training data, leveraging the LLM's pre-trained understanding of domain semantics.
+
+\placeholder{Add references to: microservice anti-pattern detection, service decomposition quality metrics, API analysis in microservices.}
+
+\subsection{LLMs for Software Engineering}
+\label{sec:bg_llm_se}
+
+Large Language Models have been applied to a wide range of software engineering tasks, including code generation~\cite{chen2021codex}, bug detection~\cite{li2024llm_bugs}, code review~\cite{li2022codereviewer}, and program comprehension~\cite{nam2024llm_comprehension}.
+Recent surveys~\cite{hou2024llm_se_survey, fan2023llm_se} provide comprehensive overviews of the landscape.
+
+In the domain of software architecture, LLMs have been explored for architecture recovery, design pattern identification, and code smell detection.
+\placeholder{Add 3--4 specific references on LLM-based architecture analysis.}
+However, the application of LLMs specifically to Domain-Driven Design enforcement remains largely unexplored.
+To the best of our knowledge, DDD-Enforcer is among the first systems to combine LLM-powered semantic analysis with AST inspection for real-time DDD compliance checking.
+
+AI coding assistants such as GitHub Copilot and Amazon CodeWhisperer~\cite{yeticstiren2023copilot} focus primarily on code generation and completion rather than architectural compliance.
+While these tools can suggest code that follows certain patterns, they do not actively enforce domain design principles or detect violations against a project-specific domain model.
+
+A parallel strand of work has begun treating LLMs not only as code generators but also as \emph{evaluators} of code and software artifacts.
+Recent empirical studies of \emph{LLM-as-a-Judge} methodologies in software engineering~\cite{llmjudgeSE2025,llmjudgeSurvey2024,llmjudgesComprehensive2024} report that output-based LLM judges achieve Pearson correlations around 0.8 with human experts on code-related evaluation tasks, significantly outperforming traditional lexical metrics.
+These results suggest that a sufficiently strong LLM, guided by a detailed rubric, can approximate human judgment for many SE evaluation tasks.
+Our evaluation methodology (Section~\ref{sec:exp_ground_truth}) builds directly on this line of work.
+
+\subsection{LLMs for Domain-Driven Design}
+\label{sec:bg_llm_ddd}
+
+A small body of work has started exploring how LLMs can assist with DDD.
+The prompting-framework proposal of~\cite{automatingddd2024} decomposes DDD into five sequential steps (ubiquitous-language establishment, event-storming simulation, bounded-context identification, aggregate design, technical-architecture mapping) and uses LLMs to assist at each step.
+Evans himself~\cite{evans2024infoq} has publicly encouraged DDD practitioners to experiment with LLMs for strategic modelling.
+Industry-oriented writeups~\cite{dddllmindustry2024} describe using LLMs to accelerate ubiquitous-language definition and context-map drafting.
+
+The unifying characteristic of this prior work is that it targets the \emph{design} side of DDD: LLMs are used as collaborative sparring partners that help human experts \emph{produce} a domain model in the first place.
+None of these works address what happens \emph{after} that domain model has been produced---how to keep an evolving codebase consistent with it.
+DDD-Enforcer addresses this complementary enforcement problem: given a rulebook (however it was produced), can an LLM-based system reliably flag code that deviates from it?
+
+\subsection{Multi-Agent LLM Systems}
+\label{sec:bg_multiagent}
+
+Multi-agent architectures for LLM-based systems have gained significant attention, with frameworks such as LangGraph, AutoGen~\cite{wu2023autogen}, and CrewAI providing orchestration capabilities for complex multi-step workflows.
+These frameworks demonstrate that decomposing a complex reasoning task into specialized agent roles---each with focused responsibilities and structured handoffs---can improve both quality and reliability of LLM outputs.
+
+DDD-Enforcer's four-stage pipeline (Scout, Architect, Specialist, Synthesizer) draws from these patterns while specializing for domain extraction.
+Each agent has a clearly defined role, structured input/output contracts enforced through Pydantic schemas, and specific prompt engineering tailored to its stage of the pipeline.
+
+\placeholder{Add 2--3 more references on multi-agent LLM systems in SE contexts.}
+
+\subsection{Positioning}
+\label{sec:bg_positioning}
+
+Our work complements the above strands of research in several ways.
+Unlike Ozkan et al.~\cite{ozkan2023refactoring}, who perform DDD analysis and refactoring entirely manually through expert-driven focus groups and interviews, we automate domain model extraction and violation detection using LLMs.
+Unlike Abdelfattah et al.~\cite{abdelfattah2023semantic}, who use traditional ML with handcrafted features for semantic clone detection, we leverage LLMs' pre-trained semantic understanding to reason directly about domain concepts without manual feature engineering.
+Unlike architecture enforcement tools such as ArchUnit~\cite{archunit2024}, which require manually defined structural rules, our system derives rules automatically from SRS documents and can detect semantic violations beyond structural constraints.
+Unlike prior LLM-assisted DDD work~\cite{automatingddd2024,evans2024infoq}, which uses LLMs to \emph{produce} a domain model during design, DDD-Enforcer uses LLMs to \emph{enforce} an already-produced model against live code.
+Table~\ref{tab:positioning} summarizes these distinctions.
+
+\begin{table}[t]
+\caption{Positioning of DDD-Enforcer relative to existing approaches}
+\label{tab:positioning}
+\centering
+\footnotesize
+\begin{tabular}{p{2.2cm} p{1.7cm} p{1.7cm} p{1.7cm} p{1.8cm} p{2.0cm}}
+\toprule
+\textbf{Aspect} & \textbf{ArchUnit} & \textbf{Ozkan et al.} & \textbf{Abdelfattah et al.} & \textbf{Prior LLM+DDD} & \textbf{DDD-Enforcer (Ours)} \\
+\midrule
+DDD lifecycle phase & Enforcement & Design \& refactor & Post-hoc clone detection & Design assistance & Enforcement \\
+Automation & Manual rules & Fully manual & Semi-auto (labeled data) & Human-in-the-loop LLM & Fully automated \\
+Semantic understanding & None & Human experts & WordNet similarity & LLM reasoning & LLM reasoning \\
+Domain model source & Developer-defined & Expert focus groups & N/A & LLM-assisted drafting & Auto-extracted from SRS \\
+Analysis scope & Structural constraints & Single component & Cross-service clones & Design artifacts & Per-file DDD violations \\
+Training data needed & N/A & N/A & 27K+ labeled pairs & None (zero-shot) & None (zero-shot) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ====================================================================
+% 3. SYSTEM ARCHITECTURE
+% ====================================================================
+\section{System Architecture and Design}
+\label{sec:architecture}
+
+This section describes the architecture of DDD-Enforcer.
+The system consists of three main components: (1)~a multi-agent pipeline for automatic domain model generation from SRS documents, (2)~a code analysis engine combining AST inspection with LLM-powered semantic analysis, and (3)~an embedding-based traceability pipeline linking violations back to their originating requirements.
+Figure~\ref{fig:architecture} provides an overview.
+
+\begin{figure}[t]
+    \centering
+    \placeholder{Insert system architecture diagram showing: SRS Document → Multi-Agent Pipeline (Scout → Architect → Specialist → Synthesizer) → Domain Model JSON → Code Analysis Engine (AST Parser + LLM Validator) → Violations → Traceability Pipeline → VS Code Extension}
+    \caption{Overview of the DDD-Enforcer system architecture}
+    \label{fig:architecture}
+\end{figure}
+
+\subsection{Multi-Agent Domain Model Generation}
+\label{sec:arch_pipeline}
+
+The domain model generation pipeline transforms unstructured SRS documents into a structured JSON domain model through four specialized LLM agents, each with clearly defined responsibilities and Pydantic-enforced output schemas.
+
+\paragraph{Scout Agent}
+The Scout agent serves as the entry point, receiving the raw SRS document and extracting domain-relevant content.
+It processes documents through smart chunking (10,000-character chunks with sentence boundary preservation) to accommodate LLM context window limitations.
+The Scout identifies and extracts sentences describing business entities, domain rules, workflows, and inter-entity relationships, while filtering out boilerplate content (e.g., formatting instructions, version history, legal notices).
+The output is a curated set of domain-relevant text passages.
+
+\paragraph{Architect Agent}
+The Architect agent analyzes the Scout's output to identify distinct bounded contexts within the domain.
+It groups related domain concepts by examining terminology clusters, entity co-occurrence, and logical ownership boundaries.
+For each identified context, the Architect provides a name, a description of its responsibility, and a preliminary list of key entities.
+Typically, this stage identifies 2--8 bounded contexts per project, depending on domain complexity.
+
+\paragraph{Specialist Agent}
+The Specialist agent performs deep analysis of each bounded context identified by the Architect.
+In a single optimized API call per context, it extracts:
+\begin{itemize}
+    \item \textbf{Aggregate Roots}: Primary entities that serve as consistency boundaries
+    \item \textbf{Entities}: Domain objects with identity, including their attributes and relationships
+    \item \textbf{Value Objects}: Immutable objects defined by their attribute values
+    \item \textbf{Domain Events}: Significant occurrences that the domain tracks
+    \item \textbf{Business Rules}: Constraints and invariants governing the domain
+    \item \textbf{Synonyms to Avoid}: Terms that should not be used in place of canonical domain terms
+    \item \textbf{Context Dependencies}: Allowed interactions between bounded contexts
+\end{itemize}
+
+\paragraph{Synthesizer Agent}
+The Synthesizer agent merges all context-specific analyses into a cohesive domain model.
+It resolves duplicate entities that may appear across contexts, ensures naming consistency, validates cross-context dependencies, and produces a final JSON output conforming to a Pydantic-enforced \texttt{DomainModel} schema.
+
+\paragraph{Structured Output Enforcement}
+All agent interactions use Pydantic schemas to enforce structured outputs.
+This ensures that LLM responses conform to expected formats, eliminating parsing failures and providing type safety throughout the pipeline.
+Listing~\ref{lst:pydantic} shows the core response schema for violation detection.
+
+\begin{lstlisting}[caption={Pydantic schema for violation detection response}, label={lst:pydantic}, basicstyle=\footnotesize\ttfamily, frame=single, language=Python]
+class Violation(BaseModel):
+    type: str        # e.g., "SynonymViolation"
+    message: str     # Human-readable description
+    location: str    # Class/function name
+    severity: str    # "error" or "warning"
+
+class ValidationResponse(BaseModel):
+    violations: List[Violation]
+    summary: str
+\end{lstlisting}
+
+\subsection{Code Analysis Engine}
+\label{sec:arch_analysis}
+
+The code analysis engine combines traditional AST inspection with LLM-powered semantic analysis.
+
+\paragraph{AST Parsing}
+A custom \texttt{DomainVisitor} class performs AST analysis on source files, extracting structural information including:
+class definitions with base classes and methods,
+import statements (both \texttt{import} and \texttt{from} imports),
+function definitions with parameters and type hints,
+variable assignments (for value object violation detection),
+and function calls (for domain event analysis).
+
+\paragraph{LLM-Powered Violation Detection}
+The structural AST data, combined with the domain model rules from \texttt{model.json}, are sent to the LLM for semantic analysis.
+The LLM evaluates the code against six distinct violation categories:
+
+For each violation type below, we give (i) a precise definition, (ii) a negative example (code that violates the rule) and a positive example (the compliant form), and (iii) the detection signal the LLM relies on---the AST feature extracted by the \texttt{DomainVisitor} combined with the rulebook field that grounds the judgment.
+
+\paragraph{V1: Synonym Violation.}
+\emph{Definition.} A class, method, attribute, or variable uses a term that the rulebook has registered as a \texttt{synonym\_of} a canonical domain term.
+\emph{Negative:} \texttt{class ClientProfile} in a bounded context whose rulebook declares ``Client'' as a synonym of the canonical ``Customer''.
+\emph{Positive:} \texttt{class CustomerProfile}.
+\emph{Detection signal:} AST class/attribute/variable names $\times$ the rulebook's \texttt{synonyms} list for the bounded context.
+
+\paragraph{V2: Banned Term Violation.}
+\emph{Definition.} Code within a bounded context uses a term the rulebook has explicitly forbidden in that context (typically because the term belongs to a different bounded context's language).
+\emph{Negative:} a method named \texttt{calculate\_shipping\_fee} inside the Billing context whose rulebook bans shipping-related vocabulary.
+\emph{Positive:} the method lives in the Shipping context, or is renamed to a billing-local concept.
+\emph{Detection signal:} AST identifier names $\times$ the rulebook's \texttt{banned\_terms} list for the enclosing bounded context.
+
+\paragraph{V3: Naming Convention Violation.}
+\emph{Definition.} A class, method, or variable name does not align with the ubiquitous language even though it is not a registered synonym or banned term (e.g., a domain concept is referred to by a generic name such as \texttt{Data}, \texttt{Manager}, or \texttt{Handler} that obscures the domain term the rulebook prefers).
+\emph{Negative:} \texttt{class OrderManager} where the rulebook mandates \texttt{OrderAggregate} or \texttt{OrderService}.
+\emph{Positive:} the domain-aligned name is used.
+\emph{Detection signal:} AST class/method names $\times$ the rulebook's \texttt{preferred\_terms} and stereotype annotations (entity, value object, aggregate, service).
+
+\paragraph{V4: Context Boundary Violation.}
+\emph{Definition.} A source file imports, instantiates, or references types from another bounded context without a dependency being declared in the rulebook's \texttt{context\_dependencies} graph.
+\emph{Negative:} \texttt{from inventory.models import StockItem} appearing in a file that belongs to the Orders context, where the rulebook does not declare an Orders$\rightarrow$Inventory dependency.
+\emph{Positive:} either the dependency is added to the rulebook intentionally, or the interaction is refactored through an anti-corruption layer.
+\emph{Detection signal:} AST import statements + cross-context symbol resolution $\times$ the rulebook's \texttt{context\_dependencies} adjacency list.
+
+\paragraph{V5: Aggregate Boundary Violation.}
+\emph{Definition.} Code reaches inside an aggregate to read or mutate a child entity directly, bypassing the aggregate root, when the rulebook marks the root as the sole consistency boundary.
+\emph{Negative:} \texttt{order.line\_items.append(new\_item)} from outside the Order aggregate.
+\emph{Positive:} \texttt{order.add\_line\_item(new\_item)} invoked through the root, which enforces invariants.
+\emph{Detection signal:} AST attribute-access chains and collection mutations $\times$ the rulebook's \texttt{aggregate\_roots} and their declared children.
+
+\paragraph{V6: Domain Event Violation.}
+\emph{Definition.} An operation that the rulebook identifies as event-producing (e.g., ``when an Order is placed, an \texttt{OrderPlaced} event must be emitted'') completes without emitting the declared event, or emits it under a different name.
+\emph{Negative:} an \texttt{place\_order} method that persists the order but never calls the event publisher.
+\emph{Positive:} the method persists the order and publishes \texttt{OrderPlaced}.
+\emph{Detection signal:} AST function definitions and their call graphs $\times$ the rulebook's \texttt{domain\_events} table mapping operations to required event names.
+
+\subsection{Traceability Pipeline (UX Component, Not Evaluated)}
+\label{sec:arch_traceability}
+
+For developer UX, DDD-Enforcer ships with an embedding-based traceability pipeline that surfaces the SRS paragraph(s) most likely to correspond to each detected violation, independently of the LLM's violation analysis.
+The pipeline uses ChromaDB with the \texttt{all-MiniLM-L6-v2} sentence transformer, chunks the SRS at paragraph boundaries (default 1{,}000 characters, 200-character overlap), and returns the top-3 most relevant chunks for each violation.
+Crucially, the retrieved chunks are \emph{not} injected into the LLM prompt used for detection---they are presented to the developer after the fact---so that detection quality is not conflated with retrieval quality.
+
+We include the traceability pipeline in the framework and in the released code, but we \emph{do not evaluate its retrieval quality in this paper}.
+Preliminary inspection indicated that retrieval quality is dominated by the SRS chunking strategy rather than by the detection components we study here; evaluating it would require a separate study design with its own ground truth and would dilute the focus on the research questions around rulebook extraction and violation detection.
+We therefore treat the traceability pipeline as an engineering feature of the current instantiation and leave its evaluation to future work.
+
+\subsection{IDE Integration}
+\label{sec:arch_ide}
+
+DDD-Enforcer is surfaced to developers through a VS~Code extension.
+On save, the extension invokes the backend validator for the changed file, receives a \texttt{ValidationResponse} (Listing~\ref{lst:pydantic}), and renders each violation as a VS~Code diagnostic anchored to the offending class, method, or import.
+Each diagnostic carries the violation type, a human-readable message, the rulebook identifier that grounds the judgment, and a ``View Source'' action that opens the corresponding SRS paragraph(s) returned by the traceability pipeline.
+\placeholder{AUTHOR TODO: include a screenshot figure of the extension showing (a) an in-editor diagnostic for a Synonym Violation and (b) the ``View Source'' side panel showing the SRS paragraph. Caption it fig:ide-screenshot.}
+
+\subsection{Differences from the Conference Version}
+\label{sec:arch_old_vs_new}
+
+This journal paper extends our earlier conference publication~\cite{dincoguz2025ddd_conference} with substantive changes to both the system and the evaluation.
+Table~\ref{tab:old_vs_new} summarizes the differences.
+
+\begin{table}[t]
+\caption{Differences between the conference version of DDD-Enforcer and the version studied in this paper}
+\label{tab:old_vs_new}
+\centering
+\footnotesize
+\begin{tabular}{p{3.5cm} p{4.3cm} p{4.3cm}}
+\toprule
+\textbf{Aspect} & \textbf{Conference version~\cite{dincoguz2025ddd_conference}} & \textbf{Current version (this paper)} \\
+\midrule
+Rulebook extraction & Single LLM prompt over the full SRS & Four-stage multi-agent pipeline (Scout, Architect, Specialist, Synthesizer) with Pydantic-enforced handoffs \\
+Rulebook schema & Flat term list per context & Structured JSON with aggregates, value objects, events, synonyms, banned terms, and \texttt{context\_dependencies} graph \\
+Code analysis input to LLM & Raw source code & Source code plus structured AST features extracted by \texttt{DomainVisitor} \\
+Violation taxonomy & Synonym + naming + context only (3 types) & Six types (V1--V6), including aggregate-boundary and domain-event violations \\
+Structured output & Free-form text, post-hoc parsed & Pydantic-enforced \texttt{ValidationResponse} schema \\
+Traceability & Not present & Embedding-based retrieval (ChromaDB + MiniLM-L6-v2), decoupled from detection \\
+IDE integration & Command-line report & VS~Code extension with inline diagnostics and ``View Source'' action \\
+Evaluation & Illustrative examples only & LLM-Assisted Human Evaluation across pipelines, models, and domains \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ====================================================================
+% 4. EXPERIMENTAL DESIGN
+% ====================================================================
+\section{Experimental Design}
+\label{sec:experimental_design}
+
+\subsection{Research Questions and Study Structure}
+\label{sec:exp_rqs}
+
+We investigate four research questions, structured as a funnel: RQ1 selects the best pipeline architecture, RQ2 uses that winner to select the best LLM, RQ3 uses the winning combination to probe cross-domain generalization, and RQ4 is a controlled recall study on codebases with deliberately seeded violations.
+
+\textbf{RQ1 (Pipeline Comparison):} \emph{Holding the LLM fixed, how do alternative pipeline architectures compare in rulebook quality and DDD violation detection?}
+\\
+\textit{Motivation:} The multi-agent pipeline introduces architectural complexity.
+Before comparing LLM providers, we need to know whether that complexity buys anything over simpler alternatives.
+We compare three pipelines using the \emph{same} underlying LLM (Section~\ref{sec:exp_pipelines}): a \emph{Naive} single-call pipeline, a \emph{Retrieval-Augmented} single-call pipeline, and our \emph{Multi-Agent} pipeline.
+
+\textbf{RQ2 (Model Comparison):} \emph{Using the best pipeline from RQ1, how do different LLM providers compare on detection accuracy, latency, and cost?}
+\\
+\textit{Motivation:} Once the pipeline is fixed, we probe how much the choice of LLM provider matters.
+We evaluate Gemini (Google), ChatGPT (OpenAI), Claude (Anthropic), and one open-source local model.
+
+\textbf{RQ3 (Cross-Domain Generalization):} \emph{Using the best pipeline and model combination, how does the framework perform across three SRS domains from distinct application areas?}
+\\
+\textit{Motivation:} A proof-of-concept is only interesting if it does not fall apart on the second domain.
+We keep the number of domains intentionally small (three) to keep the evaluation manageable and to avoid diluting the analysis; we report per-domain precision, recall, and F1 together with domain-specific failure modes.
+
+\textbf{RQ4 (Synthetic-Violation Recognition):} \emph{On example codebases generated from an SRS with deliberately seeded DDD violations, how well does the framework recover the planted violations?}
+\\
+\textit{Motivation:} On real-world code we never know the true set of violations.
+In this RQ we flip the setup: we use a strong LLM to generate reference codebases from each SRS, then we manually seed a known set of violations (synonym misuse, bounded-context crossings, aggregate-boundary breaches).
+This gives us a controlled recall-floor dataset where every planted violation is ground truth by construction.
+Section~\ref{sec:exp_synthetic} describes the seeding protocol.
+
+\subsection{Subject SRS Documents and Codebases}
+\label{sec:exp_subjects}
+
+For RQ3 (cross-domain generalization) we evaluate on three SRS documents drawn from distinct application domains.
+We keep the number intentionally small: a proof-of-concept study gains clarity from focused comparison, and adding further domains would dilute the analysis without changing the framing of the results.
+Table~\ref{tab:subjects} summarizes the SRS documents and their associated codebases.
+
+\begin{table}[t]
+\caption{SRS documents and codebases used in the cross-domain evaluation (RQ3). Codebases are either sourced from public repositories or, where no suitable open-source counterpart exists for the SRS, generated from the SRS using a strong LLM and then lightly hand-edited for realism.}
+\label{tab:subjects}
+\centering
+\begin{tabular}{l l r r l}
+\toprule
+\textbf{Label} & \textbf{Domain} & \textbf{Services} & \textbf{LOC} & \textbf{Codebase origin} \\
+\midrule
+D1 & \placeholder{Domain 1 (e.g., E-commerce)} & \placeholder{--} & \placeholder{--} & \placeholder{Source} \\
+D2 & \placeholder{Domain 2 (e.g., Banking)} & \placeholder{--} & \placeholder{--} & \placeholder{Source} \\
+D3 & \placeholder{Domain 3 (e.g., Healthcare)} & \placeholder{--} & \placeholder{--} & \placeholder{Source} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\placeholder{AUTHOR TODO: for each of D1--D3 describe: (i) origin of the SRS document (public repo, course artifact, or authored for this study), (ii) why it was selected, (iii) DDD-relevant characteristics (bounded contexts expected, ubiquitous-language richness), (iv) whether the accompanying codebase is third-party or generated from the SRS. Note any licensing or redistribution constraints.}
+
+\subsection{LLM Providers Under Study}
+\label{sec:exp_models}
+
+For RQ2 (model comparison) we evaluate one representative model per provider, spanning the three major commercial families and one open-source option for local deployment.
+Table~\ref{tab:models} lists the models.
+
+\begin{table}[t]
+\caption{LLM providers and models evaluated for RQ2. One model per family is included to keep the cross-family comparison balanced. All other pipeline parameters are held constant.}
+\label{tab:models}
+\centering
+\begin{tabular}{l l l l}
+\toprule
+\textbf{Model} & \textbf{Provider} & \textbf{Deployment} & \textbf{Approx.\ Cost (per 1M tokens)} \\
+\midrule
+\placeholder{Gemini 2.x} & Google & API & \placeholder{--} \\
+\placeholder{GPT-4.x / GPT-5.x} & OpenAI & API & \placeholder{--} \\
+\placeholder{Claude Sonnet 4.x} & Anthropic & API & \placeholder{--} \\
+\placeholder{Open-source (e.g.\ Qwen-Coder / Llama-3 / DeepSeek)} & Community & Local (quantized) & Compute only \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each model is used as a drop-in replacement for the violation-detection LLM call and for the rulebook-extraction agents in the winning pipeline from RQ1.
+All prompts, temperature settings (0 throughout), AST features, and rulebook schemas are held constant across models.
+A stricter, strictly-stronger \emph{Judge} LLM---distinct from all tested models---is used for evaluation (Section~\ref{sec:exp_ground_truth}).
+
+\subsection{Pipelines Under Comparison}
+\label{sec:exp_pipelines}
+
+For RQ1 we compare three pipeline architectures, all using the same underlying LLM.
+They form a ladder from raw prompting to structured extraction:
+
+\paragraph{Pipeline P1: Naive.}
+The LLM receives the full SRS text and the full source file in a single prompt and is asked to list DDD violations in free form.
+No AST extraction, no rulebook, no structured output.
+This represents the outcome a developer would get by pasting code and SRS into a general-purpose chat interface.
+
+\paragraph{Pipeline P2: Retrieval-Augmented Single-Call.}
+The SRS is chunked (section-aware, $\sim$1{,}000 characters with 200-character overlap) and indexed with \texttt{all-MiniLM-L6-v2} embeddings.
+For each source file, the top-$k$ most relevant SRS chunks (default $k{=}5$) are retrieved using a query built from the file's class and method names.
+The LLM is then given these chunks plus the file's AST features and source code, and is asked to list violations (Pydantic-enforced output).
+P2 has retrieval and AST but \emph{no} up-front rulebook.
+
+\paragraph{Pipeline P3: Multi-Agent (Ours).}
+The full four-stage pipeline (Scout, Architect, Specialist, Synthesizer) extracts the rulebook once, up front.
+Each subsequent per-file validation call then receives the complete rulebook plus the file's AST features and source code, and returns structured violations.
+
+All three pipelines share the same violation taxonomy (V1--V6), the same Pydantic response schema for parseability (P1's free-form output is parsed best-effort), the same Judge-based evaluation protocol, and identical temperature settings.
+By swapping only the pipeline architecture, we isolate what the multi-agent decomposition contributes beyond retrieval and beyond raw prompting.
+
+\subsection{Evaluation Protocol: LLM-Assisted Human Evaluation}
+\label{sec:exp_ground_truth}
+
+Constructing an expert-annotated ground truth for DDD violations at the scale this study requires---multiple pipelines, multiple LLM providers, and three domains, all cross-multiplied---is infeasible for our team.
+Recruiting two or more DDD-fluent independent annotators per domain, resolving disagreements, and reporting Cohen's $\kappa$ per configuration would dominate the cost of the study without changing its proof-of-concept framing.
+We adopt a different evaluation protocol, which we call \emph{LLM-Assisted Human Evaluation}.
+This protocol is directly inspired by the growing body of work on LLM-as-a-Judge methodologies in software engineering~\cite{llmjudgeSE2025,llmjudgeSurvey2024,llmjudgesComprehensive2024}, which has shown that strong LLMs, when guided by detailed rubrics, approximate human evaluator agreement on many SE tasks.
+
+\paragraph{Step 1: Judge LLM selection.}
+The Judge LLM is required to be a strictly stronger frontier model than any model in the RQ2 tested set (e.g., a top-tier reasoning model from one of the three commercial families).
+When possible, the Judge belongs to a \emph{different} model family than the tested model whose output is being evaluated, to minimize intra-family agreement bias; cases where this is not possible (e.g., when the top frontier model shares a family with the tested model) are flagged and treated as sensitivity checks.
+The Judge is not used anywhere in the pipelines themselves.
+
+\paragraph{Step 2: Judge rubric prompt.}
+The Judge receives a long, structured rubric prompt containing: (a) formal definitions of all six violation types (copied from Section~\ref{sec:arch_analysis}), (b) the SRS document or the extracted rulebook, (c) the source file under analysis, and (d) the tested system's reported violations for that file.
+The Judge is asked to (i) classify each reported violation as a True Positive or False Positive, justifying each verdict by citing the SRS or rulebook passage that supports it, and (ii) list additional violations that the tested system missed (False Negatives), again with citations.
+The full rubric prompt is released with our replication package.
+
+\paragraph{Step 3: Human audit of Judge verdicts.}
+The authors audit a random sample (plus all cases where the Judge's confidence marker is low) of the Judge's TP/FP/FN classifications.
+For each audited case we record whether the authors agree with the Judge and, on disagreement, we override the Judge with the human verdict.
+We report three numbers per configuration: the raw Judge-assigned precision/recall/F1, the human-audited precision/recall/F1, and the \emph{author--Judge agreement rate}---the fraction of audited verdicts where the author and the Judge agreed.
+The agreement rate serves the same role in our protocol that Cohen's $\kappa$ serves in traditional ground-truth studies: it is a reliability indicator for the derived labels.
+
+\paragraph{Why this protocol fits a proof-of-concept.}
+The protocol deliberately does not claim to reproduce the quality of a fully expert-annotated gold standard.
+What it does claim is to be (a) transparent (the rubric prompt and all Judge verdicts are released), (b) reproducible (any future researcher can run the same rubric against a new pipeline or model), and (c) honest about its own limits (the agreement rate is reported explicitly, and human audit overrides the Judge when they disagree).
+These properties align with the proof-of-concept framing of the paper.
+
+\subsection{Evaluation Metrics}
+\label{sec:exp_metrics}
+
+We measure the following metrics.
+Violation detection quality is the primary outcome; the other metrics support interpretation.
+
+\paragraph{Violation Detection Quality.}
+\begin{itemize}
+    \item \textbf{Precision}: $\frac{TP}{TP + FP}$---the fraction of reported violations judged to be true violations.
+    \item \textbf{Recall}: $\frac{TP}{TP + FN}$---the fraction of judged-true violations that the system reported.
+    \item \textbf{F1-score}: $\frac{2 \cdot P \cdot R}{P + R}$---harmonic mean of precision and recall.
+    \item Computed per violation type (V1--V6) and aggregated across all types, for each configuration.
+\end{itemize}
+
+\paragraph{Rulebook Quality.}
+\begin{itemize}
+    \item \textbf{Entity coverage}: fraction of domain entities mentioned in the SRS that appear in the extracted rulebook.
+    \item \textbf{Entity precision}: fraction of rulebook entities that are Judge-confirmed to correspond to SRS concepts (as opposed to hallucinated entries).
+    \item \textbf{Bounded-context agreement}: whether the set and names of bounded contexts in the rulebook match those the Judge identifies from the SRS.
+\end{itemize}
+
+\paragraph{Evaluation Reliability.}
+\begin{itemize}
+    \item \textbf{Author--Judge agreement rate}: fraction of audited verdicts where the author agreed with the Judge's TP/FP/FN classification (replaces Cohen's $\kappa$; see Section~\ref{sec:exp_ground_truth}).
+\end{itemize}
+
+\paragraph{Performance and Cost.}
+\begin{itemize}
+    \item \textbf{Validation latency}: wall-clock time for a single per-file validation call (seconds).
+    \item \textbf{Rulebook generation time}: wall-clock time for the full rulebook-extraction pipeline end-to-end (seconds).
+    \item \textbf{Cost per validation}: API cost per file analysis (USD), computed from token usage and provider price sheets.
+\end{itemize}
+
+Traceability retrieval quality is intentionally omitted (see Section~\ref{sec:arch_traceability}).
+
+\subsection{Synthetic-Violation Protocol (RQ4)}
+\label{sec:exp_synthetic}
+
+For RQ4 we construct a controlled recall-floor dataset in three steps.
+
+\paragraph{Step 1: Reference codebase generation.}
+For each of the three SRS documents we use a strong, non-tested LLM (distinct from both the tested models and the Judge) to generate a reference Python microservice codebase that, to the best of the generator's ability, complies with the SRS.
+The generator is prompted with the full SRS and the list of violation types (V1--V6) with the instruction to \emph{avoid} all of them.
+Authors then perform a light cleanup pass to fix syntactic issues and ensure that the generated code typechecks and runs.
+
+\paragraph{Step 2: Deliberate violation seeding.}
+Authors then inject a fixed, catalogued set of violations into the cleaned reference codebase.
+Each injection is logged with: (a) the file and line edited, (b) the target violation type (one of V1--V6), (c) the edit (e.g., ``renamed \texttt{CustomerProfile} to \texttt{ClientProfile}'' or ``added cross-context import from \texttt{inventory}''), and (d) a short rationale tying the edit to the relevant rulebook entry.
+Seed counts per violation type and per domain are chosen up front and fixed before any detection runs.
+
+\paragraph{Step 3: Detection and scoring.}
+The full framework (with RQ1+RQ2 winning configuration) is run on the seeded codebase.
+For each seeded violation we record whether it was detected (at any granularity that the authors judge acceptable, e.g., right file + right type).
+Additional violations the framework reports that do not correspond to a seed are triaged by the Judge as in Section~\ref{sec:exp_ground_truth}.
+Primary metric: \textbf{seeded-recall} = (\#seeded violations detected) / (\#seeded violations).
+This number serves as a recall floor in a setting where the ground truth is completely known.
+
+\subsection{Reproducibility, Configuration, and Output Labelling}
+\label{sec:exp_reproducibility}
+
+Every experiment in this study is driven by a single YAML configuration file that specifies: the pipeline (P1/P2/P3), the tested model (provider + model identifier), the Judge model, the SRS document, any seeded-violation manifest (for RQ4), and random seeds.
+Each run writes its outputs to a dedicated directory named \texttt{results/\{pipeline\}\_\{model\}\_\{srs\}\_\{run\_id\}/}, under which we store: (i) the raw LLM request and response for every call, (ii) the parsed \texttt{ValidationResponse}, (iii) the Judge verdicts and human-audit overrides, (iv) token counts and timing, and (v) the configuration file that produced the run.
+The directory naming scheme makes all cross-RQ tables reconstructible by filename alone.
+The configuration files, seeded-violation manifests, rubric prompts, and raw results are released as part of the replication package.
+
+% ====================================================================
+% 5. RESULTS
+% ====================================================================
+\section{RQ1: Pipeline Comparison}
+\label{sec:results_rq1}
+
+We first compare the three pipelines (P1 Naive, P2 RAG single-call, P3 Multi-Agent; Section~\ref{sec:exp_pipelines}) on one SRS and one held-out LLM, and use LLM-Assisted Human Evaluation to score each pipeline's reported violations.
+Table~\ref{tab:rq1_pipeline} aggregates precision, recall, and F1 across all six violation types; it also reports rulebook quality (for P3, which produces an explicit rulebook), parseable-output rate, and wall-clock cost.
+
+\begin{table}[t]
+\caption{Pipeline comparison under a fixed LLM. All three pipelines use the same underlying model, prompts, and Judge configuration. P1 has no rulebook; P2 constructs retrieval context on-the-fly per file; P3 extracts a rulebook up front.}
+\label{tab:rq1_pipeline}
+\centering
+\begin{tabular}{l r r r r r r}
+\toprule
+\textbf{Pipeline} & \textbf{P} & \textbf{R} & \textbf{F1} & \textbf{Parseable \%} & \textbf{Rulebook quality} & \textbf{Wall-clock (s)} \\
+\midrule
+P1 Naive               & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & N/A & \placeholder{--} \\
+P2 RAG single-call     & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & N/A & \placeholder{--} \\
+P3 Multi-Agent (ours)  & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\placeholder{AUTHOR TODO (RQ1 analysis): discuss (i) where P3 outperforms P2 and whether the gap is concentrated in particular violation types (we expect it in V1 Synonym and V4 Context-boundary because these depend on global SRS knowledge), (ii) where P2 is already ``good enough'' and therefore whether practitioners without the time to build a full rulebook have a viable fallback, (iii) how often P1 emits unparseable output, and (iv) qualitative examples contrasting a P1 hallucinated violation against a P3 rulebook-grounded one.}
+
+\noindent\fbox{\parbox{\textwidth}{
+\textbf{Summary of findings (RQ1).}
+\placeholder{Once numbers are in: state which pipeline best balances detection quality and cost, frame it cautiously (``the multi-agent pipeline suggests the largest gains in \emph{these} violation types under \emph{this} LLM''), and carry the winner forward to RQ2.}
+}}
+
+\section{RQ2: LLM Provider Comparison}
+\label{sec:results_rq2}
+
+Using the RQ1 winning pipeline, we swap in each of the four LLM providers (Gemini, ChatGPT, Claude, one open-source local model) and measure detection quality, latency, and cost.
+Table~\ref{tab:rq2_models} reports aggregate metrics; Figure~\ref{fig:rq2_pareto} plots the cost--accuracy Pareto frontier.
+
+\begin{table}[t]
+\caption{Detection quality, latency, and cost by LLM provider, using the RQ1 winning pipeline on a held-out SRS. All numbers are produced via LLM-Assisted Human Evaluation with a strictly stronger Judge model.}
+\label{tab:rq2_models}
+\centering
+\begin{tabular}{l r r r r r}
+\toprule
+\textbf{Model} & \textbf{P} & \textbf{R} & \textbf{F1} & \textbf{Avg.\ Latency (s)} & \textbf{Cost / validation (USD)} \\
+\midrule
+\placeholder{Gemini 2.x}             & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+\placeholder{GPT-4.x / GPT-5.x}      & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+\placeholder{Claude Sonnet 4.x}      & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+\placeholder{Open-source (local)}    & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{--} & compute only \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \placeholder{Figure: Scatter plot with cost/validation on x-axis (log scale), F1 on y-axis, one point per tested model. Annotate the Pareto frontier. Include the open-source model with compute cost approximated to USD.}
+    \caption{Cost--accuracy Pareto frontier across LLM providers (RQ2). Caption will be filled once data is in.}
+    \label{fig:rq2_pareto}
+\end{figure}
+
+\placeholder{AUTHOR TODO (RQ2 analysis): discuss (i) whether the top-F1 model dominates on all six violation types or whether different models win different types, (ii) whether the open-source model is usable for practitioners who cannot send SRS content to third-party APIs (a common enterprise constraint), (iii) where the cost--accuracy Pareto frontier sits.}
+
+\noindent\fbox{\parbox{\textwidth}{
+\textbf{Summary of findings (RQ2).}
+\placeholder{Once numbers are in: state the best model under the current setup, frame cautiously (``at today's capability level, \emph{this} model appears to be the most cost-effective; this ranking will shift as providers release new versions''), and carry the winner forward to RQ3 and RQ4.}
+}}
+
+\section{RQ3: Cross-Domain Generalization}
+\label{sec:results_rq3}
+
+Using the RQ1+RQ2 winning configuration, we evaluate on three SRS documents drawn from distinct domains (D1, D2, D3).
+Table~\ref{tab:rq3_domains} reports per-domain precision, recall, and F1; per-violation-type breakdowns are in the replication package.
+
+\begin{table}[t]
+\caption{Per-domain detection quality using the RQ1+RQ2 winning configuration.}
+\label{tab:rq3_domains}
+\centering
+\begin{tabular}{l r r r r}
+\toprule
+\textbf{Domain} & \textbf{Violations (Judge)} & \textbf{TP} & \textbf{Precision} & \textbf{Recall / F1} \\
+\midrule
+D1 \placeholder{(domain name)} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{-- / --} \\
+D2 \placeholder{(domain name)} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{-- / --} \\
+D3 \placeholder{(domain name)} & \placeholder{--} & \placeholder{--} & \placeholder{--} & \placeholder{-- / --} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\placeholder{AUTHOR TODO (RQ3 analysis): identify (i) which domain is hardest and \emph{why} (e.g., vocabulary overlap between contexts, sparser SRS, more tightly coupled domains), (ii) the most common failure modes per domain, (iii) whether any violation type degrades consistently across all domains (that would be a framework-level weakness as opposed to a domain-specific one).}
+
+\noindent\fbox{\parbox{\textwidth}{
+\textbf{Summary of findings (RQ3).}
+\placeholder{Once numbers are in: comment cautiously on generalization, flag any domain where the framework is noticeably weaker, and be explicit that three domains is a small sample intended to probe generalization, not to establish it.}
+}}
+
+\section{RQ4: Synthetic-Violation Recognition}
+\label{sec:results_rq4}
+
+For RQ4 we use the generated reference codebases with deliberately seeded violations (Section~\ref{sec:exp_synthetic}) to measure the framework's recall against a ground truth that we fully control.
+Table~\ref{tab:rq4_seeded} reports, per violation type, the number of violations seeded, the number detected, and the resulting seeded-recall.
+
+\begin{table}[t]
+\caption{Seeded-violation recognition using the RQ1+RQ2 winning configuration. Seeds are known by construction; detection is judged right-file + right-type.}
+\label{tab:rq4_seeded}
+\centering
+\begin{tabular}{l r r r}
+\toprule
+\textbf{Violation type} & \textbf{Seeded} & \textbf{Detected} & \textbf{Seeded-recall} \\
+\midrule
+V1 Synonym              & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+V2 Banned Term          & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+V3 Naming Convention    & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+V4 Context Boundary     & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+V5 Aggregate Boundary   & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+V6 Domain Event         & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+\midrule
+\textbf{Overall}        & \placeholder{--} & \placeholder{--} & \placeholder{--} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\placeholder{AUTHOR TODO (RQ4 analysis): discuss (i) which violation types the framework is most and least reliable at recovering, (ii) whether any \emph{non-seeded} additional violations the framework reported were confirmed by the Judge as real (an interesting bonus-signal), and (iii) whether recall is dominated by missed violations or by violations detected under a different type than they were seeded (type-confusion).}
+
+\noindent\fbox{\parbox{\textwidth}{
+\textbf{Summary of findings (RQ4).}
+\placeholder{Once numbers are in: report seeded-recall per violation type, flag the weakest type, and frame the RQ4 result as a controlled-setting recall floor rather than a generalizable recall estimate.}
+}}
+
+
+% ====================================================================
+% 7. DISCUSSION
+% ====================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Key Findings and Implications}
+\label{sec:disc_findings}
+
+We set out not to prove that DDD-Enforcer is a finished product, but to demonstrate that LLM-enforced DDD is feasible at today's capability level and to release a framework that others can extend.
+Read against that goal, our results make four concrete contributions.
+
+\emph{A framework, not a point solution.}
+The separation between rulebook extraction (P3) and violation detection (AST + rulebook + LLM) lets future researchers swap pipelines, models, and even violation taxonomies independently.
+The three pipelines studied in RQ1 are instances of the same framework, not competing products.
+
+\emph{Multi-agent decomposition pays off where global SRS knowledge matters.}
+\placeholder{Fill once RQ1 numbers are in: describe in which violation types P3 pulls ahead of P2 and where P2 is already competitive. Be explicit that this is a statement about today's LLMs: as context windows and reasoning improve, the gap between P2 and P3 may shrink, and the framework is designed to let future researchers re-measure it.}
+
+\emph{Provider choice matters less than one might expect.}
+\placeholder{Fill once RQ2 numbers are in: describe the spread between providers and whether the open-source local model is close enough to be practical for enterprises with data-egress constraints.}
+
+\emph{The rulebook is a durable artifact.}
+Even when detection is imperfect, the rulebook produced by the multi-agent pipeline is a human-readable, machine-checkable summary of the project's ubiquitous language and bounded contexts.
+For teams onboarding new developers, this is useful independently of the accuracy of automated enforcement: it is a shared reference that was previously locked up in tribal knowledge.
+
+\emph{Caveats.}
+All headline numbers in this paper come from LLM-Assisted Human Evaluation, not from expert-annotated ground truth.
+The author--Judge agreement rate \placeholder{(report final value)} indicates \placeholder{(characterize reliability)}, and we flag throughout the paper that these numbers should be read as proof-of-concept evidence rather than as production benchmarks.
+
+\subsection{Comparison with Related Approaches}
+\label{sec:disc_comparison}
+
+Our findings extend the landscape of architecture enforcement research in several ways.
+
+Compared to the manual DDD refactoring approach of Ozkan et al.~\cite{ozkan2023refactoring}, which required embedded researchers conducting focus groups and interviews over an extended period, DDD-Enforcer automates domain model extraction and violation detection.
+This comparison highlights that our tool addresses a different but complementary need: Ozkan et al.\ focus on \emph{performing} DDD refactoring, while we focus on \emph{continuously enforcing} DDD compliance.
+Their study demonstrated the value of DDD through practitioner perception (mTAM score of 84/100); our work complements this by providing automated, continuous enforcement that can sustain DDD compliance after initial refactoring.
+
+Compared to Abdelfattah et al.'s~\cite{abdelfattah2023semantic} semantic clone detection (F1 = 0.813), our approach addresses a complementary problem.
+Semantic clones are a symptom of DDD violations---duplicated functionality across services often indicates that bounded context boundaries were drawn incorrectly.
+Our violation detection operates upstream, identifying the design-level issues that may eventually lead to semantic clones.
+
+Compared to prior LLM-assisted DDD work~\cite{automatingddd2024,evans2024infoq}, which uses LLMs as sparring partners for \emph{designing} a domain model, DDD-Enforcer addresses what happens after the model has been designed: how to keep the codebase consistent with it as it evolves.
+These two strands are complementary---an LLM that helps produce a rulebook and an LLM that enforces it can in principle be chained end-to-end, and the framework described in this paper is explicitly designed to accept a rulebook from either source.
+
+\subsection{Threats to Validity}
+\label{sec:threats}
+
+We organize threats to validity around the three LLM-specific risks that most directly shape our study (context-window limits, hallucinations, evaluation subjectivity), followed by traditional internal, external, and construct threats.
+For each threat we describe the design choice that mitigates it and the residual risk that remains.
+
+\subsubsection{Context-window limitations}
+
+LLM context windows are finite, and both SRS documents and source files can in principle exceed them.
+\emph{Mitigation.}
+The Scout stage chunks the SRS into $\sim$10{,}000-character passages with sentence-boundary preservation so that no prompt ever carries the full SRS directly.
+The validator does not send raw source code: it sends AST-extracted features (class, method, import, and variable summaries) plus a targeted source slice, which compresses per-file input substantially.
+Rulebooks are kept as structured JSON so that the per-file validation prompt only needs the rulebook plus the single file under analysis.
+\emph{Residual risk.}
+Very large monolithic source files may still exceed what the validator can analyze in one call.
+We document, for each tested configuration, the size at which truncation begins and note the affected files in the raw results.
+
+\subsubsection{Hallucinations}
+
+LLMs can invent violations that are not grounded in the rulebook, or miss real violations while confidently producing plausible-looking output.
+\emph{Mitigation.}
+Structured outputs (Pydantic schemas, Listing~\ref{lst:pydantic}) require every reported violation to carry a \texttt{rulebook\_id} field; reports that do not match a rulebook entry are discarded as ungrounded.
+The LLM-Assisted Human Evaluation protocol (Section~\ref{sec:exp_ground_truth}) classifies hallucinated violations as false positives and surfaces them in the precision metric.
+The Judge LLM is also asked to flag apparent hallucinations explicitly in its rubric.
+\emph{Residual risk.}
+When the Judge and the tested model belong to the same family, they may share correlated hallucination patterns and agree on mistakes.
+We address this by (a) preferring cross-family Judges where the top-of-family rule permits it and (b) flagging intra-family Judge/tested pairs as sensitivity checks rather than headline numbers; the audit pass then manually inspects those cases.
+
+\subsubsection{Evaluation subjectivity}
+
+Without an expert-annotated ground truth, our headline precision/recall/F1 numbers depend on a Judge LLM and on the authors' audit of its verdicts.
+\emph{Mitigation.}
+We adopt the LLM-Assisted Human Evaluation protocol (Section~\ref{sec:exp_ground_truth}) to make the subjectivity explicit: the rubric prompt is released, Judge verdicts are released, authors audit a random sample plus all low-confidence cases, and we report the author--Judge agreement rate as a reliability indicator.
+Cohen's $\kappa$ is not applicable because there is no second independent annotator; the agreement rate serves the analogous role.
+\emph{Residual risk.}
+If the Judge systematically misjudges borderline cases in a direction the authors share, the audit will not catch the bias.
+We treat the reported numbers as proof-of-concept evidence, not as production benchmarks, and release all raw data so that future work can re-score with a different Judge or with human experts.
+
+\subsubsection{Internal validity}
+
+\textbf{LLM non-determinism.}
+Even at temperature 0, some providers introduce small amounts of output variation.
+We set temperature to 0 throughout and report results averaged over \placeholder{N} independent runs per configuration; variance across runs is reported in the replication package.
+
+\textbf{Prompt sensitivity.}
+The pipelines and the Judge rubric are driven by handcrafted prompts; we did not perform systematic prompt optimization.
+Different prompt formulations may yield different numbers.
+Our prompts are released so that future work can quantify prompt sensitivity.
+
+\subsubsection{External validity}
+
+\textbf{Language limitation.}
+The current \texttt{DomainVisitor} supports only Python source files.
+The LLM-based semantic analysis is language-agnostic in principle, but the AST extraction component must be re-implemented for Java, TypeScript, C\#, and Go before industrial microservice systems---many of which are Java/Spring---can be evaluated directly.
+
+\textbf{Domain count.}
+RQ3 uses three SRS domains.
+This is sufficient to probe whether the framework generalizes beyond a single domain, but not sufficient to establish generalization.
+We are explicit throughout the paper that three domains is a probe, not a benchmark.
+
+\textbf{SRS availability.}
+Real-world projects rarely have comprehensive, up-to-date SRS documents.
+Where no public SRS existed for a domain we studied, we authored one based on available documentation.
+The quality of authored SRS documents may differ from what would be available in industrial settings.
+
+\subsubsection{Construct validity}
+
+\textbf{Violation taxonomy.}
+Our six violation types (V1--V6) are one operationalization of DDD compliance.
+Other researchers may define additional types (e.g., service-layer leakage, eventual-consistency violations) that our framework does not measure.
+The framework is designed to accept new types without structural changes, but results in this paper are scoped to V1--V6.
+
+\textbf{Pipeline design choices.}
+P1, P2, and P3 are specific instantiations of ``naive'', ``retrieval-augmented'', and ``multi-agent'' ideas.
+Stronger naive prompting (few-shot with DDD exemplars) or stronger retrieval (hybrid BM25 + dense) might narrow the gaps we report.
+Our pipelines represent reasonable starting points, not optimized endpoints.
+
+\subsubsection{Conclusion validity}
+
+\placeholder{AUTHOR TODO: once the number of Judge-labelled violations per configuration is known, discuss whether the sample sizes are large enough to support the precision/recall estimates or whether they should be reported as indicative ranges rather than point estimates.}
+
+
+% ====================================================================
+% 8. CONCLUSION AND FUTURE WORK
+% ====================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+In this paper, we presented DDD-Enforcer as a \emph{proof-of-concept framework} for LLM-powered Domain-Driven Design enforcement.
+Rather than arguing for a single finished system, we aimed to demonstrate that LLM-enforced DDD is feasible with today's models and to provide a reusable scaffolding---with swappable pipelines, models, and violation taxonomies---that other researchers can extend.
+Across four research questions (pipeline comparison, provider comparison, cross-domain generalization, and synthetic-violation recognition), we evaluated an instance of the framework using LLM-Assisted Human Evaluation and released all configurations, prompts, Judge verdicts, and raw results.
+
+Read as a proof of concept, our study suggests that:
+\begin{itemize}
+    \item \placeholder{RQ1: the multi-agent pipeline (P3) improves F1 over simpler alternatives in violation types that depend on global SRS knowledge, while retrieval-augmented single-call (P2) is a reasonable fallback for teams that cannot afford the full rulebook-extraction pass.}
+    \item \placeholder{RQ2: among Gemini, ChatGPT, Claude, and the open-source local model we tested, the cost--accuracy Pareto frontier at today's prices favors \emph{[winner]}; the open-source model is \emph{[close enough / not yet close enough]} to be a practical choice for teams with data-egress constraints.}
+    \item \placeholder{RQ3: the framework generalizes across the three domains we studied to within \emph{[range]} F1, with \emph{[domain]} being the hardest due to \emph{[reason]}.}
+    \item \placeholder{RQ4: on deliberately seeded codebases, the framework recovers \emph{[fraction]} of planted violations; the weakest type is \emph{[type]}, which suggests a concrete target for future prompt or taxonomy improvements.}
+\end{itemize}
+
+We do not claim that DDD-Enforcer is a finished product or that these numbers will still hold as LLMs improve.
+What we claim is that (i) the framework is useful as-is, including the rulebook as a standalone onboarding artifact, (ii) LLM-Assisted Human Evaluation is a practical methodology for proof-of-concept studies where expert annotation is infeasible, and (iii) the open release invites others to plug in new pipelines, providers, and domains and re-run the study.
+
+\paragraph{Future Work}
+We identify several directions:
+\begin{itemize}
+    \item \textbf{Multi-language support}: extending \texttt{DomainVisitor} to Java, TypeScript, C\#, and Go to cover the most common microservice implementation languages.
+    \item \textbf{Automated fix suggestions}: generating code transformations that resolve detected violations.
+    \item \textbf{Rulebook drift over time}: longitudinal study of how rulebook quality evolves as the SRS itself changes, and how the framework detects rulebook staleness.
+    \item \textbf{Beyond DDD}: extending the framework to other architectural styles with explicit rule sets (hexagonal, CQRS, event-sourcing).
+    \item \textbf{Graph-based domain representation}: using knowledge graphs to capture cross-context relationships and enable richer reasoning about aggregate and context boundaries.
+    \item \textbf{Prompt sensitivity study}: systematic exploration of how Judge rubric formulations shift the measured agreement rate.
+\end{itemize}
+
+\paragraph{Data Availability}
+DDD-Enforcer is available as open-source software at \url{https://github.com/barandincoguz/DDD-Enforcer}.
+\placeholder{AUTHOR TODO: add links to the replication package, configuration files, Judge rubric prompts, Judge verdicts, author-audit overrides, seeded-violation manifests for RQ4, and raw per-run result directories.}
+
+
+% ====================================================================
+% DECLARATIONS
+% ====================================================================
+\section*{Declarations}
+
+\paragraph{Conflict of Interest} The authors declare that they have no conflict of interest.
+
+\paragraph{Author Contributions} \placeholder{Describe each author's contributions.}
+
+
+% ====================================================================
+% REFERENCES
+% ====================================================================
+\begin{thebibliography}{99}
+
+% --- DDD Foundations ---
+\bibitem{evans2003ddd}
+Evans E (2003) Domain-Driven Design: Tackling Complexity in the Heart of Software. Addison-Wesley Professional
+
+\bibitem{vernon2013implementing}
+Vernon V (2013) Implementing Domain-Driven Design. Addison-Wesley Professional
+
+\bibitem{microsoft2024tactical}
+Microsoft (2024) Using tactical DDD to design microservices. Microsoft Azure Architecture Center. \url{https://learn.microsoft.com/en-us/azure/architecture/microservices/model/tactical-ddd}
+
+% --- DDD Empirical Studies ---
+\bibitem{ozkan2023refactoring}
+Ozkan O, Babur O, van den Brand M (2023) Refactoring with domain-driven design in an industrial context: An action research report. Empirical Software Engineering 28:94. \url{https://doi.org/10.1007/s10664-023-10310-1}
+
+% --- Microservice Quality ---
+\bibitem{abdelfattah2023semantic}
+Abdelfattah AS, Rodriguez A, Walker A, Cerny T (2023) Detecting Semantic Clones in Microservices Using Components. SN Computer Science 4:470. \url{https://doi.org/10.1007/s42979-023-01910-1}
+
+\bibitem{loukides2020microservices}
+Loukides M, Swoyer S (2020) Microservices Adoption in 2020. O'Reilly Media
+
+% --- Architecture Enforcement ---
+\bibitem{archunit2024}
+ArchUnit (2024) ArchUnit -- Unit test your Java architecture. \url{https://www.archunit.org/}
+
+\bibitem{ndepend2024}
+NDepend (2024) NDepend -- .NET static analysis tool. \url{https://www.ndepend.com/}
+
+% --- LLM for SE ---
+\bibitem{hou2024llm_se_survey}
+Hou X, Zhao Y, Liu Y, et al (2024) Large Language Models for Software Engineering: A Systematic Literature Review. ACM Transactions on Software Engineering and Methodology 33(3):1--79
+
+\bibitem{fan2023llm_se}
+Fan A, Gokkaya B, Harman M, et al (2023) Large Language Models for Software Engineering: Survey and Open Problems. In: Proceedings of the IEEE/ACM International Conference on Software Engineering: Future of Software Engineering (ICSE-FoSE)
+
+\bibitem{chen2021codex}
+Chen M, Tworek J, Jun H, et al (2021) Evaluating Large Language Models Trained on Code. arXiv:2107.03374
+
+\bibitem{li2024llm_bugs}
+\placeholder{Add reference: LLM-based bug detection paper}
+
+\bibitem{li2022codereviewer}
+Li L, et al (2022) CodeReviewer: Pre-Training for Automating Code Review Activities. In: Proceedings of the 30th ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE)
+
+\bibitem{nam2024llm_comprehension}
+\placeholder{Add reference: LLM for program comprehension}
+
+\bibitem{yeticstiren2023copilot}
+Yetiştiren B, Özsoy I, Tüzün E (2023) Evaluating the Code Quality of AI-Assisted Code Generation Tools: An Empirical Study on GitHub Copilot, Amazon CodeWhisperer, and ChatGPT. arXiv:2304.10778
+
+% --- Multi-Agent Systems ---
+\bibitem{wu2023autogen}
+Wu Q, Bansal G, Zhang J, et al (2023) AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation. arXiv:2308.08155
+
+% --- LLMs for DDD (design-side prior work) ---
+\bibitem{automatingddd2024}
+\placeholder{AUTHOR TODO: confirm author list and venue.} (2024) Automating Domain-Driven Design: Experience with a Prompting Framework. arXiv:2603.26244. \url{https://arxiv.org/abs/2603.26244}
+
+\bibitem{evans2024infoq}
+Evans E (2024) Eric Evans Encourages DDD Practitioners to Experiment with LLMs. InfoQ. \url{https://www.infoq.com/news/2024/03/Evans-ddd-experiment-llm/}
+
+\bibitem{dddllmindustry2024}
+\placeholder{AUTHOR TODO: pick a specific industry writeup (e.g., Mülder 2024 on LLM-constrained DSL generation, or Sebastian 2024 ``Enhancing Domain-Driven Design with Generative AI'') and cite it concretely.}
+
+% --- LLM-as-a-Judge (evaluation methodology) ---
+\bibitem{llmjudgeSE2025}
+Wei J, et al (2025) Can LLMs Replace Human Evaluators? An Empirical Study of LLM-as-a-Judge in Software Engineering. In: Proceedings of ISSTA 2025. arXiv:2502.06193. \url{https://arxiv.org/abs/2502.06193}
+
+\bibitem{llmjudgeSurvey2024}
+Gu J, et al (2024) A Survey on LLM-as-a-Judge. arXiv:2411.15594. \url{https://arxiv.org/abs/2411.15594}
+
+\bibitem{llmjudgesComprehensive2024}
+Li H, et al (2024) LLMs-as-Judges: A Comprehensive Survey on LLM-based Evaluation Methods. arXiv:2412.05579. \url{https://arxiv.org/abs/2412.05579}
+
+% --- LLMs for code quality (metric precedent) ---
+\bibitem{llmcodequality2026}
+\placeholder{AUTHOR TODO: confirm author list.} (2026) An evaluation study of large language models for addressing code quality issues. Empirical Software Engineering. \url{https://doi.org/10.1007/s10664-026-10858-8}
+
+% --- Conference Paper ---
+\bibitem{dincoguz2025ddd_conference}
+Dincoguz AB, Kendir A, Karakaya M (2025) DDD-Enforcer: An AI-Powered Multi-Agent System for Real-Time Domain-Driven Design Enforcement. \placeholder{Conference name and proceedings details}
+
+% --- Additional references to add ---
+% \placeholder{Add: Mazlami et al. 2017 -- Extraction of Microservices from Monolithic Software Architectures}
+% \placeholder{Add: Kapferer and Zimmermann 2020 -- Domain-driven service design}
+% \placeholder{Add: Knodel and Popescu 2007 -- Architecture conformance checking}
+% \placeholder{Add: Passos et al. 2010 -- Architecture conformance}
+% \placeholder{Add: More LLM-for-architecture papers}
+% \placeholder{Add: Microservice anti-pattern detection papers}
+% \placeholder{Add: DDD adoption challenges papers}
+
+\end{thebibliography}
+
+\end{document}
