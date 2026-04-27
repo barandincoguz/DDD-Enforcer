@@ -143,3 +143,122 @@ class TestStageConfig:
         sc = StageConfig(model_id="example-1.0", temperature=0.05, seed=42)
         with pytest.raises(AttributeError):
             sc.temperature = 0.1  # type: ignore[misc]
+
+
+class TestRegistryContent:
+    """Default registry content: MODELS, STAGE_GROUPS, STAGE_TO_GROUP."""
+
+    def test_models_contains_gemini_3_1_pro_preview(self):
+        from configs.models import MODELS
+
+        assert "gemini-3.1-pro-preview" in MODELS
+        m = MODELS["gemini-3.1-pro-preview"]
+        assert m.provider == "gemini"
+        assert m.context_window == 1_000_000
+
+    def test_models_contains_gemini_3_flash_preview(self):
+        from configs.models import MODELS
+
+        assert "gemini-3-flash-preview" in MODELS
+        m = MODELS["gemini-3-flash-preview"]
+        assert m.provider == "gemini"
+        assert m.context_window == 1_000_000
+
+    def test_no_flash_lite_or_2_5_models(self):
+        """Per spec: no flash-lite, no 2.5-era models in default registry."""
+        from configs.models import MODELS
+
+        for model_id in MODELS:
+            assert "lite" not in model_id.lower(), f"Unexpected flash-lite model: {model_id}"
+            assert not model_id.startswith("gemini-2."), f"Unexpected 2.x model: {model_id}"
+
+    def test_gemini_3_1_pro_pricing_under_200k(self):
+        """gemini-3.1-pro-preview at <200k input: $2/$12 per 1M."""
+        from configs.models import MODELS
+
+        p = MODELS["gemini-3.1-pro-preview"].pricing
+        # 100k input + 100k output: 100_000 * 2.0 / 1M + 100_000 * 12.0 / 1M
+        cost = p.cost_for(prompt_tokens=100_000, completion_tokens=100_000)
+        assert cost == pytest.approx(0.20 + 1.20)
+
+    def test_gemini_3_1_pro_pricing_over_200k(self):
+        """gemini-3.1-pro-preview at >200k input: $4/$18 per 1M."""
+        from configs.models import MODELS
+
+        p = MODELS["gemini-3.1-pro-preview"].pricing
+        # 250k input + 50k output: 250_000 * 4.0 / 1M + 50_000 * 18.0 / 1M
+        cost = p.cost_for(prompt_tokens=250_000, completion_tokens=50_000)
+        assert cost == pytest.approx(250_000 * 4.0 / 1_000_000 + 50_000 * 18.0 / 1_000_000)
+
+    def test_gemini_3_flash_pricing_flat(self):
+        """gemini-3-flash-preview: flat $0.50/$3 per 1M, regardless of context size."""
+        from configs.models import MODELS
+
+        p = MODELS["gemini-3-flash-preview"].pricing
+        small = p.cost_for(prompt_tokens=10_000, completion_tokens=10_000)
+        large = p.cost_for(prompt_tokens=900_000, completion_tokens=10_000)
+        # Cost scales linearly; same per-token rate at any size.
+        # Per-token input: 0.50 / 1M. Per-token output: 3.0 / 1M.
+        assert small == pytest.approx(10_000 * 0.50 / 1_000_000 + 10_000 * 3.0 / 1_000_000)
+        assert large == pytest.approx(900_000 * 0.50 / 1_000_000 + 10_000 * 3.0 / 1_000_000)
+
+    def test_stage_groups_default_assignments(self):
+        from configs.models import STAGE_GROUPS
+
+        assert STAGE_GROUPS["domain_extraction"].model_id == "gemini-3.1-pro-preview"
+        assert STAGE_GROUPS["domain_extraction"].temperature == 0.05
+        assert STAGE_GROUPS["domain_extraction"].seed == 42
+
+        assert STAGE_GROUPS["validation"].model_id == "gemini-3-flash-preview"
+        assert STAGE_GROUPS["validation"].temperature == 0.05
+        assert STAGE_GROUPS["validation"].seed == 42
+
+    def test_stage_to_group_covers_all_pipeline_stages(self):
+        from configs.models import STAGE_TO_GROUP
+
+        for stage in ("Scout", "Architect", "Specialist", "Synthesizer"):
+            assert STAGE_TO_GROUP[stage] == "domain_extraction"
+        assert STAGE_TO_GROUP["Validator"] == "validation"
+
+
+class TestRegistryHelpers:
+    """Helpers: stage_config, model_for_stage, model_info."""
+
+    def test_stage_config_for_validator(self):
+        from configs.models import stage_config
+
+        sc = stage_config("Validator")
+        assert sc.model_id == "gemini-3-flash-preview"
+
+    def test_stage_config_for_architect(self):
+        from configs.models import stage_config
+
+        sc = stage_config("Architect")
+        assert sc.model_id == "gemini-3.1-pro-preview"
+
+    def test_stage_config_unknown_stage_raises(self):
+        from configs.models import stage_config
+
+        with pytest.raises(KeyError):
+            stage_config("DoesNotExist")
+
+    def test_model_for_stage_returns_full_model_info(self):
+        from configs.models import model_for_stage
+
+        info = model_for_stage("Validator")
+        assert info.model_id == "gemini-3-flash-preview"
+        assert info.provider == "gemini"
+        assert info.context_window == 1_000_000
+
+    def test_model_info_returns_full_model_info(self):
+        from configs.models import model_info
+
+        info = model_info("gemini-3.1-pro-preview")
+        assert info.provider == "gemini"
+        assert info.context_window == 1_000_000
+
+    def test_model_info_unknown_model_raises(self):
+        from configs.models import model_info
+
+        with pytest.raises(KeyError):
+            model_info("not-a-real-model")

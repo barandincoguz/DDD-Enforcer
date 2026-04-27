@@ -80,3 +80,72 @@ class StageConfig:
     model_id: str
     temperature: float
     seed: Optional[int]
+
+
+# =============================================================================
+# REGISTRY CONTENT
+# =============================================================================
+
+# Pricing snapshot: 2026-04-27. PREVIEW models — provider may revise without notice.
+# Source: https://ai.google.dev/gemini-api/docs/pricing
+MODELS: Dict[str, ModelInfo] = {
+    "gemini-3.1-pro-preview": ModelInfo(
+        model_id="gemini-3.1-pro-preview",
+        provider="gemini",
+        pricing=Pricing(tiers=(
+            PricingTier(max_prompt_tokens=200_000, input_per_1m_usd=2.0,  output_per_1m_usd=12.0),
+            PricingTier(max_prompt_tokens=None,    input_per_1m_usd=4.0,  output_per_1m_usd=18.0),
+        )),
+        context_window=1_000_000,
+    ),
+    "gemini-3-flash-preview": ModelInfo(
+        model_id="gemini-3-flash-preview",
+        provider="gemini",
+        pricing=flat(input_per_1m_usd=0.50, output_per_1m_usd=3.0),
+        context_window=1_000_000,
+    ),
+}
+
+
+# A "stage group" is a logical role; multiple pipeline stages can share one group.
+STAGE_GROUPS: Dict[str, StageConfig] = {
+    "domain_extraction": StageConfig(
+        model_id="gemini-3.1-pro-preview",
+        temperature=0.05,
+        seed=42,
+    ),
+    "validation": StageConfig(
+        model_id="gemini-3-flash-preview",
+        temperature=0.05,
+        seed=42,
+    ),
+}
+
+
+STAGE_TO_GROUP: Dict[str, str] = {
+    "Scout":       "domain_extraction",
+    "Architect":   "domain_extraction",
+    "Specialist":  "domain_extraction",
+    "Synthesizer": "domain_extraction",
+    "Validator":   "validation",
+}
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
+
+
+def stage_config(stage: str) -> StageConfig:
+    """Return the StageConfig for a pipeline stage. Raises KeyError on unknown stage."""
+    return STAGE_GROUPS[STAGE_TO_GROUP[stage]]
+
+
+def model_for_stage(stage: str) -> ModelInfo:
+    """Return ModelInfo (model_id + pricing + provider) for a pipeline stage."""
+    return MODELS[stage_config(stage).model_id]
+
+
+def model_info(model_id: str) -> ModelInfo:
+    """Return ModelInfo for a given model_id. Raises KeyError on unknown model."""
+    return MODELS[model_id]
