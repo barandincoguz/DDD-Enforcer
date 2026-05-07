@@ -21,6 +21,10 @@ import tempfile
 import time
 from pathlib import Path
 
+# All tests in this file require a running backend at DDD_BACKEND_URL.
+# CI runs `pytest -m "not integration"` to exclude them by default.
+pytestmark = pytest.mark.integration
+
 
 # =============================================================================
 # CONFIGURATION
