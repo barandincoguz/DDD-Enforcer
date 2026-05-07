@@ -2,7 +2,7 @@
 
 # 🛡️ AI-Assisted Domain-Driven Design (DDD) Enforcer
 
-<img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
+<img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
 <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
 <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/>
 <img src="https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white" alt="VS Code"/>
@@ -146,7 +146,7 @@ graph LR
 
 | Requirement   | Version    | Purpose         |
 | ------------- | ---------- | --------------- |
-| 🐍 Python     | 3.10+      | Backend runtime |
+| 🐍 Python     | 3.12       | Backend runtime |
 | 📦 Node.js    | Latest LTS | Extension build |
 | 💻 VS Code    | Latest     | IDE integration |
 | 🔑 Gemini API | -          | AI analysis     |
