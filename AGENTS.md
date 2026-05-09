@@ -30,14 +30,14 @@ The goal is not just to make the code work, but to keep it understandable, exten
 
 ## Modularity
 
-- Build modular first.
-- No code file may exceed **400 lines (without comment lines and sections )**.
-- If more code is needed, split it into more files, modules, or helper functions.
-- Do not keep growing a file just to move faster.
-- Keep responsibilities narrow and clear.
-- Prefer small focused modules over large multi-purpose files.
-- If a file starts accumulating multiple responsibilities, split it.
-- Use composition and separation of concerns instead of monolithic designs.
+- Build modular first. Keep responsibilities narrow and clear; prefer focused modules over multi-purpose ones.
+- **File size is a guideline, not a wall.** Counted as effective lines (excluding comments + blank lines):
+  - **~500 lines** is the sweet spot — readable in one pass, fits in context comfortably.
+  - **~800 lines** is a review trigger — during refactor or code review, ask "is this still one responsibility?" If yes, leave it. If it has drifted into mixed concerns, split.
+  - **~1200+ lines** is a pressure point — only justified when splitting would create artificial coupling. Otherwise split.
+- Splitting a cohesive file just to hit a number is worse than leaving it intact. Split by responsibility, not by line count.
+- Files that change together should live together. Use composition and separation of concerns; do not contort a clean design to satisfy a size target.
+- If a file starts accumulating *multiple unrelated responsibilities*, split it regardless of size.
 
 ---
 
