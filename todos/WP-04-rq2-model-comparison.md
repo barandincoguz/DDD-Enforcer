@@ -1,53 +1,144 @@
-# WP-04: RQ2 Experiments — LLM Provider Comparison
+# WP-04: RQ2 Model Comparison (Split into RQ2a / RQ2b / RQ2c)
 
-**Owner:** Ali (run, cost monitoring) + Baran (analysis)
-**Depends-on:** [WP-01a, WP-01b, WP-01c, WP-01d, WP-02, WP-03, WP-07]
-**Effort:** L (4 model providers × cost monitoring × per-violation-type breakdown)
-**Status:** BLOCKED on WP-03 (winner pipeline must be known)
-**Addresses instructor feedback:** [Hoca-1] (fills Table 7 and Pareto figure)
+**Owner:** Baran
+**Depends-on:** [WP-03 winner pipeline, WP-01a 6-model client, WP-02 codebases, WP-07 Judge]
+**Effort:** M (~2 weeks)
+**Status:** TODO
+**Addresses:** [D1 6-model lockdown, Hoca-1 RQ2 enabler]
+**Refs:** `MASTER_PLAN.md` §4 RQ2 split
+
+---
 
 ## Goal
 
-Using the WP-03 winning pipeline (likely P3), swap in 4 LLM providers (Gemini 2.5 Pro, GPT-5, Claude Sonnet 4.7, Qwen2.5-Coder-32B or fallback OSS) and run N=5 each on D1. Produce Table 7 cells + Figure 2 (Pareto frontier). Determine **winner model** for RQ3.
+RQ2'yi **3 alt-RQ'ya bölerek** koş ve raporla. Eski plan'da tek "model comparison" idi; D1 lockdown ile **3 sorulu yapı**a geçti:
 
-## Acceptance criteria
+- **RQ2a**: Within-Gemini scaling (G1 vs G2)
+- **RQ2b**: Closed vs OSS frontier (best Gemini vs best OSS)
+- **RQ2c**: OSS landscape (4 OSS karşılaştırma)
 
-- [ ] `runs/rq2/<model>_<run>/manifest.json` exists for all 20 runs (4 models × 5 runs).
-- [ ] Each manifest has populated `cost_usd` field (depends on WP-01c).
-- [ ] Judge verdicts produced for all 20 runs (WP-07 cross-family logic kicks in: Judge belongs to a different family than the tested model where possible).
-- [ ] `LaTeX_DL_468198_240419/tables/rq2.tex` auto-rendered with: P, R, F1, Avg latency, Cost-per-validation. All 19 cells of Table 7 non-empty (OSS row's cost says "compute only").
-- [ ] `LaTeX_DL_468198_240419/figures/rq2_pareto.pdf` rendered by `scripts/figures/pareto.py` (matplotlib scatter, log-x cost, y F1, Pareto-frontier annotated).
-- [ ] §6 analysis paragraph (line 677 AUTHOR-TODO) drafted: top-F1 dominator analysis, OSS practicality verdict, Pareto-frontier shape commentary.
-- [ ] §6 summary box (line 681) names winner model.
-- [ ] Per-violation-type breakdown in `replication_package/rq2_per_type.csv`.
+**Yeni metrik**: Tüm RQ2 alt-tablolarına `json_failed_rate` kolonu eklenir.
 
-## Implementation steps
+---
 
-1. Run `python scripts/cost_estimate.py --pipeline P3 --model claude-sonnet-4-7 --srs D1 --runs 5` for **each model**. If total > $300, escalate (R9 in `01-risks.md`).
-2. Smoke-test all 4 providers via WP-01a smoke test on a 1-violation example.
-3. Verify OSS model (Qwen2.5-Coder-32B or fallback Llama-3.1-70B / DeepSeek-Coder-V2 via Together AI) returns parseable structured output. Time-box to 3 days; if failing, switch to cloud-hosted OSS (R2 mitigation).
-4. Run `make rq2` end-to-end: 20 runs × ~30 files = 600 file-validations.
-5. Judge verdicts (WP-07) for all 600 validations.
-6. Author audit (WP-08) — 25% sample of each model's TPs/FPs/FNs.
-7. Build Table 7 + Figure 2 (Pareto): `make rq2-tables && make rq2-figures`.
-8. Write §6 analysis prose + summary box.
-9. Commit "WP-04 RQ2 done" → unblocks WP-05.
+## RQ2a — Within-Gemini Scaling
 
-## Outputs (file paths)
+**Soru**: "DDD-Enforcer için Gemini Pro Preview gerekli mi, Flash-Lite yeterli mi?"
 
-- `runs/rq2/` (20 manifest dirs)
-- `judge_verdicts/rq2/`
-- `audit/rq2/`
-- `LaTeX_DL_468198_240419/tables/rq2.tex`
-- `LaTeX_DL_468198_240419/figures/rq2_pareto.pdf`
-- `scripts/figures/pareto.py`
-- `replication_package/rq2_per_type.csv`
-- `paper.tex` §6 analysis + summary
-- `docs/RQ2_RUNBOOK.md`
+**Tasarım**:
+- Modeller: G1 (gemini-3.1-pro-preview) + G2 (gemini-3.1-flash-lite)
+- Pipeline: WP-03'ten kazanan (büyük olasılıkla P3 multi-agent)
+- Domain: D1 (CLEAN + DRIFT-LIGHT + DRIFT-HEAVY)
+- N=10 run / cell
+- Total: 2 × 1 × 3 × 10 = 60 runs
 
-## Risks & mitigations
+**Metrikler**:
+- Precision (CLEAN'de) → "false alarm yokluğu"
+- Recall (DRIFT-L/H'de) → "gerçek ihlal yakalama"
+- F1 (combined)
+- json_failed_rate
+- Latency, cost per run
 
-- **Risk:** OSS model fails to produce structured output (R2). **Mitigation:** Already mitigated in WP-01a — fall back to cloud-hosted OSS. The "open source" framing is preserved as long as model weights are public.
-- **Risk:** RQ2 cloud bill exceeds $500 (R9). **Mitigation:** Pre-flight `cost_estimate.py` ; if over budget, swap Claude Opus → Sonnet, GPT-5 → mini, etc. **Always do this check before launching.**
-- **Risk:** Top-F1 model also wins on cost — boring result. **Mitigation:** This is a real possibility (and a publishable finding!) — frame as "the cheap-but-strong model dominates the frontier; OSS alternatives are X% behind, suggesting on-prem is still sub-Pareto today".
-- **Risk:** Cross-family Judge selection fails (Judge family = tested family for some pair). **Mitigation:** WP-07 logic flags these as sensitivity checks; reported in §9.3.2.
+**İstatistik**:
+- Wilcoxon signed-rank (paired: Pro vs Flash-Lite per same input)
+- Effect size: Cliff's δ
+- 95% CI bootstrap
+
+**Beklenen sonuç**: Pro ≥ Flash-Lite, ama fark anlamsız ise "Flash-Lite production'da yeterli" diyebiliriz (çok güçlü pratik finding).
+
+---
+
+## RQ2b — Closed vs OSS Frontier
+
+**Soru**: "En iyi closed (G1) vs en iyi OSS — fark anlamlı mı? OSS'un sıfır marjinal-maliyeti telafi ediyor mu?"
+
+**Tasarım**:
+- Closed: G1 (RQ2a winner — büyük olasılıkla Pro Preview)
+- OSS: RQ2c'den çıkan en iyi OSS
+- Pipeline: WP-03 winner
+- Domain: D1
+- N=10
+- Total: 2 × 1 × 3 × 10 = 60 runs
+
+**Metrikler**: Aynı RQ2a'yla, plus **cost-quality Pareto** vurgusu (closed pahalı vs OSS bedava).
+
+**İstatistik**:
+- Mann-Whitney U (independent, cross-family)
+- Effect size: Cliff's δ
+- Practical significance threshold: 5pp F1 ya da %20 cost saving
+
+---
+
+## RQ2c — OSS Landscape (4 OSS karşılaştırma)
+
+**Soru**: "OSS arasında code-specialization mı, generalist reasoning mı, frontier-MoE mi öne çıkıyor?"
+
+**Tasarım**:
+- Modeller: O1 (gpt-oss:120b), O2 (qwen3-coder-next), O3 (minimax-m2), O4 (gemma4:31b)
+- Pipeline: WP-03 winner
+- Domain: D1
+- N=10
+- Total: 4 × 1 × 3 × 10 = 120 runs
+
+**Metrikler**: Aynı + json_failed_rate vurgusu (özellikle gemma4 ve qwen için).
+
+**İstatistik**:
+- **Friedman test** (multi-model, paired)
+- Posthoc: **Nemenyi test** (which OSS is significantly better)
+- Holm-Bonferroni correction (multiple comparison)
+- Cliff's δ pairwise
+
+**Beklenen sonuç**: Code-specialized (qwen3-coder, minimax-m2) > generalist (gpt-oss, gemma4)? Veya MoE (minimax-m2) > dense (qwen3-coder)? Empirik olarak öğreneceğiz.
+
+---
+
+## Run Plan
+
+Total RQ2 runs: 60 (2a) + 60 (2b, partial overlap with 2a) + 120 (2c) = ~200 runs.
+
+Effective: ~180 unique runs (overlap minimization). Cost: ~$70 (Gemini) + ~$0 (OSS).
+
+Time: ~30 saat compute (paralelizasyon ile ~12 saat wall clock).
+
+---
+
+## Acceptance Criteria
+
+- [ ] RQ2a, RQ2b, RQ2c için ayrı sonuç tabloları (`runs/outputs/rq2a/...`, `runs/outputs/rq2b/...`, `runs/outputs/rq2c/...`)
+- [ ] Her tabloda: P, R, F1, json_failed_rate, latency, cost
+- [ ] İstatistiksel test sonuçları: p-values, effect sizes, CIs
+- [ ] Paper §6 alt-bölümleri: §6.1 RQ2a, §6.2 RQ2b, §6.3 RQ2c (her birinde Tablo + analiz prose)
+- [ ] **Pareto frontier** plot (Figure 2): F1 vs cost across all 6 models
+- [ ] Discussion section'da "kazanan kategori" yorumu
+
+---
+
+## Implementation Steps
+
+1. **Pre-req check**: WP-03 tamamlandı (winning pipeline locked), WP-01a tüm 6 model client çalışıyor
+2. **Run-spec generation**: `scripts/generate_run_specs.py --rq=rq2a` etc. — generate YAML run-specs
+3. **Execute runs**: `scripts/run_worker.py` — idempotent worker tüm cell'leri tek tek doldurur
+4. **Aggregate results**: `scripts/build_rq2_tables.py` — runs/outputs'tan tablo render
+5. **Statistical analysis**: WP-17 stat scripts'leri (Wilcoxon, Friedman, Nemenyi, Cliff's δ)
+6. **Figure**: `scripts/plot_pareto_rq2.py` — vector PDF Figure 2
+7. **Prose**: WP-13 ile birlikte §6.1, §6.2, §6.3 yazılır
+
+---
+
+## Outputs
+
+- `runs/outputs/rq2{a,b,c}/...` (200 koşum dosyası)
+- `runs/tables/rq2{a,b,c}.csv` (rendered tables)
+- `runs/figures/fig2_pareto.pdf`
+- Paper §6 alt-bölümleri (WP-13'te yazılır)
+
+---
+
+## Risks
+
+| Risk | Mitigation |
+|------|------------|
+| OSS modellerden biri schema sürekli kayar (json_failed > 50%) | WP-NEW-B probe'da yakalanır; o model "Tier 2" olarak rapor edilir, kazanan seçimi etkilenmez |
+| Friedman test 4 model için sığ — Nemenyi posthoc düşük güç | N=10 bunu kompanse eder; gerekirse N=20'ye escalation |
+| Cost > $300 budget | OSS bedava, Gemini ~$70 estimated; çok altında, marj rahat |
+| Pilot variance >0.15 → N=20 escalation | Compute 2× artar (~24 saat wall clock); kabul edilebilir |

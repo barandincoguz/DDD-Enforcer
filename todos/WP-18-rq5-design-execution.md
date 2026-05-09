@@ -1,4 +1,17 @@
-# WP-18: RQ5 Design + Execution (Hoca-5)
+# WP-18: RQ5 Design + Execution — ❌ DROPPED FROM ACTIVE SCOPE
+
+> **STATUS — 2026-05-08**: This WP is **DROPPED** entirely (D6 lockdown).
+>
+> - **Decision (D6, 2026-05-08)**: RQ5 silindi tamamen. Reviewer'a bahsedilmez. Cover letter'da pre-emption yok. Paper sadece RQ1-RQ4 ile temiz çıkar.
+> - **Reason**: 2 yazar + 14 hafta için 5 RQ agresif. Depth over breadth tercih (LLM Guidelines G7 ve EMSE bar'ı için statistical rigor + replication package + Fleiss's κ daha kritik).
+> - **Hoca-5 closure**: Hoca'nın "RQ1-RQ5 yapılacak" notu Murat Hoca ile courtesy konuşulur (`HOCA_GUNDEM.md` Konu 2). İtiraz olursa tartışılır.
+> - **Major-revision response**: Eğer reviewer "ablation study eklendiğine dair major revision" isterse, RQ5=(A) Ablation 1-haftalık ek iş olarak yapılabilir. Ama proactive olarak yapmıyoruz.
+>
+> **The original content below is preserved for historical reference only. Do NOT execute as part of EMSE submission.**
+
+---
+
+# WP-18: RQ5 Design + Execution (Hoca-5) [ARCHIVED]
 
 **Owner:** Ali (if RQ5 = (A) Ablation) OR Baran (if RQ5 = (D) Developer Study) — depends on choice
 **Depends-on:** [WP-00, WP-01a/b/c/d (for ablation); WP-09 (if developer study)]

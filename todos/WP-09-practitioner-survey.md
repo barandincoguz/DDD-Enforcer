@@ -1,4 +1,17 @@
-# WP-09: Practitioner Survey (Industry Relevance — Optional but Recommended)
+# WP-09: Practitioner Survey — ❌ DROPPED FROM ACTIVE SCOPE
+
+> **STATUS — 2026-05-08**: This WP is **DROPPED** from the active 14-week roadmap (D6 decision: RQ5 silindi → WP-09'un dayanağı olan "developer study" variantı kapsamdan çıktı).
+>
+> - **Reason**: WP-09 was tied to RQ5 (Developer Study variant). With RQ5 dropped (`MASTER_PLAN.md` D6), the IRB+recruitment cost is no longer justified for a 4-RQ paper.
+> - **Reviewer impact**: None. RQ5 is silently removed; reviewers won't ask "where is the survey?"
+> - **Hoca communication**: Murat Hoca courtesy bilgilendirilir (`HOCA_GUNDEM.md` Konu 2).
+> - **Future**: If reviewers request major revision with practitioner study angle, this WP can be reactivated.
+>
+> **The original content below is preserved for historical reference only. Do NOT execute as part of EMSE submission.**
+
+---
+
+# WP-09: Practitioner Survey (Industry Relevance — Optional but Recommended) [ARCHIVED]
 
 **Owner:** Baran (recruit + IRB + analysis)
 **Depends-on:** [WP-00] (concurrent with infra; IRB delay tolerated)
