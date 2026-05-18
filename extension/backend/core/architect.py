@@ -24,6 +24,7 @@ from google import genai
 from google.genai import types
 
 from core.schemas import DomainModel
+from core.orchestration.errors import ArchitectExtractionError
 from core.token_tracker import TokenTracker
 from configs.models import stage_config
 
@@ -412,9 +413,12 @@ RESPOND WITH JSON:
                     print(f"  ⚠️  Parse failed - Retry {retry + 1}/5")
                     if retry < 4:
                         continue
-                    print("  ⚠️  Max retries reached, using fallback context")
-                    self._report_progress("Architect", "completed", "Using fallback context", 100)
-                    return ["CoreDomain"]
+                    print("  ⚠️  Max retries reached, raising ArchitectExtractionError")
+                    self._report_progress("Architect", "error", "Architect exhausted JSON parse retries", 100)
+                    raise ArchitectExtractionError(
+                        srs_path=getattr(self, "_current_srs_path", "<unknown>"),
+                        message="Architect exhausted JSON parse retries (5/5)",
+                    )
 
                 # Track token usage only for successful responses
                 self.token_tracker.track_api_call(
@@ -455,16 +459,28 @@ RESPOND WITH JSON:
                 print(f"  ⚠️  Empty response - Retry {retry + 1}/5")
                 if retry < 4:
                     continue
-                self._report_progress("Architect", "completed", "Using fallback context", 100)
-                return ["CoreDomain"]
+                self._report_progress("Architect", "error", "Architect produced empty contexts", 100)
+                raise ArchitectExtractionError(
+                    srs_path=getattr(self, "_current_srs_path", "<unknown>"),
+                    message="Architect produced empty contexts list after 5 retries",
+                )
 
+            except ArchitectExtractionError:
+                raise
             except Exception as e:
                 if not self._is_quota_error_and_backoff(e, retry):
                     print(f"   [WARN] Context identification error: {e}")
-                    self._report_progress("Architect", "error", str(e), 100)
-                    return ["CoreDomain"]
+                    if retry >= 4:
+                        self._report_progress("Architect", "error", str(e), 100)
+                        raise ArchitectExtractionError(
+                            srs_path=getattr(self, "_current_srs_path", "<unknown>"),
+                            message=f"Architect failed with {type(e).__name__}: {e}",
+                        ) from e
 
-        return ["CoreDomain"]
+        raise ArchitectExtractionError(
+            srs_path=getattr(self, "_current_srs_path", "<unknown>"),
+            message="Architect exhausted retry loop without producing contexts",
+        )
 
     # =========================================================================
     # STAGE 3: SPECIALIST - Analyze All Contexts
