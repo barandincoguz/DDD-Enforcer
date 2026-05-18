@@ -67,8 +67,14 @@ class SignalEnricher:
         srs_docs: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         contexts = model_data.get("bounded_contexts", [])
-        auto_created_context = not bool(contexts)
-        if auto_created_context:
+        # A model is treated as "auto-created" when there are no contexts at
+        # all, OR when the only context is a blank placeholder (no entities,
+        # services, aggregates, value_objects, or domain_events). Phase A's
+        # schema tightening forbids the previous "empty bounded_contexts"
+        # shortcut, so callers seed a blank CoreDomain context instead; we
+        # honor that as equivalent to "auto_created".
+        auto_created_context = not bool(contexts) or self._is_blank_seed(contexts)
+        if not contexts:
             contexts = [self._default_context()]
             model_data["bounded_contexts"] = contexts
 
@@ -96,6 +102,20 @@ class SignalEnricher:
         self._finalize_rates()
         self._write_diagnostics()
         return model_data
+
+    @staticmethod
+    def _is_blank_seed(contexts: List[Dict[str, Any]]) -> bool:
+        """Return True iff `contexts` is exactly one context with no domain
+        vocabulary populated yet — i.e. a placeholder seed inserted to
+        satisfy Phase A's "bounded_contexts must be non-empty" validator.
+        """
+        if len(contexts) != 1:
+            return False
+        ul = (contexts[0] or {}).get("ubiquitous_language", {}) or {}
+        for bucket in ("entities", "value_objects", "services", "aggregates", "domain_events"):
+            if ul.get(bucket):
+                return False
+        return True
 
     def _should_merge(self, signal: CandidateSignal, auto_created_context: bool) -> bool:
         if auto_created_context:

@@ -51,3 +51,12 @@ def test_specialist_prompt_lists_domain_events_as_extraction_target():
         "Synthesizer must not be the first stage that mentions them."
     )
     assert '"domain_events"' in specialist_section
+
+
+def test_specialist_prompt_demands_confidence_and_justification():
+    src = open("core/architect.py").read()
+    # The Synthesizer prompt cascades this requirement downstream;
+    # assert directly at the synthesize prompt which is definitive.
+    synth = src.split("def synthesize(")[1].split("def ")[0]
+    assert '"confidence"' in synth
+    assert '"justification"' in synth

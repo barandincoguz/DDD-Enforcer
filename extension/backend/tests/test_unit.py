@@ -267,7 +267,12 @@ class OrderAggregate:
 
     def test_enrich_domain_model_adds_confidence_and_sources(self, tmp_path):
         from core.AST.ast_model_signals import ASTModelSignalExtractor
-        from core.schemas import DomainModel, ProjectMetadata
+        from core.schemas import (
+            BoundedContext,
+            DomainModel,
+            ProjectMetadata,
+            UbiquitousLanguage,
+        )
 
         workspace = tmp_path / "workspace"
         workspace.mkdir()
@@ -281,6 +286,8 @@ class Invoice:
             encoding="utf-8",
         )
 
+        # Phase A: DomainModel rejects empty bounded_contexts; seed a single
+        # CoreDomain context for AST enrichment to populate.
         model = DomainModel(
             project_name="Test",
             project_metadata=ProjectMetadata(
@@ -288,7 +295,19 @@ class Invoice:
                 generated_at="2026-02-16",
                 description="test"
             ),
-            bounded_contexts=[],
+            bounded_contexts=[
+                BoundedContext(
+                    context_name="CoreDomain",
+                    description="seed context for AST enrichment",
+                    ubiquitous_language=UbiquitousLanguage(
+                        entities=[],
+                        value_objects=[],
+                        services=[],
+                        aggregates=[],
+                        domain_events=[],
+                    ),
+                )
+            ],
             global_rules=None,
         )
 
@@ -318,20 +337,31 @@ class TestSchemas:
     def test_domain_model_structure(self):
         """Test DomainModel schema structure."""
         from core.schemas import DomainModel, ProjectMetadata, BoundedContext, UbiquitousLanguage
-        
-        # Test with complete required data
+
+        # Phase A: DomainModel rejects empty bounded_contexts; supply a
+        # minimal context so the structural assertions still apply.
         model = DomainModel(
             project_name="Test Project",
             project_metadata=ProjectMetadata(
                 version="1.0.0",
                 generated_at="2026-01-21T12:00:00"
             ),
-            bounded_contexts=[],
+            bounded_contexts=[
+                BoundedContext(
+                    context_name="CoreDomain",
+                    description="seed context for structural test",
+                    ubiquitous_language=UbiquitousLanguage(
+                        entities=[],
+                        value_objects=[],
+                        domain_events=[],
+                    ),
+                )
+            ],
             global_rules=None
         )
-        
+
         model_dict = model.model_dump()
-        
+
         assert "project_name" in model_dict
         assert "project_metadata" in model_dict
         assert "bounded_contexts" in model_dict
@@ -339,14 +369,24 @@ class TestSchemas:
     def test_bounded_context_schema(self):
         """Test BoundedContext schema."""
         from core.schemas import BoundedContext, UbiquitousLanguage, Entity
-        
+
         context = BoundedContext(
             context_name="Order Processing",
             description="Handles order lifecycle",
             ubiquitous_language=UbiquitousLanguage(
                 entities=[
-                    Entity(name="Order", description="A purchase request"),
-                    Entity(name="OrderItem", description="A line item in an order")
+                    Entity(
+                        name="Order",
+                        description="A purchase request",
+                        confidence=0.5,
+                        justification="legacy fixture",
+                    ),
+                    Entity(
+                        name="OrderItem",
+                        description="A line item in an order",
+                        confidence=0.5,
+                        justification="legacy fixture",
+                    )
                 ],
                 value_objects=[],
                 domain_events=[]

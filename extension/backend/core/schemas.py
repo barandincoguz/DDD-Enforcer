@@ -7,7 +7,7 @@ Used for validation and serialization of domain model data.
 
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # =============================================================================
@@ -42,18 +42,24 @@ class Entity(BaseModel):
     name: str = Field(description="Name of the domain entity (e.g., Customer)")
     description: str = Field(description="Brief description of the entity's role")
     confidence: float = Field(
-        default=0.5,
         ge=0.0,
         le=1.0,
-        description="Confidence score for this inference (0.0-1.0)"
+        description="LLM-emitted confidence in this inference (0.0-1.0). Required."
     )
-    sources: List[InferenceSource] = Field(
+    justification: str = Field(
+        description="LLM-emitted reason for this entity (e.g. supporting sentence count, role)."
+    )
+    evidence_sentence_indices: List[int] = Field(
         default_factory=list,
-        description="Traceable evidence list (file/line/rule)"
+        description="Scout sentence indices that ground this entity. Optional in Phase A, required (min_length=1) from Phase D1."
+    )
+    sources: List["InferenceSource"] = Field(
+        default_factory=list,
+        description="Traceable evidence list populated by AST enrichment (file/line/rule)."
     )
     synonyms_to_avoid: Optional[List[str]] = Field(
         default=None,
-        description="Terms forbidden for this entity (e.g., Client, User)"
+        description="Terms forbidden for this entity (e.g., Client, User)."
     )
 
 
@@ -94,15 +100,22 @@ class Aggregate(BaseModel):
     """Aggregate root candidate definition."""
     name: str = Field(description="Name of the aggregate root")
     description: str = Field(description="Aggregate consistency boundary")
+    members: List[str] = Field(
+        description="Entity names that live inside this aggregate. Required."
+    )
     confidence: float = Field(
         default=0.5,
         ge=0.0,
         le=1.0,
         description="Confidence score for this inference (0.0-1.0)"
     )
-    sources: List[InferenceSource] = Field(
+    sources: List["InferenceSource"] = Field(
         default_factory=list,
         description="Traceable evidence list (file/line/rule)"
+    )
+    evidence_sentence_indices: List[int] = Field(
+        default_factory=list,
+        description="Scout sentence indices that ground this aggregate."
     )
 
 
@@ -141,7 +154,15 @@ class BoundedContext(BaseModel):
         default=None,
         description="List of other contexts this context can depend on"
     )
-    ubiquitous_language: UbiquitousLanguage = Field(
+    supporting_sentence_ids: List[int] = Field(
+        default_factory=list,
+        description="Scout sentence indices that justify identifying this context."
+    )
+    business_rules: Optional[List[str]] = Field(
+        default=None,
+        description="Context-specific business rules surfaced by Specialist."
+    )
+    ubiquitous_language: "UbiquitousLanguage" = Field(
         description="The language and models specific to this context"
     )
 
@@ -177,8 +198,18 @@ class DomainModel(BaseModel):
     project_name: str = Field(description="Name of the project")
     project_metadata: ProjectMetadata = Field(description="Generation metadata")
     bounded_contexts: List[BoundedContext] = Field(
-        description="List of all identified Bounded Contexts"
+        description="List of all identified Bounded Contexts. Must be non-empty."
     )
     global_rules: Optional[GlobalRules] = Field(
         description="Project-wide architectural rules"
     )
+
+    @field_validator("bounded_contexts")
+    @classmethod
+    def _non_empty(cls, v: List[BoundedContext]) -> List[BoundedContext]:
+        if not v:
+            raise ValueError(
+                "bounded_contexts must be non-empty; an empty DomainModel "
+                "indicates upstream pipeline failure and must raise instead."
+            )
+        return v

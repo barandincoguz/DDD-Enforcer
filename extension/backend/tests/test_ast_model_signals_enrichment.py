@@ -27,6 +27,11 @@ def _build_context(name, entities=None):
 
 
 def _build_model(*contexts):
+    # Phase A: DomainModel rejects empty bounded_contexts. When a test wants
+    # to start with a "blank" model that AST enrichment then populates, we
+    # seed a single empty CoreDomain context so validation passes; the AST
+    # extractor will still merge its own signals into this seed.
+    seeded = list(contexts) if contexts else [_build_context("CoreDomain")]
     return DomainModel(
         project_name="Test",
         project_metadata=ProjectMetadata(
@@ -34,7 +39,7 @@ def _build_model(*contexts):
             generated_at="2026-03-13",
             description="test",
         ),
-        bounded_contexts=list(contexts),
+        bounded_contexts=seeded,
         global_rules=None,
     )
 
@@ -143,7 +148,12 @@ def test_ambiguous_context_candidate_is_not_forced(tmp_path):
         """,
     )
 
-    shared_entity = Entity(name="Invoice", description="invoice")
+    shared_entity = Entity(
+        name="Invoice",
+        description="invoice",
+        confidence=0.5,
+        justification="legacy fixture",
+    )
     model = _build_model(
         _build_context("BillingContext", entities=[shared_entity]),
         _build_context("ShippingContext", entities=[shared_entity]),

@@ -99,6 +99,17 @@ class CandidateSignal:
         }
         if self.candidate_type == "entities":
             payload["synonyms_to_avoid"] = []
+            # Entity.justification is required (Phase A schema tightening).
+            # AST signals don't ship a justification field, so synthesize one
+            # from the classifier reasons that produced this candidate.
+            payload["justification"] = (
+                "; ".join(self.reasons[:3]) if self.reasons else "AST-detected entity"
+            )
+        if self.candidate_type == "aggregates":
+            # Aggregate.members is required (Phase A schema tightening).
+            # AST classifier doesn't yet populate aggregate members; emit empty
+            # list so DomainModel validation passes. Phase D1 may surface this.
+            payload["members"] = []
         if self.candidate_type == "value_objects":
             payload["attributes"] = list(self.attributes)
         return payload
