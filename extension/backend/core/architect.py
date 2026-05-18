@@ -496,11 +496,13 @@ RESPOND WITH JSON:
 
         prompt = f"""Analyze the domain knowledge for these Bounded Contexts: {contexts_text}
 
-For EACH context, extract:
-1. Aggregate Roots - Primary entities that control consistency boundaries
-2. Entities - Objects with unique identity and their key attributes
-3. Value Objects - Immutable objects defined by attributes (Address, Money)
-4. Business Rules - Constraints, validations, invariants
+For EACH context, extract the 5 DDD building blocks:
+1. Entities       - Objects with unique identity (Customer, Order, Product)
+2. Value Objects  - Immutable objects defined by attributes (Address, Money)
+3. Services       - Stateless operations that don't naturally belong to an entity
+4. Aggregates     - Consistency boundaries; each aggregate has a name and lists
+                    the entities (`members`) that live inside it
+5. Domain Events  - Past-tense business facts (OrderPlaced, PaymentReceived)
 
 DOMAIN KNOWLEDGE:
 {sentences_text}
@@ -510,15 +512,17 @@ RESPOND WITH JSON:
   "analyses": [
     {{
       "context": "ContextName",
-      "aggregate_roots": ["Root1"],
       "entities": [{{"name": "Entity1", "attributes": ["id", "name", "status"]}}],
       "value_objects": [{{"name": "Money", "attributes": ["amount", "currency"]}}],
+      "services": [{{"name": "PricingService", "description": "Computes order totals"}}],
+      "aggregates": [{{"name": "Order", "members": ["Order", "OrderLine"]}}],
+      "domain_events": ["OrderPlaced", "OrderCancelled"],
       "business_rules": ["Orders must have at least one item"]
     }}
   ]
 }}
 
-If a category has no data, use empty arrays. Do not invent data."""
+If a category has no data, use empty arrays. Do not invent data. Every aggregate.members entry must also appear in the same context's entities list."""
 
         sc = stage_config("Specialist")
         for retry in range(5):
