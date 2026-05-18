@@ -22,9 +22,14 @@ from typing import Any, Callable, Dict, List, Optional
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from pydantic import ValidationError
 
 from core.schemas import DomainModel
-from core.orchestration.errors import ArchitectExtractionError, SpecialistFailureError
+from core.orchestration.errors import (
+    ArchitectExtractionError,
+    SpecialistFailureError,
+    SynthesizerEmptyModelError,
+)
 from core.token_tracker import TokenTracker
 from configs.models import stage_config
 
@@ -735,8 +740,10 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
                     if retry < 4:
                         time.sleep(2)
                         continue
-                    print("  ❌ All retries failed - Using fallback model")
-                    return self._create_fallback_model()
+                    print("  ❌ All retries failed - raising SynthesizerEmptyModelError")
+                    raise SynthesizerEmptyModelError(
+                        input_summary=f"{len(analyses)} analyses; synthesize parse-fail after 5 retries"
+                    )
 
                 # Verify required fields exist. A list-typed result (which can
                 # arrive from _parse_json_response since Gemini occasionally
@@ -747,8 +754,10 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
                     if retry < 4:
                         time.sleep(2)
                         continue
-                    print("  ❌ Non-dict response - Using fallback model")
-                    return self._create_fallback_model()
+                    print("  ❌ Non-dict response - raising SynthesizerEmptyModelError")
+                    raise SynthesizerEmptyModelError(
+                        input_summary=f"{len(analyses)} analyses; synthesize returned {type(result).__name__} not dict after 5 retries"
+                    )
 
                 required = ["project_name", "project_metadata", "bounded_contexts"]
                 missing = [f for f in required if f not in result]
@@ -758,8 +767,10 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
                     if retry < 4:
                         time.sleep(2)
                         continue
-                    print("  ❌ Incomplete response - Using fallback model")
-                    return self._create_fallback_model()
+                    print("  ❌ Incomplete response - raising SynthesizerEmptyModelError")
+                    raise SynthesizerEmptyModelError(
+                        input_summary=f"{len(analyses)} analyses; synthesize missing fields {missing} after 5 retries"
+                    )
 
                 # Track token usage only for successful, valid responses
                 self.token_tracker.track_api_call(
@@ -781,31 +792,47 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
 
                 return result
 
+            except SynthesizerEmptyModelError:
+                raise
             except Exception as e:
                 if not self._is_quota_error_and_backoff(e, retry):
                     print(f"   [WARN] Synthesis error: {e}")
                     if retry >= 4:
                         self._report_progress("Synthesizer", "error", str(e), 100)
-                        raise
+                        raise SynthesizerEmptyModelError(
+                            input_summary=f"{len(analyses)} analyses; synthesize failed with {type(e).__name__}: {e}"
+                        ) from e
 
         self._report_progress("Synthesizer", "error", "Retries exhausted", 100)
-        raise Exception("Failed to synthesize after all retries")
+        raise SynthesizerEmptyModelError(
+            input_summary=f"{len(analyses)} analyses; synthesize exhausted retry loop"
+        )
 
     def synthesize_final_model(self, analyses: List[Dict[str, Any]]) -> DomainModel:
         """Synthesize per-context analyses into a final DomainModel.
 
-        Phase A: Propagates Pydantic ValidationError instead of returning an
-        empty fallback model. The previous bare except (FM-21) silently turned
-        validation errors into successful empty-model responses, which is
-        removed in Phase B together with _create_fallback_model.
+        Phase B4: Empty bounded_contexts raises SynthesizerEmptyModelError
+        (typed). Other Pydantic errors propagate unchanged so that
+        prompt/schema bugs surface loudly rather than as empty models.
         """
         raw_dict = self.synthesize(analyses)
         raw_dict = self._cleanup_domain_data(raw_dict)
-        # Pydantic raises ValidationError on shape/constraint failures —
-        # let it propagate. The narrow except below only catches the
-        # KeyError that _cleanup_domain_data may surface from a stage-3
-        # error payload, and re-raises with context.
-        return DomainModel(**raw_dict)
+        if not raw_dict.get("bounded_contexts"):
+            raise SynthesizerEmptyModelError(
+                input_summary=f"{len(analyses)} analyses"
+            )
+        try:
+            return DomainModel(**raw_dict)
+        except ValidationError as e:
+            # If Pydantic complains about empty bounded_contexts despite the
+            # explicit check above (e.g. due to A4's field_validator on a
+            # subtly malformed payload), convert to a typed error for the
+            # orchestrator.
+            if any("bounded_contexts" in str(err) for err in e.errors()):
+                raise SynthesizerEmptyModelError(
+                    input_summary=f"{len(analyses)} analyses; ValidationError: {e}"
+                ) from e
+            raise
 
     # =========================================================================
     # MAIN PIPELINE
@@ -883,22 +910,6 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
                         for e in events
                     ]
         return json_data
-
-    def _create_fallback_model(self) -> Dict[str, Any]:
-        """Create minimal valid model structure."""
-        return {
-            "project_name": "Generated Domain Model",
-            "project_metadata": {
-                "version": "1.0",
-                "generated_at": time.strftime("%Y-%m-%d"),
-                "description": "Auto-generated fallback model",
-            },
-            "bounded_contexts": [],
-            "global_rules": {
-                "naming_convention": "PascalCase",
-                "banned_global_terms": ["Manager", "Util"],
-            },
-        }
 
     def _safe_response_text(self, response) -> str:
         """Return response.text or empty string if None.

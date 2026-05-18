@@ -1,5 +1,10 @@
 """Phase A: synthesize_final_model must propagate Pydantic validation errors
 instead of returning an empty model via a bare except.
+
+Phase B4 refinement: the empty-bounded_contexts path is now an explicit
+SynthesizerEmptyModelError (see test_synthesizer_empty_model_error.py).
+This test pins the remaining contract: non-bounded_contexts ValidationErrors
+(e.g. malformed project_metadata) must propagate unwrapped.
 """
 
 import pytest
@@ -27,19 +32,38 @@ def _make_arch():
 
 
 def test_synthesize_final_model_propagates_validation_error():
-    """When synthesize() returns invalid JSON shape, the Pydantic error must
-    propagate; the bare except path is gone.
-
-    Before the fix, this test would see ValidationError caught by the bare
-    except, which then tries to return a fallback model. The fallback also
-    fails Pydantic validation (FM-04 forbids empty bounded_contexts), so a
-    second ValidationError bubbles up.
-
-    After the fix, the first ValidationError propagates directly.
+    """When synthesize() returns a payload whose error is OUTSIDE
+    bounded_contexts (e.g. project_metadata shape failure), the Pydantic
+    ValidationError must propagate unwrapped. B4 only converts errors
+    that mention bounded_contexts into SynthesizerEmptyModelError.
     """
     arch = _make_arch()
     with patch.object(arch, "synthesize") as mock_synth:
-        # Return a dict missing required fields — DomainModel construction will fail
-        mock_synth.return_value = {"project_name": "X"}
+        # bounded_contexts is non-empty (so the early SynthesizerEmptyModelError
+        # check passes), but project_metadata is malformed — version is an int
+        # not a str, which will fail Pydantic validation on ProjectMetadata.
+        mock_synth.return_value = {
+            "project_name": "X",
+            "project_metadata": {"version": 123, "generated_at": ["not", "a", "string"]},
+            "bounded_contexts": [
+                {
+                    "context_name": "C1",
+                    "description": "desc",
+                    "ubiquitous_language": {
+                        "entities": [
+                            {
+                                "name": "E",
+                                "description": "d",
+                                "confidence": 0.9,
+                                "justification": "j",
+                            }
+                        ],
+                        "value_objects": None,
+                        "domain_events": None,
+                    },
+                }
+            ],
+            "global_rules": None,
+        }
         with pytest.raises(ValidationError):
             arch.synthesize_final_model(analyses=[])
