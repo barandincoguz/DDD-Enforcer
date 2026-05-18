@@ -68,8 +68,11 @@ class ASTModelSignalExtractor:
             try:
                 for facts in extract_class_facts(file_path):
                     signals.extend(self.classifier.classify(facts))
-            except Exception as exc:  # pragma: no cover - defensive logging
-                logger.error("Error extracting AST signals from %s: %s", file_path, exc)
+            except (SyntaxError, UnicodeDecodeError, ValueError, OSError) as exc:
+                # G01: raise instead of silently logging and continuing.
+                # Malformed Python files in the workspace now propagate errors
+                # instead of vanishing from the candidate set.
+                raise SyntaxError(f"AST signal extraction failed for {file_path}: {exc}") from exc
         return signals
 
     def _to_public_candidate_map(

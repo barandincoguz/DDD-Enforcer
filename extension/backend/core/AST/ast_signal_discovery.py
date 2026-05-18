@@ -80,9 +80,12 @@ def find_python_files(
 def extract_class_facts(file_path: str) -> List[ClassFacts]:
     try:
         source = _read_source(file_path)
-        tree = ast.parse(source)
-    except Exception:
-        return []
+        tree = ast.parse(source, filename=str(file_path))
+    except (SyntaxError, UnicodeDecodeError, OSError) as exc:
+        # G01: raise instead of silently returning an empty fact list.
+        # The caller (_collect_signals) decides whether to count this
+        # toward run-failure metrics or surface to the user.
+        raise ValueError(f"AST parse failed for {file_path}: {exc}") from exc
 
     path_parts = list(Path(file_path).with_suffix("").parts[-4:])
     module_tokens = collect_terms(path_parts)
