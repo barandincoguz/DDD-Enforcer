@@ -839,41 +839,23 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
     # =========================================================================
 
     def _cleanup_domain_data(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Clean up JSON data to match DomainModel schema."""
-        if "global_rules" not in json_data:
-            json_data["global_rules"] = {
-                "naming_convention": "PascalCase",
-                "banned_global_terms": [],
-            }
+        """Structural-only normalization of the Synthesizer's raw JSON.
 
+        Phase A6 (FM-20): no longer fabricates defaults. If the LLM omitted
+        a field, leave it omitted — let downstream Pydantic validation or
+        the Verifier surface the gap. The only transformation kept is
+        coercing domain_events from `[{"name": "X"}]` (object form some
+        models emit) to `["X"]` (list-of-string form the schema expects).
+        """
         if "bounded_contexts" in json_data:
-            for context in json_data["bounded_contexts"]:
-                if "allowed_dependencies" not in context:
-                    context["allowed_dependencies"] = None
-
-                ub_lang = context.get("ubiquitous_language", {})
-
-                # Ensure entities have synonyms_to_avoid
-                for entity in ub_lang.get("entities", []):
-                    if isinstance(entity, dict) and "synonyms_to_avoid" not in entity:
-                        entity["synonyms_to_avoid"] = None
-
-                # Ensure value objects have attributes
-                for vo in ub_lang.get("value_objects", []):
-                    if isinstance(vo, dict) and "attributes" not in vo:
-                        vo["attributes"] = []
-
-                # Ensure domain events are strings
-                events = ub_lang.get("domain_events", [])
+            for ctx in json_data["bounded_contexts"]:
+                ul = ctx.get("ubiquitous_language", {})
+                events = ul.get("domain_events")
                 if isinstance(events, list):
-                    cleaned = []
-                    for event in events:
-                        if isinstance(event, dict) and "name" in event:
-                            cleaned.append(event["name"])
-                        elif isinstance(event, str):
-                            cleaned.append(event)
-                    ub_lang["domain_events"] = cleaned
-
+                    ul["domain_events"] = [
+                        e["name"] if isinstance(e, dict) and "name" in e else e
+                        for e in events
+                    ]
         return json_data
 
     def _create_fallback_model(self) -> Dict[str, Any]:
