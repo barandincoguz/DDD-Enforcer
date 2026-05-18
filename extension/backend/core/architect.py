@@ -34,6 +34,7 @@ from core.orchestration.pipeline import run_pipeline, PipelineDeps
 from core.scout.chunking import section_aware_chunks
 from core.verifier.checks_deterministic import (
     check_d1_supporting_sentence_ids_subset,
+    check_d2_entity_evidence_nonempty,
     check_d3_entity_names_unique_across_contexts,
     check_d4_aggregate_members_exist_in_context,
     check_d5_allowed_dependencies_reference_existing_contexts,
@@ -1009,6 +1010,9 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
             }
             issues.extend(check_d3_entity_names_unique_across_contexts(entities_by_context))
             for s in snapshot["specialist"]:
+                issues.extend(check_d2_entity_evidence_nonempty(
+                    context_name=s["context_name"], entities=s.get("entities", [])
+                ))
                 issues.extend(check_d4_aggregate_members_exist_in_context(
                     s["context_name"], s.get("entities", []), s.get("aggregates", [])
                 ))

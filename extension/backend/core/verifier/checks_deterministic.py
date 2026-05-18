@@ -30,7 +30,7 @@ def check_d1_supporting_sentence_ids_subset(
 def check_d2_entity_evidence_nonempty(
     context_name: str,
     entities: List[Dict],
-    phase: str = "C",
+    phase: str = "D",
 ) -> List[VerifierIssue]:
     """D2: every Entity has ≥1 evidence_sentence_index.
 

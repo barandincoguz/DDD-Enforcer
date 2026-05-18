@@ -31,14 +31,14 @@ def test_d1_flags_id_not_in_scout():
 
 # ----- D2 -----
 
-def test_d2_passes_when_evidence_phase_a_optional():
-    """In Phase A-C, evidence_sentence_indices is optional → emit only warn."""
+def test_d2_default_phase_is_d_so_empty_evidence_is_error():
+    """Default phase is now 'D'; empty evidence is ERROR, not WARN."""
     entity = {"name": "Order", "evidence_sentence_indices": []}
     issues = check_d2_entity_evidence_nonempty(
-        context_name="OrderMgmt", entities=[entity], phase="C"
+        context_name="OrderMgmt", entities=[entity]
     )
     assert len(issues) == 1
-    assert issues[0].severity == IssueSeverity.WARN
+    assert issues[0].severity == IssueSeverity.ERROR
 
 
 def test_d2_passes_when_evidence_present_phase_d():
