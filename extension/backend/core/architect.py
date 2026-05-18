@@ -619,15 +619,16 @@ If a category has no data, use empty arrays. Do not invent data."""
         prompt = f"""Synthesize Bounded Context analyses into a cohesive Domain Model.
 
 SYNTHESIS RULES:
-1. Resolve duplicates: Each entity belongs to ONE primary context
-2. Generate synonyms_to_avoid for each entity (common alternative names to flag)
-3. Define allowed_dependencies between contexts (which contexts can reference which)
-4. Ensure naming consistency: PascalCase for all names
+1. Resolve duplicates: Each entity belongs to ONE primary context.
+2. Generate synonyms_to_avoid for each entity (common alternative names to flag for V1).
+3. Define allowed_dependencies between contexts (which contexts can reference which).
+4. Ensure naming consistency: PascalCase for all names.
+5. Every aggregate must list its members (entity names that live inside the aggregate).
 
 CONTEXT ANALYSES:
 {json.dumps(analyses, indent=2)}
 
-OUTPUT SCHEMA (must match exactly):
+OUTPUT SCHEMA (must match exactly — populate every field even if empty):
 {{
   "project_name": "ProjectNameDomainModel",
   "project_metadata": {{
@@ -644,12 +645,23 @@ OUTPUT SCHEMA (must match exactly):
         "entities": [{{
           "name": "EntityName",
           "description": "Entity purpose",
+          "confidence": 0.85,
+          "justification": "Mentioned in 3 SRS sentences as a primary actor",
           "synonyms_to_avoid": ["Synonym1", "Synonym2"]
         }}],
         "value_objects": [{{
           "name": "ValueObjectName",
           "attributes": ["attr1", "attr2"],
           "description": "Value object purpose"
+        }}],
+        "services": [{{
+          "name": "ServiceName",
+          "description": "Service responsibility"
+        }}],
+        "aggregates": [{{
+          "name": "AggregateName",
+          "description": "Aggregate consistency boundary",
+          "members": ["EntityName1", "EntityName2"]
         }}],
         "domain_events": ["EventName1"]
       }}
@@ -661,7 +673,7 @@ OUTPUT SCHEMA (must match exactly):
   }}
 }}
 
-CRITICAL: synonyms_to_avoid must be populated for validation to work correctly."""
+CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.members must reference an entity in the same context. Do not invent data not present in the analyses."""
 
         sc = stage_config("Synthesizer")
         for retry in range(5):
