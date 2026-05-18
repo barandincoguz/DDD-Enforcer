@@ -24,7 +24,7 @@ from google import genai
 from google.genai import types
 
 from core.schemas import DomainModel
-from core.orchestration.errors import ArchitectExtractionError
+from core.orchestration.errors import ArchitectExtractionError, SpecialistFailureError
 from core.token_tracker import TokenTracker
 from configs.models import stage_config
 
@@ -570,11 +570,11 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
                     if retry < 4:
                         time.sleep(2)
                         continue
-                    # Final fallback
-                    return [
-                        {"context": ctx, "analysis": {"error": "parse_failed"}}
-                        for ctx in contexts
-                    ]
+                    self._report_progress("Specialist", "error", "Specialist exhausted JSON parse retries", 100)
+                    raise SpecialistFailureError(
+                        context_name="<all>",
+                        message=f"Specialist exhausted JSON parse retries for {len(contexts)} contexts",
+                    )
 
                 # Track token usage only for successful responses
                 self.token_tracker.track_api_call(
@@ -599,24 +599,34 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
                     )
                     self._report_progress("Specialist", "completed", f"Analyzed {len(analyses)} contexts", 100)
                     return analyses
-                self._report_progress("Specialist", "completed", "Analysis completed", 100)
-                return [{"context": ctx, "analysis": {}} for ctx in contexts]
 
+                # No "analyses" key — treat as a parse failure, retry then raise
+                print(f"      ⚠️  Missing 'analyses' field - Retry {retry + 1}/5")
+                if retry < 4:
+                    continue
+                self._report_progress("Specialist", "error", "Specialist produced no 'analyses' field", 100)
+                raise SpecialistFailureError(
+                    context_name="<all>",
+                    message="Specialist produced no 'analyses' field after 5 retries",
+                )
+
+            except SpecialistFailureError:
+                raise
             except Exception as e:
                 if not self._is_quota_error_and_backoff(e, retry):
                     print(f"   [WARN] Analysis error: {e}")
                     if retry >= 4:
                         self._report_progress("Specialist", "error", str(e), 100)
-                        return [
-                            {"context": ctx, "analysis": {"error": str(e)}}
-                            for ctx in contexts
-                        ]
+                        raise SpecialistFailureError(
+                            context_name="<all>",
+                            message=f"Specialist failed with {type(e).__name__}: {e}",
+                        ) from e
 
         self._report_progress("Specialist", "error", "Retries exhausted", 100)
-        return [
-            {"context": ctx, "analysis": {"error": "retries_exhausted"}}
-            for ctx in contexts
-        ]
+        raise SpecialistFailureError(
+            context_name="<all>",
+            message="Specialist exhausted retry loop without analyses",
+        )
 
     # =========================================================================
     # STAGE 4: SYNTHESIZER - Create Final Model
