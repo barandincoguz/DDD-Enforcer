@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from core.schemas import DomainModel, GlobalRules, ProjectMetadata
+from core.schemas import DomainModel
 from core.token_tracker import TokenTracker
 from configs.models import stage_config
 
@@ -766,27 +766,20 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
         raise Exception("Failed to synthesize after all retries")
 
     def synthesize_final_model(self, analyses: List[Dict[str, Any]]) -> DomainModel:
-        """Create validated DomainModel from analyses."""
-        try:
-            json_data = self.synthesize(analyses)
-            cleaned_data = self._cleanup_domain_data(json_data)
-            return DomainModel(**cleaned_data)
-        except Exception as e:
-            print(f"  ❌ Model creation error: {e}")
-            print("  🔄 Creating minimal fallback model...")
-            return DomainModel(
-                project_name="Generated Domain Model",
-                project_metadata=ProjectMetadata(
-                    version="1.0",
-                    generated_at=time.strftime("%Y-%m-%d"),
-                    description="Auto-generated domain model from SRS document",
-                ),
-                bounded_contexts=[],
-                global_rules=GlobalRules(
-                    naming_convention="PascalCase",
-                    banned_global_terms=["Manager", "Util", "Helper"],
-                ),
-            )
+        """Synthesize per-context analyses into a final DomainModel.
+
+        Phase A: Propagates Pydantic ValidationError instead of returning an
+        empty fallback model. The previous bare except (FM-21) silently turned
+        validation errors into successful empty-model responses, which is
+        removed in Phase B together with _create_fallback_model.
+        """
+        raw_dict = self.synthesize(analyses)
+        raw_dict = self._cleanup_domain_data(raw_dict)
+        # Pydantic raises ValidationError on shape/constraint failures —
+        # let it propagate. The narrow except below only catches the
+        # KeyError that _cleanup_domain_data may surface from a stage-3
+        # error payload, and re-raises with context.
+        return DomainModel(**raw_dict)
 
     # =========================================================================
     # MAIN PIPELINE
