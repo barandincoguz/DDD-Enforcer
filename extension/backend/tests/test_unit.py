@@ -380,12 +380,14 @@ class TestSchemas:
                         description="A purchase request",
                         confidence=0.5,
                         justification="legacy fixture",
+                        evidence_sentence_indices=[0],
                     ),
                     Entity(
                         name="OrderItem",
                         description="A line item in an order",
                         confidence=0.5,
                         justification="legacy fixture",
+                        evidence_sentence_indices=[0],
                     )
                 ],
                 value_objects=[],

@@ -56,6 +56,7 @@ def test_synthesize_final_model_propagates_validation_error():
                                 "description": "d",
                                 "confidence": 0.9,
                                 "justification": "j",
+                                "evidence_sentence_indices": [0],
                             }
                         ],
                         "value_objects": None,

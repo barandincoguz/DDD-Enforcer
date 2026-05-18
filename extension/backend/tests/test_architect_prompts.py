@@ -60,3 +60,15 @@ def test_specialist_prompt_demands_confidence_and_justification():
     synth = src.split("def synthesize(")[1].split("def ")[0]
     assert '"confidence"' in synth
     assert '"justification"' in synth
+
+
+def test_specialist_per_context_prompt_requires_evidence_sentence_indices():
+    src = open("core/architect.py").read()
+    # The per-context prompt was added in C7b inside _build_specialist_prompt_per_context.
+    # Split on the def-line to anchor on the body of the helper (the bare
+    # function name also appears at its call site in extract_per_context_details).
+    prompt_section = src.split("def _build_specialist_prompt_per_context")[1].split("\n    def ")[0]
+    assert "evidence_sentence_indices" in prompt_section, (
+        "Phase D1: Specialist per-context prompt must require "
+        "evidence_sentence_indices per entity for grounding traceability"
+    )

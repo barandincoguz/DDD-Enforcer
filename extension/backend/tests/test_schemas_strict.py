@@ -1,10 +1,11 @@
 """Schema-strict tests for Entity, ValueObject, Aggregate, BoundedContext.
 
 Phase A adds: required Entity.confidence, required Entity.justification,
-optional Entity.evidence_sentence_indices (tightened to required in
-Phase D1), required Aggregate.members, optional
-BoundedContext.supporting_sentence_ids,
+required Aggregate.members, optional BoundedContext.supporting_sentence_ids,
 optional BoundedContext.business_rules.
+
+Phase D1 tightens Entity.evidence_sentence_indices from optional
+(default empty list) to required (min_length=1).
 """
 
 import pytest
@@ -30,16 +31,26 @@ def test_entity_requires_justification_field():
         Entity(name="Customer", description="Buys things", confidence=0.8)
 
 
-def test_entity_accepts_phase_a_minimum_fields():
-    """In Phase A, evidence_sentence_indices is optional (default empty)."""
+def test_entity_rejects_missing_evidence_sentence_indices_in_phase_d():
+    """Phase D1: evidence_sentence_indices is required (min_length=1)."""
+    with pytest.raises(ValidationError):
+        Entity(
+            name="Customer",
+            description="A buyer",
+            confidence=0.9,
+            justification="Mentioned in 4 SRS sentences",
+        )
+
+
+def test_entity_accepts_phase_d_with_evidence():
     e = Entity(
         name="Customer",
-        description="A buyer in the e-commerce domain",
+        description="A buyer",
         confidence=0.9,
-        justification="Mentioned in 4 SRS sentences as the principal actor",
+        justification="Mentioned in 4 SRS sentences",
+        evidence_sentence_indices=[2, 5, 9],
     )
-    assert e.confidence == 0.9
-    assert e.evidence_sentence_indices == []  # optional in Phase A
+    assert e.evidence_sentence_indices == [2, 5, 9]
 
 
 def test_aggregate_requires_members_field():
@@ -67,6 +78,7 @@ def test_bounded_context_accepts_business_rules():
                     description="An order",
                     confidence=0.95,
                     justification="Primary entity",
+                    evidence_sentence_indices=[0],
                 )
             ],
             value_objects=[],

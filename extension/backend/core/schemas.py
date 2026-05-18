@@ -50,8 +50,8 @@ class Entity(BaseModel):
         description="LLM-emitted reason for this entity (e.g. supporting sentence count, role)."
     )
     evidence_sentence_indices: List[int] = Field(
-        default_factory=list,
-        description="Scout sentence indices that ground this entity. Optional in Phase A, required (min_length=1) from Phase D1."
+        min_length=1,
+        description="Scout sentence indices that ground this entity. Required from Phase D1 onward."
     )
     sources: List["InferenceSource"] = Field(
         default_factory=list,

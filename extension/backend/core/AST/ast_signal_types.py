@@ -105,6 +105,12 @@ class CandidateSignal:
             payload["justification"] = (
                 "; ".join(self.reasons[:3]) if self.reasons else "AST-detected entity"
             )
+            # Phase D1: Entity.evidence_sentence_indices is required (min_length=1).
+            # AST signals are derived from Python code, not SRS sentences, so we
+            # emit a sentinel [-1] marker that satisfies Pydantic min_length=1.
+            # D3's grounding check will detect this sentinel and raise
+            # InsufficientGroundingError if no real SRS evidence follows.
+            payload["evidence_sentence_indices"] = [-1]
         if self.candidate_type == "aggregates":
             # Aggregate.members is required (Phase A schema tightening).
             # AST classifier doesn't yet populate aggregate members; emit empty

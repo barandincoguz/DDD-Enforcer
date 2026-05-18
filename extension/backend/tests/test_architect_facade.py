@@ -32,7 +32,7 @@ def test_analyze_document_calls_run_pipeline():
             ubiquitous_language=UbiquitousLanguage(
                 entities=[Entity(
                     name="Order", description="d", confidence=0.9,
-                    justification="t"
+                    justification="t", evidence_sentence_indices=[0],
                 )],
                 value_objects=[], domain_events=[]
             ),

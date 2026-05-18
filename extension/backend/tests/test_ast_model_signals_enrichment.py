@@ -153,6 +153,7 @@ def test_ambiguous_context_candidate_is_not_forced(tmp_path):
         description="invoice",
         confidence=0.5,
         justification="legacy fixture",
+        evidence_sentence_indices=[0],
     )
     model = _build_model(
         _build_context("BillingContext", entities=[shared_entity]),
