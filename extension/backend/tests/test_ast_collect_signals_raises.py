@@ -8,7 +8,6 @@ ValueError, or OSError) rather than swallowing.
 """
 
 import pytest
-from pathlib import Path
 from core.AST.ast_model_signals import ASTModelSignalExtractor
 from core.schemas import BoundedContext, DomainModel, ProjectMetadata, UbiquitousLanguage
 

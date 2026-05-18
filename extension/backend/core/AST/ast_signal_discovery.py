@@ -215,7 +215,7 @@ def _is_collection_value(value: Optional[ast.AST]) -> bool:
     if isinstance(value, (ast.List, ast.Set, ast.Dict, ast.Tuple)):
         return True
     if isinstance(value, ast.Call):
-        return _name_from_expr(value.func) in {"list", "set", "dict", "tuple"}
+        return dotted_name_from_expr(value.func) in {"list", "set", "dict", "tuple"}
     return False
 
 
