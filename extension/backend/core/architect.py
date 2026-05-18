@@ -642,6 +642,126 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
             message="Specialist exhausted retry loop without analyses",
         )
 
+    def extract_per_context_details(
+        self, contexts: List[str], domain_sentences: List[str]
+    ) -> List[Dict[str, Any]]:
+        """Per-context Specialist loop (FM-23).
+
+        Issues one LLM call per bounded context with a focused prompt
+        that mentions only that one context. Forces exclusive entity
+        ownership at the prompt level.
+        """
+        results: List[Dict[str, Any]] = []
+        numbered_sentences_text = "\n".join(
+            f"[{i}] {s}" for i, s in enumerate(domain_sentences)
+        )
+        for ctx_name in contexts:
+            prompt = self._build_specialist_prompt_per_context(
+                context_name=ctx_name,
+                numbered_sentences_text=numbered_sentences_text,
+            )
+            sc = stage_config("Specialist")
+            success = False
+            for retry in range(5):
+                try:
+                    self._wait_for_rate_limit()
+                    response = self.client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=sc.temperature,
+                            seed=sc.seed,
+                        ),
+                    )
+                    if not self._check_response_completion(response, retry):
+                        if retry < 4:
+                            time.sleep(2)
+                            continue
+                    result = self._parse_json_response(self._safe_response_text(response))
+                    if isinstance(result, dict) and result.get("error") == "json_parse_failed":
+                        if retry < 4:
+                            time.sleep(2)
+                            continue
+                        raise SpecialistFailureError(
+                            context_name=ctx_name,
+                            message=f"Specialist parse failed for {ctx_name} after 5 retries",
+                        )
+                    self.token_tracker.track_api_call(
+                        response, stage="Specialist", operation=f"per_context:{ctx_name}",
+                    )
+                    results.append({
+                        "context_name": ctx_name,
+                        "entities": result.get("entities", []),
+                        "value_objects": result.get("value_objects", []),
+                        "services": result.get("services", []),
+                        "aggregates": result.get("aggregates", []),
+                        "domain_events": result.get("domain_events", []),
+                        "business_rules": result.get("business_rules", []),
+                    })
+                    success = True
+                    break
+                except SpecialistFailureError:
+                    raise
+                except Exception as e:
+                    if not self._is_quota_error_and_backoff(e, retry):
+                        if retry >= 4:
+                            raise SpecialistFailureError(
+                                context_name=ctx_name,
+                                message=f"Specialist failed for {ctx_name}: {type(e).__name__}: {e}",
+                            ) from e
+            if not success:
+                raise SpecialistFailureError(
+                    context_name=ctx_name,
+                    message=f"Specialist exhausted retry loop for {ctx_name}",
+                )
+        self._save_intermediate(
+            stage="3_specialist",
+            data={
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "contexts_analyzed": len(results),
+                "analyses": results,
+            },
+        )
+        return results
+
+    def _build_specialist_prompt_per_context(
+        self, *, context_name: str, numbered_sentences_text: str
+    ) -> str:
+        return f"""You are analyzing exactly ONE Bounded Context: {context_name}.
+
+Do NOT include entities, aggregates, services, value objects, or
+domain events that belong to other contexts.
+
+Extract the 5 DDD building blocks for {context_name}:
+1. Entities       - Objects with unique identity
+2. Value Objects  - Immutable objects defined by attributes
+3. Services       - Stateless operations
+4. Aggregates     - Consistency boundaries with explicit members
+5. Domain Events  - Past-tense business facts
+
+DOMAIN KNOWLEDGE (numbered sentences):
+{numbered_sentences_text}
+
+RESPOND WITH JSON for {context_name} only:
+{{
+  "context": "{context_name}",
+  "entities": [{{
+    "name": "EntityName",
+    "attributes": ["attr1"],
+    "confidence": 0.9,
+    "justification": "Cited in 3 sentences",
+    "evidence_sentence_indices": [2, 7]
+  }}],
+  "value_objects": [],
+  "services": [],
+  "aggregates": [{{"name": "X", "members": ["EntityName"]}}],
+  "domain_events": [],
+  "business_rules": []
+}}
+
+Every entity.evidence_sentence_indices must contain at least one sentence index from the DOMAIN KNOWLEDGE above. Do not invent data."""
+
     # =========================================================================
     # STAGE 4: SYNTHESIZER - Create Final Model
     # =========================================================================
@@ -868,19 +988,7 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
         def specialist_fn(contexts, scout_chunks):
             sentences = [c["text"] for c in scout_chunks]
             ctx_names = [c["name"] for c in contexts]
-            results = self.extract_all_contexts_details(ctx_names, sentences)
-            normalized = []
-            for r in results:
-                a = r.get("analysis", {})
-                normalized.append({
-                    "context_name": r.get("context"),
-                    "entities": a.get("entities", []),
-                    "value_objects": a.get("value_objects", []),
-                    "services": a.get("services", []),
-                    "aggregates": a.get("aggregates", []),
-                    "domain_events": a.get("domain_events", []),
-                })
-            return normalized
+            return self.extract_per_context_details(ctx_names, sentences)
 
         def synthesizer_fn(specialist_outputs):
             legacy_input = [
