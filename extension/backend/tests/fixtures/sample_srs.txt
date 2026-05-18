@@ -1,0 +1,14 @@
+1 Introduction
+This document specifies the system requirements.
+
+2 Functional Requirements
+
+2.1 Order Management
+The system shall allow customers to place orders for products.
+An order contains one or more order lines.
+
+2.2 Inventory
+The system shall track stock levels per product.
+
+3 Non-Functional Requirements
+The system shall respond within 200ms.
