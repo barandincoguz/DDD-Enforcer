@@ -62,10 +62,7 @@ def generate_domain_model(srs_path: str) -> Dict[str, Any]:
         raise ValueError("Document is empty or could not be parsed.")
 
     architect = DomainArchitect()
-    analysis_results = architect.analyze_document(raw_text=raw_text)
-
-    print("[AI] Synthesizing final Domain Model JSON...")
-    final_model: DomainModel = architect.synthesize_final_model(analysis_results)
+    final_model: DomainModel = architect.analyze_document(text=raw_text)
 
     # AST enrichment for higher precision/traceability
     workspace_path = os.getenv("WORKSPACE_PATH", "")
@@ -341,10 +338,7 @@ def generate_model_endpoint(request: GenerateModelRequest):
         # Generate domain model using AI
         print("  🤖 Generating domain model with AI...")
         architect = DomainArchitect()
-        analysis_results = architect.analyze_document(raw_text=combined_text)
-        
-        print("  🔧 Synthesizing final model...")
-        final_model: DomainModel = architect.synthesize_final_model(analysis_results)
+        final_model: DomainModel = architect.analyze_document(text=combined_text)
 
         # AST enrichment from workspace Python files
         workspace_path = os.getenv("WORKSPACE_PATH", "")
@@ -462,8 +456,7 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
             
             # Generate domain model with progress callback
             architect = DomainArchitect(progress_callback=progress_callback)
-            analysis_results = architect.analyze_document(raw_text=combined_text)
-            final_model: DomainModel = architect.synthesize_final_model(analysis_results)
+            final_model: DomainModel = architect.analyze_document(text=combined_text)
 
             workspace_path = os.getenv("WORKSPACE_PATH", "")
             if workspace_path:

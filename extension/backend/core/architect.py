@@ -30,6 +30,15 @@ from core.orchestration.errors import (
     SpecialistFailureError,
     SynthesizerEmptyModelError,
 )
+from core.orchestration.pipeline import run_pipeline, PipelineDeps
+from core.scout.chunking import section_aware_chunks
+from core.verifier.checks_deterministic import (
+    check_d1_supporting_sentence_ids_subset,
+    check_d3_entity_names_unique_across_contexts,
+    check_d4_aggregate_members_exist_in_context,
+    check_d5_allowed_dependencies_reference_existing_contexts,
+)
+from core.verifier.types import VerifierResult
 from core.token_tracker import TokenTracker
 from configs.models import stage_config
 
@@ -838,54 +847,74 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
     # MAIN PIPELINE
     # =========================================================================
 
-    def analyze_document(self, raw_text: str) -> List[Dict[str, Any]]:
+    def analyze_document(self, text: str) -> DomainModel:
+        """Run the 5-stage pipeline on raw SRS text and return the final DomainModel.
+
+        Phase C7: this method becomes a thin facade over
+        core.orchestration.pipeline.run_pipeline. Stage callables wrap the
+        existing identify_contexts / extract_all_contexts_details / synthesize
+        methods so legacy behaviour is preserved aside from the new Verifier
+        (D1+D3+D4+D5 checks) and the section-aware Scout chunking.
         """
-        Run the full analysis pipeline on an SRS document.
 
-        Returns context analyses ready for synthesis.
-        """
-        print("\n" + "#"*70)
-        print("#" + " "*68 + "#")
-        print("#" + "  🚀 DOMAIN MODEL GENERATION PIPELINE STARTED".center(67) + "#")
-        print("#" + " "*68 + "#")
-        print("#"*70)
-        print(f"\n  📊 Input Document: {len(raw_text):,} characters")
+        def scout_fn(srs_text: str):
+            return section_aware_chunks(srs_text, token_budget=10000)
 
-        try:
-            # Stage 1: Extract domain sentences
-            domain_sentences = self.extract_domain_sentences(raw_text)
+        def architect_fn(scout_chunks):
+            sentences = [chunk["text"] for chunk in scout_chunks]
+            ctx_names = self.identify_contexts(sentences)
+            return [{"name": name, "supporting_sentence_ids": []} for name in ctx_names]
 
-            if not domain_sentences:
-                domain_sentences = [raw_text[:1000]]
+        def specialist_fn(contexts, scout_chunks):
+            sentences = [c["text"] for c in scout_chunks]
+            ctx_names = [c["name"] for c in contexts]
+            results = self.extract_all_contexts_details(ctx_names, sentences)
+            normalized = []
+            for r in results:
+                a = r.get("analysis", {})
+                normalized.append({
+                    "context_name": r.get("context"),
+                    "entities": a.get("entities", []),
+                    "value_objects": a.get("value_objects", []),
+                    "services": a.get("services", []),
+                    "aggregates": a.get("aggregates", []),
+                    "domain_events": a.get("domain_events", []),
+                })
+            return normalized
 
-            # Stage 2: Identify contexts
-            contexts = self.identify_contexts(domain_sentences)
-            print(f"  ✅ Identified {len(contexts)} contexts: {', '.join(contexts)}\n")
+        def synthesizer_fn(specialist_outputs):
+            legacy_input = [
+                {"context": s["context_name"], "analysis": s}
+                for s in specialist_outputs
+            ]
+            raw_dict = self.synthesize(legacy_input)
+            return self._cleanup_domain_data(raw_dict)
 
-            # Stage 3: Analyze contexts
-            results = self.extract_all_contexts_details(contexts, domain_sentences)
+        def verifier_fn(snapshot):
+            scout_indices = set(range(sum(len(c["text"].split(".")) for c in snapshot["scout"])))
+            contexts = snapshot["architect"]
+            issues = []
+            issues.extend(check_d1_supporting_sentence_ids_subset(contexts, scout_indices))
+            entities_by_context = {
+                s["context_name"]: s.get("entities", [])
+                for s in snapshot["specialist"]
+            }
+            issues.extend(check_d3_entity_names_unique_across_contexts(entities_by_context))
+            for s in snapshot["specialist"]:
+                issues.extend(check_d4_aggregate_members_exist_in_context(
+                    s["context_name"], s.get("entities", []), s.get("aggregates", [])
+                ))
+            issues.extend(check_d5_allowed_dependencies_reference_existing_contexts(contexts))
+            return VerifierResult(ok=(len(issues) == 0), issues=issues)
 
-            print(f"  ✅ Analyzed {len(results)} contexts:\n")
-            for i, r in enumerate(results, 1):
-                print(f"      {i}. {r['context']}")
-
-            print("\n" + "="*70)
-            print("✅ PIPELINE COMPLETED SUCCESSFULLY")
-            print("="*70)
-            print(f"  📊 Total API Requests: {self.request_count}")
-            print(f"  🎯 Returning {len(results)} context analyses; caller invokes synthesize() next")
-            print("="*70 + "\n")
-            return results
-
-        except Exception as e:
-            print("\n" + "="*70)
-            print("❌ PIPELINE FAILED")
-            print("="*70)
-            print(f"  Error: {e}")
-            print("="*70 + "\n")
-            import traceback
-            traceback.print_exc()
-            raise
+        deps = PipelineDeps(
+            scout=scout_fn,
+            architect=architect_fn,
+            specialist=specialist_fn,
+            synthesizer=synthesizer_fn,
+            verifier=verifier_fn,
+        )
+        return run_pipeline(srs_text=text, deps=deps)
 
     # =========================================================================
     # HELPER METHODS
