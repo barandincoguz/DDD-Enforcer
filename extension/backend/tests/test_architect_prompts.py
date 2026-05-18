@@ -41,3 +41,13 @@ def test_specialist_prompt_emits_structured_aggregates():
         "Specialist prompt must require aggregate.members so V5 (aggregate boundary) "
         "violation detection has the data it needs."
     )
+
+
+def test_specialist_prompt_lists_domain_events_as_extraction_target():
+    src = open("core/architect.py").read()
+    specialist_section = src.split("def extract_all_contexts_details(")[1].split("def ")[0]
+    assert "Domain Events" in specialist_section, (
+        "Specialist prompt must explicitly instruct extraction of Domain Events; "
+        "Synthesizer must not be the first stage that mentions them."
+    )
+    assert '"domain_events"' in specialist_section
