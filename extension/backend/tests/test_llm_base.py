@@ -1,4 +1,6 @@
-"""Smoke tests for core.llm scaffold (commit 1)."""
+"""Smoke tests for core.llm scaffold (commit 1) and factories (commit 5)."""
+
+from unittest.mock import patch
 
 import pytest
 from core.llm import (
@@ -10,7 +12,11 @@ from core.llm import (
     AuthError,
     SchemaError,
     RetryExhausted,
+    get_client,
+    get_client_for_model,
 )
+from core.llm.gemini import GeminiClient
+from core.llm.ollama import OllamaClient
 
 
 def test_token_usage_dataclass_constructs():
@@ -50,3 +56,27 @@ def test_retry_exhausted_carries_attempt_count():
     e = RetryExhausted(attempt_count=3, last_exception=ValueError("boom"))
     assert e.attempt_count == 3
     assert isinstance(e.last_exception, ValueError)
+
+
+def test_get_client_gemini_returns_gemini_client():
+    with patch.dict("os.environ", {"GEMINI_API_KEY": "fake"}):
+        with patch("core.llm.gemini.genai.Client"):
+            client = get_client("gemini")
+            assert isinstance(client, GeminiClient)
+
+
+def test_get_client_ollama_returns_ollama_client():
+    with patch.dict("os.environ", {"OLLAMA_API_KEYS": "k1,k2"}):
+        client = get_client("ollama")
+        assert isinstance(client, OllamaClient)
+
+
+def test_get_client_unknown_provider_raises():
+    with pytest.raises(ValueError):
+        get_client("anthropic")  # type: ignore[arg-type]
+
+
+def test_get_client_for_model_resolves_via_registry():
+    with patch.dict("os.environ", {"OLLAMA_API_KEYS": "k1,k2"}):
+        client = get_client_for_model("gpt-oss:120b-cloud")
+        assert isinstance(client, OllamaClient)
