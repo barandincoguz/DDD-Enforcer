@@ -4,6 +4,9 @@ uvicorn[standard]>=0.27.0
 
 # Yapay Zeka (LLM) - new google-genai SDK (replaces deprecated google-generativeai)
 google-genai>=1.0.0
+# OpenAI SDK — used by core/llm/ollama.py to talk to ollama.com/v1
+# (Ollama Cloud is OpenAI-API-compatible)
+openai>=1.55.0
 
 # RAG & Vektör Veritabanı
 chromadb>=0.4.22
