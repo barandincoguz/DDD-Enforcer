@@ -495,151 +495,6 @@ RESPOND WITH JSON:
             message="Architect exhausted retry loop without producing contexts",
         )
 
-    # =========================================================================
-    # STAGE 3: SPECIALIST - Analyze All Contexts
-    # =========================================================================
-
-    def extract_all_contexts_details(
-        self, contexts: List[str], domain_sentences: List[str]
-    ) -> List[Dict[str, Any]]:
-        """
-        Analyze all contexts in a single API call for efficiency.
-
-        Extracts aggregate roots, entities, value objects, and business
-        rules for each identified bounded context.
-        """
-        print("\n┌─────────────────────────────────────────────────────────────────┐")
-        print("│ STAGE 3: SPECIALIST - Analyzing Context Details                │")
-        print("└─────────────────────────────────────────────────────────────────┘")
-        print(f"  🔍 Analyzing {len(contexts)} contexts in single request")
-        
-        self._report_progress("Specialist", "started", f"Analyzing {len(contexts)} contexts", 0)
-
-        contexts_text = ", ".join(contexts)
-        sentences_text = "\n".join(domain_sentences)
-
-        max_chars = 60000
-        if len(sentences_text) > max_chars:
-            print(f"  ✂️  Truncating input: {len(sentences_text):,} → {max_chars:,} chars (head + tail preserved)")
-            sentences_text = _truncate_with_head_tail(sentences_text, max_chars=max_chars)
-
-        prompt = f"""Analyze the domain knowledge for these Bounded Contexts: {contexts_text}
-
-For EACH context, extract the 5 DDD building blocks:
-1. Entities       - Objects with unique identity (Customer, Order, Product)
-2. Value Objects  - Immutable objects defined by attributes (Address, Money)
-3. Services       - Stateless operations that don't naturally belong to an entity
-4. Aggregates     - Consistency boundaries; each aggregate has a name and lists
-                    the entities (`members`) that live inside it
-5. Domain Events  - Past-tense business facts (OrderPlaced, PaymentReceived)
-
-DOMAIN KNOWLEDGE:
-{sentences_text}
-
-RESPOND WITH JSON:
-{{
-  "analyses": [
-    {{
-      "context": "ContextName",
-      "entities": [{{"name": "Entity1", "attributes": ["id", "name", "status"]}}],
-      "value_objects": [{{"name": "Money", "attributes": ["amount", "currency"]}}],
-      "services": [{{"name": "PricingService", "description": "Computes order totals"}}],
-      "aggregates": [{{"name": "Order", "members": ["Order", "OrderLine"]}}],
-      "domain_events": ["OrderPlaced", "OrderCancelled"],
-      "business_rules": ["Orders must have at least one item"]
-    }}
-  ]
-}}
-
-If a category has no data, use empty arrays. Do not invent data. Every aggregate.members entry must also appear in the same context's entities list."""
-
-        sc = stage_config("Specialist")
-        for retry in range(5):
-            try:
-                self._wait_for_rate_limit()
-                llm_response = self.client.chat(
-                    messages=[{"role": "user", "content": prompt}],
-                    model=self.model_name,
-                    temperature=sc.temperature,
-                    seed=sc.seed,
-                    response_mime_type="application/json",
-                )
-                response = LLMResponseAdapter(llm_response)
-
-                # Check if response was truncated
-                if not self._check_response_completion(response, retry):
-                    if retry < 4:
-                        time.sleep(2)
-                        continue
-
-                result = self._parse_json_response(self._safe_response_text(response))
-
-                if (
-                    isinstance(result, dict)
-                    and result.get("error") == "json_parse_failed"
-                ):
-                    print(f"      ⚠️  Parse failed - Retry {retry + 1}/5")
-                    if retry < 4:
-                        time.sleep(2)
-                        continue
-                    self._report_progress("Specialist", "error", "Specialist exhausted JSON parse retries", 100)
-                    raise SpecialistFailureError(
-                        context_name="<all>",
-                        message=f"Specialist exhausted JSON parse retries for {len(contexts)} contexts",
-                    )
-
-                # Track token usage only for successful responses
-                self.token_tracker.track_api_call(
-                    response,
-                    stage="Specialist",
-                    operation="analyze_all_contexts"
-                )
-
-                if isinstance(result, dict) and "analyses" in result:
-                    analyses = [
-                        {"context": a.get("context", "Unknown"), "analysis": a}
-                        for a in result["analyses"]
-                    ]
-                    # Save intermediate output
-                    self._save_intermediate(
-                        stage="3_specialist",
-                        data={
-                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                            "contexts_analyzed": len(analyses),
-                            "analyses": analyses
-                        }
-                    )
-                    self._report_progress("Specialist", "completed", f"Analyzed {len(analyses)} contexts", 100)
-                    return analyses
-
-                # No "analyses" key — treat as a parse failure, retry then raise
-                print(f"      ⚠️  Missing 'analyses' field - Retry {retry + 1}/5")
-                if retry < 4:
-                    continue
-                self._report_progress("Specialist", "error", "Specialist produced no 'analyses' field", 100)
-                raise SpecialistFailureError(
-                    context_name="<all>",
-                    message="Specialist produced no 'analyses' field after 5 retries",
-                )
-
-            except SpecialistFailureError:
-                raise
-            except Exception as e:
-                if not self._is_quota_error_and_backoff(e, retry):
-                    print(f"   [WARN] Analysis error: {e}")
-                    if retry >= 4:
-                        self._report_progress("Specialist", "error", str(e), 100)
-                        raise SpecialistFailureError(
-                            context_name="<all>",
-                            message=f"Specialist failed with {type(e).__name__}: {e}",
-                        ) from e
-
-        self._report_progress("Specialist", "error", "Retries exhausted", 100)
-        raise SpecialistFailureError(
-            context_name="<all>",
-            message="Specialist exhausted retry loop without analyses",
-        )
-
     def extract_per_context_details(
         self, contexts: List[str], domain_sentences: List[str]
     ) -> List[Dict[str, Any]]:
@@ -722,9 +577,14 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
         )
         return results
 
+    # =============================================================================
+    # STAGE 3: SPECIALIST - Per-Context Entity / VO / Service / Aggregate Analysis
+    # =============================================================================
+
     def _build_specialist_prompt_per_context(
         self, *, context_name: str, numbered_sentences_text: str
     ) -> str:
+        """Build the per-context Specialist prompt string (called once per bounded context)."""
         return f"""You are analyzing exactly ONE Bounded Context: {context_name}.
 
 Do NOT include entities, aggregates, services, value objects, or
@@ -745,6 +605,7 @@ RESPOND WITH JSON for {context_name} only:
   "context": "{context_name}",
   "entities": [{{
     "name": "EntityName",
+    "description": "Represents a customer who places orders and holds an account balance.",
     "attributes": ["attr1"],
     "confidence": 0.9,
     "justification": "Cited in 3 sentences",
@@ -757,7 +618,9 @@ RESPOND WITH JSON for {context_name} only:
   "business_rules": []
 }}
 
-Every entity.evidence_sentence_indices must contain at least one sentence index from the DOMAIN KNOWLEDGE above. Do not invent data."""
+EVERY entity MUST emit `description` (1-2 sentences). Pydantic strict validation rejects any entity missing this field.
+Every entity.evidence_sentence_indices must contain at least one Scout-numbered sentence index.
+Do not invent data not present in the sentences."""
 
     # =========================================================================
     # STAGE 4: SYNTHESIZER - Create Final Model
@@ -968,7 +831,7 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
 
         Phase C7: this method becomes a thin facade over
         core.orchestration.pipeline.run_pipeline. Stage callables wrap the
-        existing identify_contexts / extract_all_contexts_details / synthesize
+        existing identify_contexts / extract_per_context_details / synthesize
         methods so legacy behaviour is preserved aside from the new Verifier
         (D1+D3+D4+D5 checks) and the section-aware Scout chunking.
         """
