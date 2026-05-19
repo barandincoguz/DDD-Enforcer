@@ -462,22 +462,29 @@ def test_preflight_aborts_when_requested_model_has_runtime_fallback(
 ):
     """If --models includes a model that GeminiClient runtime-falls-back
     from, main() must abort BEFORE running the probe and exit non-zero,
-    leaving no output files behind."""
+    leaving no output files behind. The real fallback dict is currently
+    empty (paper-integrity for D1), so we inject a synthetic entry to
+    exercise the pre-flight branch."""
     monkeypatch.chdir(tmp_path)
-    # gemini-3.1-flash-lite has a declared fallback to gemini-2.5-flash
     from core.llm.schema_probe import main
-    with patch("core.llm.schema_probe.load_dotenv"):
+    fake_fallbacks = {"gemini-3.1-pro-preview": "gemini-2.5-pro"}
+    with patch("core.llm.schema_probe.load_dotenv"), \
+         patch.dict(
+             "core.llm.schema_probe._GEMINI_FALLBACKS",
+             fake_fallbacks,
+             clear=True,
+         ):
         rc = main([
             "--out", str(tmp_path / "p.json"),
-            "--models", "gemini-3.1-flash-lite",
+            "--models", "gemini-3.1-pro-preview",
             "--schemas", "basic",
             "--trials", "1",
         ])
     assert rc == 1
     captured = capsys.readouterr()
     assert "refusing to probe" in captured.err
-    assert "gemini-3.1-flash-lite" in captured.err
-    assert "gemini-2.5-flash" in captured.err
+    assert "gemini-3.1-pro-preview" in captured.err
+    assert "gemini-2.5-pro" in captured.err
     # no output written
     assert not (tmp_path / "p.json").exists()
 

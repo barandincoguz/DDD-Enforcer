@@ -7,8 +7,13 @@ response_mime_type="application/json".
 
 Supported D1 models (see core.llm.registry):
 - gemini-3.1-pro-preview (G1)
-- gemini-3.1-flash-lite (G2 — falls back to gemini-2.5-flash if
-  3.1-flash-lite is unavailable at runtime)
+- gemini-3.1-flash-lite (G2)
+
+The _RUNTIME_FALLBACKS dict is kept as a hook for future provider
+deprecations but is intentionally empty: silent model substitution
+would violate the D1 lock by mislabeling artifacts in the EMSE
+submission. If a model becomes unavailable, callers should get a
+transport error and surface the regression honestly.
 """
 
 from __future__ import annotations
@@ -27,11 +32,12 @@ from core.llm.errors import AuthError, RateLimitError
 from core.llm.retry import with_retry_and_rotation
 
 
-# Models that should silently fall back to a different identifier if
-# the requested name is rejected by the provider as unknown/unavailable.
-_RUNTIME_FALLBACKS: Dict[str, str] = {
-    "gemini-3.1-flash-lite": "gemini-2.5-flash",
-}
+# Reserved hook for future provider deprecations. Kept intentionally
+# empty: silent runtime substitution mislabels D1 artifacts and is
+# rejected by schema_probe's pre-flight check. Populate only when a
+# replacement is genuinely required AND the registered model_id is
+# updated to match.
+_RUNTIME_FALLBACKS: Dict[str, str] = {}
 
 
 def _translate_genai_exception(exc: BaseException, provider_label: str) -> BaseException:

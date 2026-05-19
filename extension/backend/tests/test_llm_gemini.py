@@ -47,8 +47,10 @@ def test_gemini_client_chat_returns_llmresponse():
         assert resp.usage.total_tokens == 15
 
 
-def test_gemini_client_falls_back_g2_to_2_5_flash():
-    """G2 (gemini-3.1-flash-lite) silently resolves to gemini-2.5-flash."""
+def test_gemini_client_does_not_silently_rewrite_g2_model_id():
+    """G2 (gemini-3.1-flash-lite) is passed through to the SDK verbatim;
+    no silent runtime substitution. This guards the D1 lock: artifacts
+    labeled gemini-3.1-flash-lite must actually call that model."""
     captured_model = []
 
     def _capture(**kwargs):
@@ -62,7 +64,7 @@ def test_gemini_client_falls_back_g2_to_2_5_flash():
             messages=[{"role": "user", "content": "hi"}],
             model="gemini-3.1-flash-lite",
         )
-    assert captured_model == ["gemini-2.5-flash"]
+    assert captured_model == ["gemini-3.1-flash-lite"]
 
 
 def test_gemini_structured_output_uses_sdk_parsed_when_available():
