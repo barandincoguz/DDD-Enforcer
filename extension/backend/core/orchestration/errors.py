@@ -48,3 +48,23 @@ class InsufficientGroundingError(PipelineError):
     def __init__(self, entity_name: str, message: Optional[str] = None):
         self.entity_name = entity_name
         super().__init__(message or f"Entity {entity_name!r} has no SRS evidence_sentence_indices and no AST grounding")
+
+
+class SpecialistShapeError(SpecialistFailureError):
+    """Specialist LLM emitted a JSON shape that fails Pydantic validation
+    (e.g. top-level array instead of object, missing required fields).
+
+    The retry loop converts the validation error into structured LLM
+    feedback so the next attempt can correct the shape. Distinguished
+    from SpecialistFailureError so callers can tell shape errors
+    (recoverable via retry) from unrecoverable failures.
+    """
+    def __init__(self, *, context_name: str, errors: list, raw_excerpt: str = ""):
+        self.context_name = context_name
+        self.validation_errors = errors
+        self.raw_excerpt = raw_excerpt
+        message = (
+            f"Specialist shape error for {context_name}: "
+            f"{len(errors)} validation error(s); first: {errors[0] if errors else 'none'}"
+        )
+        super().__init__(context_name=context_name, message=message)

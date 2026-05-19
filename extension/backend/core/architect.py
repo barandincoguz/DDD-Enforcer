@@ -28,8 +28,10 @@ from core.schemas import DomainModel
 from core.orchestration.errors import (
     ArchitectExtractionError,
     SpecialistFailureError,
+    SpecialistShapeError,
     SynthesizerEmptyModelError,
 )
+from core.pipeline_contracts import ContextHypothesis, SpecialistAnalysis
 from core.orchestration.pipeline import run_pipeline, PipelineDeps
 from core.scout.chunking import section_aware_chunks
 from core.verifier.checks_deterministic import (
@@ -495,16 +497,84 @@ RESPOND WITH JSON:
             message="Architect exhausted retry loop without producing contexts",
         )
 
+    @staticmethod
+    def _unwrap_singleton_list(payload: Any) -> Dict[str, Any]:
+        """Defensive unwrap of LLM-parsed JSON.
+
+        Gemini-Pro occasionally returns the prompted object inside a
+        single-element top-level array. This helper unwraps that case
+        explicitly while rejecting ambiguous (empty / multi-element) and
+        type-incompatible inputs.
+        """
+        if isinstance(payload, dict):
+            return payload
+        if isinstance(payload, list):
+            if not payload:
+                raise ValueError("Specialist payload is an empty list; cannot unwrap")
+            if len(payload) > 1:
+                raise ValueError(
+                    f"Specialist payload is a list with multiple elements "
+                    f"({len(payload)}); cannot unwrap unambiguously"
+                )
+            first = payload[0]
+            if not isinstance(first, dict):
+                raise ValueError(
+                    f"Specialist payload list contains a non-dict element "
+                    f"(type={type(first).__name__})"
+                )
+            return first
+        raise ValueError(
+            f"Specialist payload has unexpected type {type(payload).__name__}; "
+            f"expected dict or single-element list of dict"
+        )
+
+    @staticmethod
+    def _validate_specialist_payload(
+        payload: Any, ctx: ContextHypothesis,
+    ) -> SpecialistAnalysis:
+        """Convert a raw LLM-parsed payload into a typed SpecialistAnalysis.
+
+        Handles the list-unwrap quirk and the Pydantic strict validation
+        in one place. On any failure, raises SpecialistShapeError with the
+        validation errors so the retry loop can re-prompt the LLM with
+        structured feedback.
+        """
+        try:
+            unwrapped = DomainArchitect._unwrap_singleton_list(payload)
+        except ValueError as e:
+            raise SpecialistShapeError(
+                context_name=ctx.context_name,
+                errors=[{"shape": str(e)}],
+                raw_excerpt=str(payload)[:200],
+            ) from e
+
+        # Compose the SpecialistAnalysis payload: context from ctx + content
+        # from the LLM. The LLM's own "context" key (if present) is dropped
+        # in favor of the trusted ContextHypothesis.
+        composed = {
+            "context": ctx.model_dump(),
+            **{k: v for k, v in unwrapped.items() if k != "context"},
+        }
+
+        try:
+            return SpecialistAnalysis.model_validate(composed)
+        except ValidationError as e:
+            raise SpecialistShapeError(
+                context_name=ctx.context_name,
+                errors=e.errors(),
+                raw_excerpt=str(unwrapped)[:200],
+            ) from e
+
     def extract_per_context_details(
         self, contexts: List[str], domain_sentences: List[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[SpecialistAnalysis]:
         """Per-context Specialist loop (FM-23).
 
         Issues one LLM call per bounded context with a focused prompt
         that mentions only that one context. Forces exclusive entity
         ownership at the prompt level.
         """
-        results: List[Dict[str, Any]] = []
+        results: List[SpecialistAnalysis] = []
         numbered_sentences_text = "\n".join(
             f"[{i}] {s}" for i, s in enumerate(domain_sentences)
         )
@@ -539,18 +609,28 @@ RESPOND WITH JSON:
                             context_name=ctx_name,
                             message=f"Specialist parse failed for {ctx_name} after 5 retries",
                         )
+                    # Typed boundary validation — converts list-not-dict crashes (the
+                    # live pipeline failure mode at the old L692) into a SpecialistShapeError
+                    # that the retry loop can act on.
+                    # identify_contexts returns bare context-name strings (no descriptions).
+                    # Synthesizer fills BoundedContext.description later. Empty here is honest.
+                    ctx = ContextHypothesis(context_name=ctx_name, description="")
+                    try:
+                        analysis = DomainArchitect._validate_specialist_payload(result, ctx)
+                    except SpecialistShapeError as shape_err:
+                        print(
+                            f"  ⚠️  Specialist shape error for {ctx_name} - Retry {retry + 1}/5 "
+                            f"({len(shape_err.validation_errors)} validation error(s))"
+                        )
+                        if retry < 4:
+                            time.sleep(2)
+                            continue
+                        raise
+
                     self.token_tracker.track_api_call(
                         response, stage="Specialist", operation=f"per_context:{ctx_name}",
                     )
-                    results.append({
-                        "context_name": ctx_name,
-                        "entities": result.get("entities", []),
-                        "value_objects": result.get("value_objects", []),
-                        "services": result.get("services", []),
-                        "aggregates": result.get("aggregates", []),
-                        "domain_events": result.get("domain_events", []),
-                        "business_rules": result.get("business_rules", []),
-                    })
+                    results.append(analysis)
                     success = True
                     break
                 except SpecialistFailureError:
@@ -572,7 +652,7 @@ RESPOND WITH JSON:
             data={
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "contexts_analyzed": len(results),
-                "analyses": results,
+                "analyses": [a.model_dump(mode="json") for a in results],
             },
         )
         return results
@@ -849,6 +929,10 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
             ctx_names = [c["name"] for c in contexts]
             return self.extract_per_context_details(ctx_names, sentences)
 
+        # TODO(WP-CORE-1 T6+T7): Specialist now returns List[SpecialistAnalysis]
+        # (typed Pydantic), not List[Dict]. This adapter still subscripts
+        # as dict — it will crash on any live pipeline run. Refactor to
+        # typed access (s.context.context_name, s.entities, etc.) in T6.
         def synthesizer_fn(specialist_outputs):
             legacy_input = [
                 {"context": s["context_name"], "analysis": s}
