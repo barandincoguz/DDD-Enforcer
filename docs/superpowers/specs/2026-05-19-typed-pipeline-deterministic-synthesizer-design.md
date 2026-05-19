@@ -1,9 +1,9 @@
 # Typed Pipeline Contracts + Deterministic Synthesizer (WP-CORE-1) — Design
 
-**Status:** Draft 2026-05-19 (awaiting user review)
+**Status:** ⚠️ **PENDING_REVISION 2026-05-19** — Codex adversarial review (xhigh effort) found that the central FM-LOST claim in §1 (TL;DR) is **wrong**. The diagnosis used `ctx.get('entities', [])` (flat path) but the real entity path is `ctx['ubiquitous_language']['entities']` (nested). The Synthesizer actually *does* preserve entities into nested form. A live re-baseline run against D1 SRS is in flight; the spec will be rewritten once the run completes to reflect what is *actually* broken (likely: post-D1 strict schema enforcement gap — Specialist prompt at `architect.py:746-752` does not emit `Entity.description`, so post-D1 strict validation would `ValidationError` on every entity). Other Codex findings (B1, B2, H1, M3, M4) remain valid orthogonal architectural concerns and will carry over into the revised spec.
 **WP code:** WP-CORE-1 (new — not in original 23-WP roadmap; "core muscle strengthening" per user pivot)
-**Branch:** `feat/typed-pipeline-deterministic-synthesizer` → FF-merge to `main`
-**Commits planned:** 6-8 sequential, each green-CI
+**Branch:** `feat/typed-pipeline-deterministic-synthesizer` (not yet created; awaiting revised spec)
+**Commits planned:** TBD pending revision
 
 ---
 
