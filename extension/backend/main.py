@@ -158,15 +158,11 @@ async def lifespan(app: FastAPI):
     # Calculate domain model token size for metrics
     if app_state.get("domain_rules"):
         try:
-            from google import genai
             from config import AnalyzerConfig
-            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
             domain_model_text = json.dumps(app_state["domain_rules"])
-            token_count_response = client.models.count_tokens(
-                model=AnalyzerConfig.MODEL_NAME,
-                contents=domain_model_text
+            app_state["domain_model_tokens"] = app_state["llm"].client.count_tokens(
+                domain_model_text, AnalyzerConfig.MODEL_NAME
             )
-            app_state["domain_model_tokens"] = token_count_response.total_tokens
             print(f"[METRICS] Domain model size: {app_state['domain_model_tokens']:,} tokens")
         except Exception as e:
             print(f"[METRICS] Could not calculate domain model tokens: {e}")

@@ -118,6 +118,16 @@ def test_gemini_structured_output_sets_json_failed_on_invalid_json():
         assert resp.parsed is None
 
 
+def test_gemini_count_tokens_returns_total():
+    with patch("core.llm.gemini.genai.Client") as mock_client_cls:
+        mock_resp = MagicMock()
+        mock_resp.total_tokens = 1234
+        mock_client_cls.return_value.models.count_tokens.return_value = mock_resp
+        client = GeminiClient(api_key="fake-key")
+        n = client.count_tokens("some text", model="gemini-3.1-pro-preview")
+        assert n == 1234
+
+
 def test_gemini_translates_unauthorized_to_auth_error():
     with patch("core.llm.gemini.genai.Client") as mock_client_cls:
         mock_client_cls.return_value.models.generate_content.side_effect = RuntimeError(

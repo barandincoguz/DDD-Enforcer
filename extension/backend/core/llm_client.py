@@ -13,13 +13,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 from pydantic import BaseModel, Field
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import AnalyzerConfig
 from core.code_parser import build_advanced_validation_payload
+from core.llm._response_adapter import LLMResponseAdapter
+from core.llm.gemini import GeminiClient
 from core.token_tracker import TokenTracker
 
 load_dotenv()
@@ -67,7 +67,7 @@ class LLMClient:
             raise ValueError("GEMINI_API_KEY not found in environment")
 
         self.config = config or AnalyzerConfig()
-        self.client = genai.Client(api_key=api_key)
+        self.client = GeminiClient(api_key=api_key)
         self.token_tracker = TokenTracker.get_instance()
 
     def analyze_violation(
@@ -90,15 +90,13 @@ class LLMClient:
         last_error: Optional[Exception] = None
         for attempt in range(retries + 1):
             try:
-                response = self.client.models.generate_content(
+                llm_response = self.client.structured_output(
+                    messages=[{"role": "user", "content": prompt}],
+                    schema=ValidationResponse,
                     model=self.config.MODEL_NAME,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type=self.config.RESPONSE_MIME_TYPE,
-                        response_schema=ValidationResponse,
-                        temperature=self.config.TEMPERATURE,
-                    ),
+                    temperature=self.config.TEMPERATURE,
                 )
+                response = LLMResponseAdapter(llm_response)
 
                 self.token_tracker.track_api_call(
                     response,
@@ -233,15 +231,13 @@ class LLMClient:
         last_error: Optional[Exception] = None
         for attempt in range(retries + 1):
             try:
-                response = self.client.models.generate_content(
+                llm_response = self.client.structured_output(
+                    messages=[{"role": "user", "content": prompt}],
+                    schema=ValidationResponse,
                     model=self.config.MODEL_NAME,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type=self.config.RESPONSE_MIME_TYPE,
-                        response_schema=ValidationResponse,
-                        temperature=self.config.TEMPERATURE,
-                    ),
+                    temperature=self.config.TEMPERATURE,
                 )
+                response = LLMResponseAdapter(llm_response)
 
                 self.token_tracker.track_api_call(
                     response,

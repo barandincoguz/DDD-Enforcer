@@ -87,17 +87,28 @@ class OllamaClient(LLMClient):
         model: str,
         **kwargs: Any,
     ) -> LLMResponse:
+        # Architect-style callers can pass response_mime_type="application/json"
+        # to coax JSON output without a strict schema. OpenAI-compatible
+        # endpoints accept response_format={"type": "json_object"}.
+        rmt = kwargs.get("response_mime_type")
+        response_format = None
+        if rmt == "application/json":
+            response_format = {"type": "json_object"}
+
         @with_retry_and_rotation(keys=self._keys)
         def _call(api_key: str) -> Any:
             client = self._make_client(api_key)
+            create_kwargs = {
+                "model": model,
+                "messages": messages,
+                "temperature": kwargs.get("temperature", 0.05),
+                "seed": kwargs.get("seed", 42),
+                "max_tokens": kwargs.get("max_tokens"),
+            }
+            if response_format is not None:
+                create_kwargs["response_format"] = response_format
             try:
-                return client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=kwargs.get("temperature", 0.05),
-                    seed=kwargs.get("seed", 42),
-                    max_tokens=kwargs.get("max_tokens"),
-                )
+                return client.chat.completions.create(**create_kwargs)
             except BaseException as e:
                 translated = _translate_openai_exception(e, self.PROVIDER_LABEL)
                 if translated is e:

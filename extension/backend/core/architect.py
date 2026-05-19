@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from core.llm.gemini import GeminiClient
+from core.llm._response_adapter import LLMResponseAdapter
 from core.schemas import DomainModel
 from core.orchestration.errors import (
     ArchitectExtractionError,
@@ -76,47 +77,6 @@ def _truncate_with_head_tail(text: str, max_chars: int, head_ratio: float = 0.6)
     head_size = int(budget * head_ratio)
     tail_size = budget - head_size
     return f"{text[:head_size]}{marker}{text[-tail_size:]}"
-
-
-class _LLMResponseAdapter:
-    """Bridge from new core.llm.LLMResponse to the legacy google-genai response shape.
-
-    Surfaces `.text`, `.usage_metadata` (with prompt_token_count /
-    candidates_token_count / total_token_count / cached_content_token_count),
-    and `.candidates[0].finish_reason` so the existing helpers
-    (_safe_response_text, _check_response_completion,
-    token_tracker.track_api_call) keep working unchanged.
-
-    Temporary shim — a future cleanup commit can migrate those helpers
-    to read LLMResponse fields directly and drop this adapter.
-    """
-
-    class _UsageMetadata:
-        __slots__ = (
-            "prompt_token_count",
-            "candidates_token_count",
-            "total_token_count",
-            "cached_content_token_count",
-        )
-
-        def __init__(self, usage):
-            self.prompt_token_count = usage.prompt_tokens
-            self.candidates_token_count = usage.completion_tokens
-            self.total_token_count = usage.total_tokens
-            self.cached_content_token_count = usage.cached_tokens
-
-    class _Candidate:
-        __slots__ = ("finish_reason",)
-
-        def __init__(self, finish_reason: str):
-            self.finish_reason = finish_reason
-
-    def __init__(self, llm_response):
-        self._llm = llm_response
-        self.text = llm_response.content
-        self.usage_metadata = self._UsageMetadata(llm_response.usage)
-        finish_reason = "OTHER" if llm_response.json_failed else "STOP"
-        self.candidates = [self._Candidate(finish_reason)]
 
 
 class DomainArchitect:
@@ -349,7 +309,7 @@ Return empty array [] if no sentences match the criteria."""
                     seed=sc.seed,
                     response_mime_type="application/json",
                 )
-                response = _LLMResponseAdapter(llm_response)
+                response = LLMResponseAdapter(llm_response)
 
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):
@@ -449,7 +409,7 @@ RESPOND WITH JSON:
                     seed=sc.seed,
                     response_mime_type="application/json",
                 )
-                response = _LLMResponseAdapter(llm_response)
+                response = LLMResponseAdapter(llm_response)
 
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):
@@ -604,7 +564,7 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
                     seed=sc.seed,
                     response_mime_type="application/json",
                 )
-                response = _LLMResponseAdapter(llm_response)
+                response = LLMResponseAdapter(llm_response)
 
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):
@@ -710,7 +670,7 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
                         seed=sc.seed,
                         response_mime_type="application/json",
                     )
-                    response = _LLMResponseAdapter(llm_response)
+                    response = LLMResponseAdapter(llm_response)
                     if not self._check_response_completion(response, retry):
                         if retry < 4:
                             time.sleep(2)
@@ -887,7 +847,7 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
                     seed=sc.seed,
                     response_mime_type="application/json",
                 )
-                response = _LLMResponseAdapter(llm_response)
+                response = LLMResponseAdapter(llm_response)
 
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):

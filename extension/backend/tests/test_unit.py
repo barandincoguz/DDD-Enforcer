@@ -491,7 +491,7 @@ class TestFastAPIRoutes:
         # Mock the genai import to avoid API key check
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
             # Import with mocked client
-            with patch("core.llm_client.genai"):
+            with patch("core.llm.gemini.genai.Client"):
                 with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     
@@ -501,7 +501,7 @@ class TestFastAPIRoutes:
     def test_app_has_validate_endpoint(self):
         """Test /validate endpoint exists."""
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
-            with patch("core.llm_client.genai"):
+            with patch("core.llm.gemini.genai.Client"):
                 with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     
@@ -511,7 +511,7 @@ class TestFastAPIRoutes:
     def test_app_has_token_endpoints(self):
         """Test token tracking endpoints exist."""
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
-            with patch("core.llm_client.genai"):
+            with patch("core.llm.gemini.genai.Client"):
                 with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     
@@ -523,7 +523,7 @@ class TestFastAPIRoutes:
     def test_app_has_metrics_endpoints(self):
         """Test metrics endpoints exist."""
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
-            with patch("core.llm_client.genai"):
+            with patch("core.llm.gemini.genai.Client"):
                 with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     

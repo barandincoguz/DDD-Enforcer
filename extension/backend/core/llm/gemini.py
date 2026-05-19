@@ -90,10 +90,20 @@ class GeminiClient(LLMClient):
         **kwargs: Any,
     ) -> LLMResponse:
         resolved_model = self._resolve_model(model)
-        config = genai_types.GenerateContentConfig(
-            temperature=kwargs.get("temperature", 0.05),
-            seed=kwargs.get("seed", 42),
-        )
+        config_kwargs: Dict[str, Any] = {
+            "temperature": kwargs.get("temperature", 0.05),
+            "seed": kwargs.get("seed", 42),
+        }
+        # Architect-style callers ask for JSON without strict schema.
+        # Pass through response_mime_type so the model emits JSON text
+        # rather than prose; callers parse manually.
+        rmt = kwargs.get("response_mime_type")
+        if rmt:
+            config_kwargs["response_mime_type"] = rmt
+        max_tokens = kwargs.get("max_output_tokens") or kwargs.get("max_tokens")
+        if max_tokens is not None:
+            config_kwargs["max_output_tokens"] = max_tokens
+        config = genai_types.GenerateContentConfig(**config_kwargs)
         contents = self._messages_to_contents(messages)
 
         @with_retry_and_rotation(keys=[self._key])
@@ -199,6 +209,23 @@ class GeminiClient(LLMClient):
             latency_ms=latency_ms,
             raw_response={},
         )
+
+    def count_tokens(self, text: str, model: str) -> int:
+        """Return Gemini's token count for the given text under the
+        given model. Thin wrapper around google-genai's count_tokens.
+        """
+        resolved_model = self._resolve_model(model)
+        try:
+            resp = self._client.models.count_tokens(
+                model=resolved_model,
+                contents=text,
+            )
+        except BaseException as e:
+            translated = _translate_genai_exception(e, self.PROVIDER_LABEL)
+            if translated is e:
+                raise
+            raise translated from e
+        return getattr(resp, "total_tokens", 0) or 0
 
     @staticmethod
     def _messages_to_contents(messages: List[Dict[str, str]]) -> str:
