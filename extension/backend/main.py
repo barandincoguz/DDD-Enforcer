@@ -31,7 +31,7 @@ from config import (
 from core.architect import DomainArchitect
 from core.code_parser import has_advanced_validation_signals
 from core.document_parser import SRSDocumentParser
-from core.llm_client import LLMClient
+from core.llm.validator import LLMClient
 from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel

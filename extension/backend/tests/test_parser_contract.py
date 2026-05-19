@@ -1,7 +1,7 @@
 import textwrap
 
 from core.code_parser import build_advanced_validation_payload
-from core.llm_client import LLMClient
+from core.llm.validator import LLMClient
 from core.parser import CodeParser
 from main import _needs_llm_advanced_checks
 

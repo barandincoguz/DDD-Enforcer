@@ -163,7 +163,7 @@ class TestDeterministicValidation:
     """Test non-LLM deterministic violation detection."""
 
     def test_rule_based_name_violations_detects_synonyms_and_banned_terms(self):
-        from core.llm_client import LLMClient
+        from core.llm.validator import LLMClient
 
         llm = object.__new__(LLMClient)
 

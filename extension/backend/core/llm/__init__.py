@@ -1,9 +1,10 @@
 """Provider-agnostic LLM client package.
 
-Replaces the legacy single-provider core.llm_client. Exposes a uniform
-LLMClient ABC plus typed exceptions so the rest of the codebase calls
-LLMs without knowing whether the underlying provider is Gemini or
-Ollama (or anything else added later).
+Replaces the legacy single-provider core/llm_client.py (now relocated
+to core/llm/validator.py for the Validator-stage LLMClient class).
+Exposes a uniform LLMClient ABC plus typed exceptions so the rest of
+the codebase calls LLMs without knowing whether the underlying
+provider is Gemini or Ollama (or anything else added later).
 
 Use get_client(provider) to instantiate the right concrete client, or
 get_client_for_model(model_id) to let the registry resolve it.
