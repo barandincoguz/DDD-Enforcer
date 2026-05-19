@@ -1,0 +1,41 @@
+{
+  "timestamp_start": "2026-05-19T17:50:42",
+  "timestamp_end": "2026-05-19T18:04:14",
+  "git_commit": "1e1fb71d02412d6845b02bd94d38fed949e26bc0",
+  "git_dirty": true,
+  "git_dirty_files": [
+    "M AGENTS.md",
+    " M extension/backend/core/AST/intermediate/ast_signals_diagnostics.json",
+    " M extension/backend/validation_metrics_report.json"
+  ],
+  "python_version": "3.13.3 (v3.13.3:6280bb54784, Apr  8 2025, 10:47:54) [Clang 15.0.0 (clang-1500.3.9.4)]",
+  "platform": "macOS-26.2-arm64-arm-64bit-Mach-O",
+  "package_versions": {
+    "google-genai": "1.41.0",
+    "openai": "1.55.3",
+    "pydantic": "2.11.10"
+  },
+  "models": [
+    "gemini-3.1-pro-preview",
+    "gemini-3.1-flash-lite",
+    "gpt-oss:120b-cloud",
+    "qwen3-coder-next:cloud",
+    "minimax-m2:cloud",
+    "gemma4:31b-cloud"
+  ],
+  "schemas": [
+    "basic",
+    "medium",
+    "complex"
+  ],
+  "trials_per_cell": 5,
+  "seed_strategy": "per_trial_42_plus_i",
+  "temperature_default": 0.05,
+  "prompts": {
+    "basic": "Emit a JSON object matching the schema. Use the example entity Customer with description 'A buyer in an e-commerce domain'.",
+    "medium": "Emit a JSON object matching the schema. Use the example entity Order with description 'A customer purchase', confidence 0.9, and two attributes: order_id (string) and total (number).",
+    "complex": "Emit a JSON object matching the schema. Use the bounded context OrderManagement with two entities (Order with attributes order_id and total; OrderLine with attributes line_id and quantity). Each entity must have a confidence between 0 and 1, a justification string, and at least one evidence_sentence_index. Sources may be empty."
+  },
+  "schema_fidelity_note": "ComplexViolation approximates BoundedContext nesting depth and constraint variety; not the full production contract.",
+  "aborted": null
+}

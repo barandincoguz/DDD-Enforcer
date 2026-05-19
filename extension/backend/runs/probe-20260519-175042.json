@@ -1,0 +1,508 @@
+{
+  "timestamp": "2026-05-19T18:04:14",
+  "trials_per_cell": 5,
+  "results": [
+    {
+      "model_id": "gemini-3.1-pro-preview",
+      "provider": "gemini",
+      "schema": "basic",
+      "trials": 5,
+      "success": 5,
+      "json_failed": 0,
+      "transport_error": 0,
+      "errors": [],
+      "raw_failures": [],
+      "mean_latency_ms": 4173.461724605295,
+      "total_tokens": 1581,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemini-3.1-pro-preview",
+      "provider": "gemini",
+      "schema": "medium",
+      "trials": 5,
+      "success": 5,
+      "json_failed": 0,
+      "transport_error": 0,
+      "errors": [],
+      "raw_failures": [],
+      "mean_latency_ms": 8213.04275020375,
+      "total_tokens": 3149,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemini-3.1-pro-preview",
+      "provider": "gemini",
+      "schema": "complex",
+      "trials": 5,
+      "success": 5,
+      "json_failed": 0,
+      "transport_error": 0,
+      "errors": [],
+      "raw_failures": [],
+      "mean_latency_ms": 9593.28974999953,
+      "total_tokens": 5830,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemini-3.1-flash-lite",
+      "provider": "gemini",
+      "schema": "basic",
+      "trials": 5,
+      "success": 5,
+      "json_failed": 0,
+      "transport_error": 0,
+      "errors": [],
+      "raw_failures": [],
+      "mean_latency_ms": 1170.2545414009364,
+      "total_tokens": 270,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemini-3.1-flash-lite",
+      "provider": "gemini",
+      "schema": "medium",
+      "trials": 5,
+      "success": 5,
+      "json_failed": 0,
+      "transport_error": 0,
+      "errors": [],
+      "raw_failures": [],
+      "mean_latency_ms": 2794.288308400428,
+      "total_tokens": 650,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemini-3.1-flash-lite",
+      "provider": "gemini",
+      "schema": "complex",
+      "trials": 5,
+      "success": 5,
+      "json_failed": 0,
+      "transport_error": 0,
+      "errors": [],
+      "raw_failures": [],
+      "mean_latency_ms": 1731.8516665953211,
+      "total_tokens": 1718,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gpt-oss:120b-cloud",
+      "provider": "ollama",
+      "schema": "basic",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "```json\n{\n  \"name\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}\n```",
+        "```json\n{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}\n```",
+        "```json\n{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}\n```",
+        "```json\n{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}\n```",
+        "```json\n{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}\n```"
+      ],
+      "mean_latency_ms": 6076.488324801903,
+      "total_tokens": 2061,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gpt-oss:120b-cloud",
+      "provider": "ollama",
+      "schema": "medium",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```"
+      ],
+      "mean_latency_ms": 5427.576308400603,
+      "total_tokens": 2137,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gpt-oss:120b-cloud",
+      "provider": "ollama",
+      "schema": "complex",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_name\": \"Order\",\n      \"attributes\": [\n        {\n          \"attribute_name\": \"order_id\",\n          \"type\": \"string\"\n        },\n        {\n          \"attribute_name\": \"total\",\n          \"type\": \"decimal\"\n        }\n      ],\n      \"confidence\": 0.97,\n      \"justification\": \"The description explicitly mentions an Order entity that is identified by an order_id and carries a total amount, which matches typical domain m",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_name\": \"Order\",\n      \"confidence\": 0.97,\n      \"justification\": \"The domain description explicitly defines an Order entity with order_id and total attributes.\",\n      \"evidence_sentence_index\": [1],\n      \"sources\": [],\n      \"attributes\": [\n        {\n          \"attribute_name\": \"order_id\",\n          \"confidence\": 0.99,\n          \"justification\": \"order_id is identified as the primary identifier for Order.\",\n ",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_name\": \"Order\",\n      \"confidence\": 0.97,\n      \"justification\": \"The description explicitly mentions an Order entity that has an identifier (order_id) and a monetary total.\",\n      \"evidence_sentence_index\": [1],\n      \"sources\": [],\n      \"attributes\": [\n        { \"attribute_name\": \"order_id\" },\n        { \"attribute_name\": \"total\" }\n      ]\n    },\n    {\n      \"entity_name\": \"OrderLine\",\n      \"confidence\": 0.",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"name\": \"Order\",\n      \"attributes\": [\n        \"order_id\",\n        \"total\"\n      ],\n      \"confidence\": 0.96,\n      \"justification\": \"The Order entity is clearly defined by its unique identifier (order_id) and the monetary amount (total) representing the value of the order.\",\n      \"evidence_sentence_indices\": [1],\n      \"sources\": []\n    },\n    {\n      \"name\": \"OrderLine\",\n      \"attributes\": [\n        \"line_id\",\n    ",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_name\": \"Order\",\n      \"attributes\": [\n        { \"attribute_name\": \"order_id\" },\n        { \"attribute_name\": \"total\" }\n      ],\n      \"confidence\": 0.96,\n      \"justification\": \"The description defines an Order entity identified by order_id and containing a total amount.\",\n      \"evidence_sentence_indices\": [1],\n      \"sources\": []\n    },\n    {\n      \"entity_name\": \"OrderLine\",\n      \"attributes\": [\n        { \"a"
+      ],
+      "mean_latency_ms": 9870.238425201387,
+      "total_tokens": 4469,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "qwen3-coder-next:cloud",
+      "provider": "ollama",
+      "schema": "basic",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "schema_mismatch: 1 validation error for BasicViolation\nname\n  Field required [type=missing, input_value={'entity': 'Customer', 'd...n an e-commerce domain'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for BasicViolation\nname\n  Field required [type=missing, input_value={'entity': 'Customer', 'd...n an e-commerce domain'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for BasicViolation\nname\n  Field required [type=missing, input_value={'entity': 'Customer', 'd...n an e-commerce domain'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for BasicViolation\nname\n  Field required [type=missing, input_value={'entity': 'Customer', 'd...n an e-commerce domain'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for BasicViolation\nname\n  Field required [type=missing, input_value={'entity': 'Customer', 'd...n an e-commerce domain'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing"
+      ],
+      "raw_failures": [
+        "{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}",
+        "{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}",
+        "{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}",
+        "{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}",
+        "{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\"\n}"
+      ],
+      "mean_latency_ms": 1066.4286831975915,
+      "total_tokens": 280,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "qwen3-coder-next:cloud",
+      "provider": "ollama",
+      "schema": "medium",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "schema_mismatch: 1 validation error for MediumViolation\nname\n  Field required [type=missing, input_value={'entity': 'Order', 'desc...al', 'type': 'number'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for MediumViolation\nname\n  Field required [type=missing, input_value={'entity': 'Order', 'desc...al', 'type': 'number'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for MediumViolation\nname\n  Field required [type=missing, input_value={'entity': 'Order', 'desc...al', 'type': 'number'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for MediumViolation\nname\n  Field required [type=missing, input_value={'entity': 'Order', 'desc...al', 'type': 'number'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 1 validation error for MediumViolation\nname\n  Field required [type=missing, input_value={'entity': 'Order', 'desc...al', 'type': 'number'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing"
+      ],
+      "raw_failures": [
+        "{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}",
+        "{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}",
+        "{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}",
+        "{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}",
+        "{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}"
+      ],
+      "mean_latency_ms": 1562.177366600372,
+      "total_tokens": 605,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "qwen3-coder-next:cloud",
+      "provider": "ollama",
+      "schema": "complex",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "schema_mismatch: 10 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde..., 4]}]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde..., 4]}]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.confidence\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.justification\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.evidence_sentence_indices\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...ence_indices': [1, 4]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.confidence\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...ence_indices': [1, 4]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.justification\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...ence_indices': [1, 4]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.evidence_sentence_indices\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...ence_indices': [1, 4]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 10 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde... [3]}]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde... [3]}]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.confidence\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.justification\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.evidence_sentence_indices\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...entence_indices': [1]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...entence_indices': [3]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.confidence\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...entence_indices': [3]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.justification\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...entence_indices': [3]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.evidence_sentence_indices\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...entence_indices': [3]}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 4 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde...[4, 5]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde...[4, 5]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'name': 'Order', 'attrib..._indices': [0, 1, 2, 3]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...ntence_indices': [4, 5]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 4 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde...[3, 4]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde...[3, 4]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'name': 'Order', 'attrib...nce_indices': [0, 1, 2]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...ntence_indices': [3, 4]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 4 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde...[4, 5]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde...[4, 5]}], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'name': 'Order', 'attrib..._indices': [0, 1, 2, 3]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'name': 'OrderLine', 'at...ntence_indices': [4, 5]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing"
+      ],
+      "raw_failures": [
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"name\": \"Order\",\n      \"attributes\": [\n        {\n          \"name\": \"order_id\",\n          \"confidence\": 0.95,\n          \"justification\": \"order_id is a standard primary identifier for orders in domain models.\",\n          \"evidence_sentence_indices\": [0, 2]\n        },\n        {\n          \"name\": \"total\",\n          \"confidence\": 0.90,\n          \"justification\": \"total represents the aggregate monetary value of an order, commonly ",
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"name\": \"Order\",\n      \"attributes\": [\n        {\n          \"name\": \"order_id\",\n          \"confidence\": 0.95,\n          \"justification\": \"order_id is a standard primary identifier in order-related domain models.\",\n          \"evidence_sentence_indices\": [0]\n        },\n        {\n          \"name\": \"total\",\n          \"confidence\": 0.90,\n          \"justification\": \"Order total is a common aggregate value representing the sum of line",
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"name\": \"Order\",\n      \"attributes\": [\n        {\n          \"name\": \"order_id\",\n          \"confidence\": 0.95,\n          \"justification\": \"order_id is a standard primary identifier for orders in domain models and transactional systems.\",\n          \"evidence_sentence_indices\": [0, 2]\n        },\n        {\n          \"name\": \"total\",\n          \"confidence\": 0.92,\n          \"justification\": \"total represents the aggregate monetary va",
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"name\": \"Order\",\n      \"attributes\": [\n        {\n          \"name\": \"order_id\",\n          \"confidence\": 0.95,\n          \"justification\": \"order_id is a standard primary identifier for orders in e-commerce systems.\",\n          \"evidence_sentence_indices\": [0, 2]\n        },\n        {\n          \"name\": \"total\",\n          \"confidence\": 0.90,\n          \"justification\": \"total represents the aggregate monetary value of an order, comm",
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"name\": \"Order\",\n      \"attributes\": [\n        {\n          \"name\": \"order_id\",\n          \"type\": \"string\",\n          \"confidence\": 0.95,\n          \"justification\": \"Order ID is a standard unique identifier in order management systems, typically alphanumeric and system-generated.\",\n          \"evidence_sentence_indices\": [0, 2]\n        },\n        {\n          \"name\": \"total\",\n          \"type\": \"decimal\",\n          \"confidence\": 0"
+      ],
+      "mean_latency_ms": 5871.748241802561,
+      "total_tokens": 2133,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "minimax-m2:cloud",
+      "provider": "ollama",
+      "schema": "basic",
+      "trials": 5,
+      "success": 1,
+      "json_failed": 4,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "schema_mismatch: 1 validation error for BasicViolation\nname\n  Field required [type=missing, input_value={'customerId': 'CUST-0012...n an e-commerce domain'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing"
+      ],
+      "raw_failures": [
+        "```json\n{\n  \"customerId\": \"C-001\",\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"description\": \"A buyer in an e-commerce domain\",\n  \"phoneNumber\": \"+1-555-0123\",\n  \"shippingAddress\": {\n    \"street\": \"456 Oak Ave\",\n    \"city\": \"Metropolis\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10001\",\n    \"country\": \"USA\"\n  },\n  \"billingAddress\": {\n    \"street\": \"456 Oak Ave\",\n    \"city\": \"Metropolis\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10001\",\n    \"country\": \"USA\"\n  },\n  \"isPrimeMember\": tr",
+        "```json\n{\n  \"customerId\": \"cust_001\",\n  \"description\": \"A buyer in an e-commerce domain\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"phone\": \"+1-555-987-6543\",\n  \"addresses\": {\n    \"shipping\": {\n      \"street\": \"456 Oak Ave\",\n      \"city\": \"Portland\",\n      \"state\": \"OR\",\n      \"postalCode\": \"97201\",\n      \"country\": \"US\"\n    },\n    \"billing\": {\n      \"street\": \"456 Oak Ave\",\n      \"city\": \"Portland\",\n      \"state\": \"OR\",\n      \"postalCode\": \"97201\",\n  ",
+        "```json\n{\n  \"entity\": \"Customer\",\n  \"description\": \"A buyer in an e-commerce domain\",\n  \"id\": \"C-12345\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phoneNumber\": \"+1-555-0100\",\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"Springfield\",\n    \"state\": \"IL\",\n    \"postalCode\": \"62701\",\n    \"country\": \"USA\"\n  },\n  \"registeredAt\": \"2022-03-15T10:30:00Z\",\n  \"isActive\": true,\n  \"loyaltyPoints\": 150\n}\n```",
+        "{\n  \"customerId\": \"CUST-00123\",\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phoneNumber\": \"+1-555-0100\",\n  \"billingAddress\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10001\",\n    \"country\": \"USA\"\n  },\n  \"shippingAddress\": {\n    \"street\": \"456 Oak Avenue\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10002\",\n    \"country\": \"USA\"\n  },\n  \"registeredAt\": \"2023-01-15T09:30:00Z\",\n  \"isActive\": true,\n  \"loyaltyP"
+      ],
+      "mean_latency_ms": 15753.095600006054,
+      "total_tokens": 8177,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "minimax-m2:cloud",
+      "provider": "ollama",
+      "schema": "medium",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "schema_mismatch: 2 validation errors for MediumViolation\nname\n  Field required [type=missing, input_value={'entity': 'Order', 'desc...12345', 'total': 150.0}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nattributes\n  Input should be a valid list [type=list_type, input_value={'order_id': 'ORD-12345', 'total': 150.0}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/list_type",
+        "schema_mismatch: 2 validation errors for MediumViolation\nname\n  Field required [type=missing, input_value={'entity': 'Order', 'desc...12345', 'total': 150.0}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nattributes\n  Input should be a valid list [type=list_type, input_value={'order_id': 'ORD-12345', 'total': 150.0}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/list_type",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": {\n    \"order_id\": {\n      \"type\": \"string\",\n      \"value\": \"ORD-12345\"\n    },\n    \"total\": {\n      \"type\": \"number\",\n      \"value\": 199.99\n    }\n  }\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": {\n    \"order_id\": \"ORD-12345\",\n    \"total\": 150.00\n  }\n}\n```",
+        "{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": {\n    \"order_id\": \"ORD-12345\",\n    \"total\": 150.00\n  }\n}",
+        "{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": {\n    \"order_id\": \"ORD-12345\",\n    \"total\": 150.00\n  }\n}",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": {\n    \"order_id\": \"ORD-001\",\n    \"total\": 129.99\n  }\n}\n```"
+      ],
+      "mean_latency_ms": 8125.8687581983395,
+      "total_tokens": 4109,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "minimax-m2:cloud",
+      "provider": "ollama",
+      "schema": "complex",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "schema_mismatch: 8 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde...': [1], 'sources': []}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde...': [1], 'sources': []}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.name\n  Field required [type=missing, input_value={'entity_type': 'Order', ...: [0, 2], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'entity_type': 'Order', ...: [0, 2], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.evidence_sentence_indices\n  Field required [type=missing, input_value={'entity_type': 'Order', ...: [0, 2], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.name\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.evidence_sentence_indices\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "schema_mismatch: 8 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde...': [1], 'sources': []}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde...': [1], 'sources': []}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.name\n  Field required [type=missing, input_value={'entity_type': 'Order', ...ex': [0], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'entity_type': 'Order', ...ex': [0], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.evidence_sentence_indices\n  Field required [type=missing, input_value={'entity_type': 'Order', ...ex': [0], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.name\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.evidence_sentence_indices\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "schema_mismatch: 8 validation errors for ComplexViolation\ncontext_name\n  Field required [type=missing, input_value={'bounded_context': 'Orde...': [1], 'sources': []}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ndescription\n  Field required [type=missing, input_value={'bounded_context': 'Orde...': [1], 'sources': []}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.name\n  Field required [type=missing, input_value={'entity_type': 'Order', ...ex': [0], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.description\n  Field required [type=missing, input_value={'entity_type': 'Order', ...ex': [0], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.0.evidence_sentence_indices\n  Field required [type=missing, input_value={'entity_type': 'Order', ...ex': [0], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.name\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.description\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nentities.1.evidence_sentence_indices\n  Field required [type=missing, input_value={'entity_type': 'OrderLin...ex': [1], 'sources': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-12345\",\n        \"total\": 150.75\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The order is recorded in the system with a confirmed total.\",\n      \"evidence_sentence_index\": [0, 2],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"LN-001\",\n        \"quantity\": 3\n      },\n      \"confidenc",
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-001\",\n        \"total\": 250.00\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The order record ORD\u2011001 shows a total amount of $250.00.\",\n      \"evidence_sentence_index\": [0],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"LN-001\",\n        \"quantity\": 5\n      },\n      \"confidence\": 0.8",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-12345\",\n        \"total\": 150.00\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"Order details are present in the transaction log, confirming the existence of the order and its total amount.\",\n      \"evidence_sentence_index\": [0],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"L",
+        "{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-001\",\n        \"total\": 150.00\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The entity represents an order with a known order identifier and total amount from the source data.\",\n      \"evidence_sentence_index\": [0],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"LN-001\",\n        \"qua",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-12345\",\n        \"total\": 150.00\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The order is recorded in the transaction system with a total of $150.00, confirmed by the payment gateway.\",\n      \"evidence_sentence_index\": [0],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"LINE"
+      ],
+      "mean_latency_ms": 12178.530133399181,
+      "total_tokens": 6682,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemma4:31b-cloud",
+      "provider": "ollama",
+      "schema": "basic",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "Since you didn't provide a specific schema, I have generated a JSON object based on a standard **Entity Definition Schema** (commonly used in data modeling or API documentation) using your provided example.\n\n```json\n{\n  \"entity\": {\n    \"name\": \"Customer\",\n    \"description\": \"A buyer in an e-commerce domain\",\n    \"attributes\": [\n      {\n        \"name\": \"customerId\",\n        \"type\": \"UUID\",\n        \"description\": \"Unique identifier for the customer\",\n        \"required\": true\n      },\n      {\n     ",
+        "Since you didn't provide a specific schema, I have generated a JSON object based on a standard **Entity-Definition schema** (commonly used in data modeling and API documentation) to represent the `Customer` entity.\n\n```json\n{\n  \"entity\": {\n    \"name\": \"Customer\",\n    \"description\": \"A buyer in an e-commerce domain\",\n    \"attributes\": [\n      {\n        \"name\": \"customerId\",\n        \"type\": \"UUID\",\n        \"description\": \"Unique identifier for the customer\",\n        \"required\": true\n      },\n     ",
+        "Since you didn't provide a specific schema, I have generated a JSON object based on a standard entity-definition schema typically used for data modeling or API documentation.\n\n```json\n{\n  \"entity\": {\n    \"name\": \"Customer\",\n    \"description\": \"A buyer in an e-commerce domain\",\n    \"attributes\": [\n      {\n        \"name\": \"customerId\",\n        \"type\": \"UUID\",\n        \"description\": \"Unique identifier for the customer\",\n        \"primaryKey\": true\n      },\n      {\n        \"name\": \"firstName\",\n      ",
+        "Since you didn't provide a specific schema, I have implemented a standard **Entity Definition Schema** commonly used in data modeling and API documentation.\n\n```json\n{\n  \"entity\": {\n    \"name\": \"Customer\",\n    \"description\": \"A buyer in an e-commerce domain\",\n    \"attributes\": [\n      {\n        \"name\": \"customerId\",\n        \"type\": \"UUID\",\n        \"description\": \"Unique identifier for the customer\",\n        \"required\": true\n      },\n      {\n        \"name\": \"email\",\n        \"type\": \"String\",\n    ",
+        "Since you didn't provide a specific schema, I have generated a JSON object based on a standard industry schema for an entity definition (common in metadata management or LLM tool-calling configurations).\n\n```json\n{\n  \"entity\": {\n    \"name\": \"Customer\",\n    \"description\": \"A buyer in an e-commerce domain\",\n    \"attributes\": [\n      {\n        \"name\": \"customerId\",\n        \"type\": \"UUID\",\n        \"description\": \"Unique identifier for the customer\"\n      },\n      {\n        \"name\": \"email\",\n        \""
+      ],
+      "mean_latency_ms": 25232.55226680485,
+      "total_tokens": 1907,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemma4:31b-cloud",
+      "provider": "ollama",
+      "schema": "medium",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```",
+        "```json\n{\n  \"entity\": \"Order\",\n  \"description\": \"A customer purchase\",\n  \"confidence\": 0.9,\n  \"attributes\": [\n    {\n      \"name\": \"order_id\",\n      \"type\": \"string\"\n    },\n    {\n      \"name\": \"total\",\n      \"type\": \"number\"\n    }\n  ]\n}\n```"
+      ],
+      "mean_latency_ms": 13125.952175000566,
+      "total_tokens": 730,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "model_id": "gemma4:31b-cloud",
+      "provider": "ollama",
+      "schema": "complex",
+      "trials": 5,
+      "success": 0,
+      "json_failed": 5,
+      "transport_error": 0,
+      "errors": [
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)",
+        "invalid_json: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "raw_failures": [
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-99281\",\n        \"total\": 150.50\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The order ID and total amount are explicitly stated in the transaction header.\",\n      \"evidence_sentence_index\": [0, 1],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"L-001\",\n        \"quantity\": 3",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-99281\",\n        \"total\": 150.50\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The order ID and total amount are explicitly stated in the transaction header.\",\n      \"evidence_sentence_index\": [0, 1],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"L-001\",\n        \"quantity\": 2",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-7721\",\n        \"total\": 150.50\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The text explicitly mentions the order reference number and the final checkout amount.\",\n      \"evidence_sentence_index\": [0, 2]\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"LINE-01\",\n        \"quantity\": 3\n      },\n  ",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-7721\",\n        \"total\": 150.50\n      },\n      \"confidence\": 0.98,\n      \"justification\": \"The order ID and total amount are explicitly stated in the invoice header.\",\n      \"evidence_sentence_indices\": [0, 1],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"L-01\",\n        \"quantity\": 2\n   ",
+        "```json\n{\n  \"bounded_context\": \"OrderManagement\",\n  \"entities\": [\n    {\n      \"entity_type\": \"Order\",\n      \"attributes\": {\n        \"order_id\": \"ORD-99281\",\n        \"total\": 150.50\n      },\n      \"confidence\": 0.95,\n      \"justification\": \"The order ID and total amount are explicitly stated in the transaction header.\",\n      \"evidence_sentence_index\": [0, 1],\n      \"sources\": []\n    },\n    {\n      \"entity_type\": \"OrderLine\",\n      \"attributes\": {\n        \"line_id\": \"L-001\",\n        \"quantity\": 3"
+      ],
+      "mean_latency_ms": 30301.681741597713,
+      "total_tokens": 1566,
+      "seeds_used": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    }
+  ]
+}
