@@ -8,6 +8,8 @@ DDD-Enforcer is a VS Code extension + Python FastAPI backend that detects **Doma
 
 **Active research context — read this before any non-trivial change:** This repo is being prepared for submission to **Springer Empirical Software Engineering** (EMSE). Authors: Baran Dincoguz, Ali Kendir, Prof. Dr. Murat Karakaya. The locked roadmap, locked decisions (D1–D7), and per-WP specs are in `todos/`. Start with **`todos/AGENT_QUICKSTART.md`** for orientation, then **`todos/MASTER_PLAN.md`** for canonical roadmap, then **`todos/WP_DAGILIM_BARAN_ALI.md`** for ownership boundaries. **Do not touch WPs you don't own** (see allocation file). Communication language is Turkish; code/comments stay English.
 
+**Persistent development memory — also read before non-trivial work:** `development_docs/` is the manual cross-session memory layer for paper-revision context and Claude-session context recovery. Start with **`development_docs/INDEX.md`** to see which WPs have full docs and which have pointer placeholders. When a WP ships, write a doc there following the convention in the INDEX (one doc per WP; sections: TL;DR, motivation, architectural decisions with rationale, file-level changes, methodology, empirical results, limitations + follow-ups, cross-references). Git history says what changed; these docs say *why*.
+
 ## Common Commands
 
 All Python commands run from `extension/backend/` unless stated.
@@ -141,10 +143,10 @@ Validation request (POST /validate)
 | Concern | Path | Notes |
 |---|---|---|
 | **FastAPI app + endpoints** | `extension/backend/main.py` | 972 LOC; lifespan, /generate-model{,-stream}, /validate |
-| **Multi-agent pipeline** | `core/architect.py` | `DomainArchitect` — Scout/Architect/Specialist/Synthesizer; rate limit + parallel Scout via `DDD_SCOUT_MAX_WORKERS` |
-| **LLM call layer (legacy)** | `core/llm_client.py` | **Will be deleted in WP-01a big-bang refactor**; new `core/llm/` package replaces it |
+| **Multi-agent pipeline** | `core/architect.py` | `DomainArchitect` — Scout/Architect/Specialist/Verifier/Refiner/Synthesizer (5-stage post-P3); rate limit + parallel Scout via `DDD_SCOUT_MAX_WORKERS` |
+| **LLM provider abstraction** | `core/llm/` package | Post-WP-01a (shipped 2026-05-19): 8 modules — `base.py` (ABC + `LLMResponse`), `errors.py`, `registry.py` (D1 6-model SSOT), `retry.py` (`@with_retry_and_rotation`), `gemini.py` (`GeminiClient`), `ollama.py` (`OllamaClient` via Ollama Cloud), `validator.py` (Validator-stage `LLMClient`), `_response_adapter.py` (legacy genai-shape shim), `schema_probe.py` (6×3 conformance CLI). |
 | **Domain Pydantic schemas** | `core/schemas.py` | `DomainModel`, `BoundedContext`, `Entity`, `ValueObject`, `Aggregate`, `DomainEvent`, `GlobalRules` |
-| **Model registry (SSOT)** | `configs/models.py` | `MODELS`, `STAGE_GROUPS`, tiered pricing, import-time validation |
+| **Model registry (SSOT)** | `core/llm/registry.py` | D1 6-model `MODELS` dict with `ModelSpec` (pricing tiers, context window, compute mode, capabilities flags). Import-time `_validate_registry()` enforces invariants. `configs/models.py` retained for stage→group mapping. |
 | **Application config** | `config.py` (root of `extension/backend`) | Paths, RAG, server, parser. `BASE_DIR`/`WORKSPACE_PATH` resolution |
 | **AST analysis** | `core/AST/*.py` (8 files) | Signal classification/discovery/enrichment/grounding/types/utils + `ast_model_signals.py` |
 | **Code parser (post-refactor)** | `core/code_parser/*.py` | New modular split (`service`, `visitor`, `models`, `helpers`, `advanced_signals`); `core/parser.py` is a thin facade |
@@ -164,6 +166,7 @@ These are intentional facades. `core/parser.py` (12 lines) re-exports `CodeParse
 - `extension/backend/core/intermediate/` — Scout/Architect/Specialist/Synthesizer per-stage JSON dumps (timestamped); useful for debugging the pipeline without re-running
 - `extension/backend/data/chroma_db/` — RAG vector store (gitignored)
 - `extension/backend/validation_metrics_report.json` — committed runtime artifact (legacy pattern; new runs go under `runs/` post-WP-01b)
+- `extension/backend/runs/probe-{ts}.json` + `runs/probe-{ts}.manifest.json` — schema_probe artifacts (first shipped 2026-05-19 as `probe-20260519-175042.*`). 16-key manifest carries hard git provenance, package versions, verbatim prompts. New artifacts go here; do not overwrite — names are timestamped.
 
 ## Conventions (from AGENTS.md)
 
@@ -206,27 +209,42 @@ The repo's `main` branch carries 7 commits since 2026-05-07 establishing the EMS
 
 ## Things to Know Before Changing Code
 
-- **`core/llm_client.py` is on the chopping block.** WP-01a's 9-commit big-bang refactor moves all LLM call sites to a new `core/llm/` package and deletes `llm_client.py`. New code should target the new package, not patch the old client.
+- **WP-01a is shipped.** All LLM calls now go through `core/llm/`. The old `core/llm_client.py` was renamed to `core/llm/validator.py` (the Validator-stage client). New code uses `from core.llm import get_client`, `get_client_for_model`, or imports a specific provider directly. Do NOT re-introduce `google.genai` or `openai` imports outside `core/llm/gemini.py` and `core/llm/ollama.py`.
+- **`core/llm/gemini.py:_RUNTIME_FALLBACKS` is intentionally empty.** Silent runtime model substitution would mislabel paper artifacts under the D1 lock. The dict is retained as a hook for future provider deprecations but must stay empty unless a fallback is *also* registered as a separate model_id in `registry.py`. `schema_probe.py` has a pre-flight check that aborts the run if any requested model has a declared fallback. See `development_docs/WP-NEW-B-Stage-1-schema-probe.md` §A4 + §A8 for the full rationale.
 - **Rate limiting is real.** `DomainArchitect.min_delay` defaults to 6 s (free-tier safe). Override via `DDD_MIN_DELAY_SECONDS` env or kwarg if you have Pro RPM. Quota-error backoff is exponential (15 → 300 s).
 - **Parallel Scout is opt-in.** Set `DDD_SCOUT_MAX_WORKERS=N` to fan out chunk extraction. Default is 1 (sequential). Token tracker is thread-safe via `threading.Lock`.
 - **Truncation is head + tail.** `_truncate_with_head_tail` keeps the first 60 % and last 40 % of an oversized SRS chunk to preserve both intro/glossary and acceptance-criteria sections.
 - **Domain-model location depends on `WORKSPACE_PATH`.** When the VS Code extension launches the backend, it sets `WORKSPACE_PATH` so `domain/model.json` lands in the user's project. When developing the backend standalone, it falls back to `extension/backend/domain/`.
 - **CI is live and strict.** `.github/workflows/backend-ci.yml` runs `pytest -m "not integration" --cov-fail-under=60`. The `pyright` step is `continue-on-error: true` for now (will tighten as type errors are addressed). Don't add `|| echo "skip"` patterns to silence failures — that anti-pattern was just removed in commit `56919da`.
+- **Local `.venv` is currently broken.** The checked-in `extension/backend/.venv/` is a Python 3.14 shell missing `pip`/`pytest`. Tests in practice run against system Python 3.13 from `/Library/Frameworks/Python.framework/Versions/3.13/bin/`. CI still uses 3.12 per `requirements.lock`. Treat the `.venv` as needing a repair commit (open follow-up in `development_docs/WP-NEW-B-Stage-1-schema-probe.md` §Limitations).
 - **Commit style is Conventional Commits**, atomic, with the trailer:
   ```
   Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
   ```
-- **TDD is the default for `core/llm/` work.** Each commit in the WP-01a 9-commit sequence (see `todos/WP-01a-provider-abstraction.md`) ships test before implementation, all green, all rollback-able.
+- **TDD is the default for `core/llm/` work.** WP-01a shipped via test-before-implementation, and the `schema_probe` revision (WP-NEW-B Stage 1) followed the same pattern with 12 smoke tests written before any production-code change.
+
+## Persistent Development Memory (`development_docs/`)
+
+A separate folder from `todos/` (which is roadmap + spec for *upcoming* work). `development_docs/` is the *retrospective* layer — write a doc here when a WP ships so the paper can reference architectural decisions without re-deriving them from git log.
+
+- **Read** `development_docs/INDEX.md` first. It tracks `ACTIVE` (full docs), `RESERVED` (commit-range pointers for prior-session WPs awaiting backfill), and `PENDING` (WPs not yet started).
+- **Write** a new doc when a WP merges into `main`. Filename: `WP-<code>-<short-kebab>.md`. Every doc starts with status / branch / commit SHAs / spec + plan paths / one-paragraph TL;DR, then sections in the order: motivation, architectural decisions (numbered, with rationale), file-level changes (table), methodology applied, empirical results (if any), limitations + follow-ups, cross-references. Use `[[doc-name]]` syntax to link related docs (search-friendly; placeholder names mark backfill targets).
+- **Update** the `ACTIVE` table in `INDEX.md` in the same commit as the new doc.
+- **Do not** duplicate the commit log — explain *why* the change was made and how the pieces fit; let `git show <sha>` answer *what changed line-by-line*.
+- **Backfill** for prior-session WPs (`WP-01a`, `P3 Verifier+Refiner`) is a low-friction task when paper revision needs the rationale; the commit ranges in `INDEX.md` make it tractable.
 
 ## Quick Reference
 
 | Want to... | Look at |
 |---|---|
-| Understand the multi-agent pipeline | `core/architect.py` |
-| Add or change a model | `configs/models.py` (and post-WP-01a, `core/llm/registry.py`) |
+| Understand the multi-agent pipeline | `core/architect.py` (5-stage post-P3 — Scout/Architect/Specialist/Verifier/Refiner/Synthesizer) |
+| Add or change a model | `core/llm/registry.py` (SSOT for D1 lock) — and check `_RUNTIME_FALLBACKS` policy in `core/llm/gemini.py` |
+| Add or change an LLM call site | Use `get_client()` / `get_client_for_model()` from `core.llm`. Never import `google.genai` or `openai` outside `core/llm/gemini.py`/`ollama.py`. |
 | Trace a violation back to SRS | `core/rag_pipeline.py` + `extension.ts` `openSourceCommand` |
 | Debug a pipeline run | `core/intermediate/{timestamp}_{stage}.json` files |
 | Run on a new SRS | Drop in `extension/backend/inputs/` (or workspace `inputs/`) and trigger "DDD Enforcer: Initialize Domain Model" |
+| Run schema conformance probe | `cd extension/backend && python -m core.llm.schema_probe --trials 5` (writes `runs/probe-{ts}.json` + manifest) |
 | Find what's next to build | `todos/INDEX.md` (status) → owner's `todos/WP-XX-*.md` (spec) |
+| Look up *why* a past WP made a decision | `development_docs/INDEX.md` → relevant WP doc |
 | Check ownership before editing | `todos/WP_DAGILIM_BARAN_ALI.md` |
 | Talk to the advisor | `todos/HOCA_GUNDEM.md` (current open topics) |
