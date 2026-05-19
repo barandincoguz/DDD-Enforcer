@@ -492,7 +492,7 @@ class TestFastAPIRoutes:
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
             # Import with mocked client
             with patch("core.llm_client.genai"):
-                with patch("core.architect.genai"):
+                with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     
                     routes = [route.path for route in app.routes]
@@ -502,7 +502,7 @@ class TestFastAPIRoutes:
         """Test /validate endpoint exists."""
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
             with patch("core.llm_client.genai"):
-                with patch("core.architect.genai"):
+                with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     
                     routes = [route.path for route in app.routes]
@@ -512,7 +512,7 @@ class TestFastAPIRoutes:
         """Test token tracking endpoints exist."""
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
             with patch("core.llm_client.genai"):
-                with patch("core.architect.genai"):
+                with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     
                     routes = [route.path for route in app.routes]
@@ -524,7 +524,7 @@ class TestFastAPIRoutes:
         """Test metrics endpoints exist."""
         with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}):
             with patch("core.llm_client.genai"):
-                with patch("core.architect.genai"):
+                with patch("core.llm.gemini.genai.Client"):
                     from main import app
                     
                     routes = [route.path for route in app.routes]

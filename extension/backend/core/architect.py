@@ -20,10 +20,9 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 from pydantic import ValidationError
 
+from core.llm.gemini import GeminiClient
 from core.schemas import DomainModel
 from core.orchestration.errors import (
     ArchitectExtractionError,
@@ -79,6 +78,47 @@ def _truncate_with_head_tail(text: str, max_chars: int, head_ratio: float = 0.6)
     return f"{text[:head_size]}{marker}{text[-tail_size:]}"
 
 
+class _LLMResponseAdapter:
+    """Bridge from new core.llm.LLMResponse to the legacy google-genai response shape.
+
+    Surfaces `.text`, `.usage_metadata` (with prompt_token_count /
+    candidates_token_count / total_token_count / cached_content_token_count),
+    and `.candidates[0].finish_reason` so the existing helpers
+    (_safe_response_text, _check_response_completion,
+    token_tracker.track_api_call) keep working unchanged.
+
+    Temporary shim — a future cleanup commit can migrate those helpers
+    to read LLMResponse fields directly and drop this adapter.
+    """
+
+    class _UsageMetadata:
+        __slots__ = (
+            "prompt_token_count",
+            "candidates_token_count",
+            "total_token_count",
+            "cached_content_token_count",
+        )
+
+        def __init__(self, usage):
+            self.prompt_token_count = usage.prompt_tokens
+            self.candidates_token_count = usage.completion_tokens
+            self.total_token_count = usage.total_tokens
+            self.cached_content_token_count = usage.cached_tokens
+
+    class _Candidate:
+        __slots__ = ("finish_reason",)
+
+        def __init__(self, finish_reason: str):
+            self.finish_reason = finish_reason
+
+    def __init__(self, llm_response):
+        self._llm = llm_response
+        self.text = llm_response.content
+        self.usage_metadata = self._UsageMetadata(llm_response.usage)
+        finish_reason = "OTHER" if llm_response.json_failed else "STOP"
+        self.candidates = [self._Candidate(finish_reason)]
+
+
 class DomainArchitect:
     """AI-powered domain model extraction from SRS documents."""
 
@@ -93,7 +133,7 @@ class DomainArchitect:
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
 
-        self.client = genai.Client(api_key=api_key)
+        self.client = GeminiClient(api_key=api_key)
         self.model_name = model or stage_config("Architect").model_id
         self.last_request_time = 0
         self.min_delay = (
@@ -302,22 +342,21 @@ Return empty array [] if no sentences match the criteria."""
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
-                response = self.client.models.generate_content(
+                llm_response = self.client.chat(
+                    messages=[{"role": "user", "content": prompt}],
                     model=self.model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=sc.temperature,
-                        seed=sc.seed,
-                    ),
+                    temperature=sc.temperature,
+                    seed=sc.seed,
+                    response_mime_type="application/json",
                 )
-                
+                response = _LLMResponseAdapter(llm_response)
+
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):
                     if retry < 4:
                         time.sleep(2)
                         continue
-                
+
                 result = self._parse_json_response(self._safe_response_text(response))
 
                 if (
@@ -403,22 +442,21 @@ RESPOND WITH JSON:
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
-                response = self.client.models.generate_content(
+                llm_response = self.client.chat(
+                    messages=[{"role": "user", "content": prompt}],
                     model=self.model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=sc.temperature,
-                        seed=sc.seed,
-                    ),
+                    temperature=sc.temperature,
+                    seed=sc.seed,
+                    response_mime_type="application/json",
                 )
+                response = _LLMResponseAdapter(llm_response)
 
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):
                     if retry < 4:
                         time.sleep(2)
                         continue
-                
+
                 result = self._parse_json_response(self._safe_response_text(response))
 
                 if (
@@ -559,22 +597,21 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
-                response = self.client.models.generate_content(
+                llm_response = self.client.chat(
+                    messages=[{"role": "user", "content": prompt}],
                     model=self.model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=sc.temperature,
-                        seed=sc.seed,
-                    ),
+                    temperature=sc.temperature,
+                    seed=sc.seed,
+                    response_mime_type="application/json",
                 )
-                
+                response = _LLMResponseAdapter(llm_response)
+
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):
                     if retry < 4:
                         time.sleep(2)
                         continue
-                
+
                 result = self._parse_json_response(self._safe_response_text(response))
 
                 if (
@@ -666,15 +703,14 @@ If a category has no data, use empty arrays. Do not invent data. Every aggregate
             for retry in range(5):
                 try:
                     self._wait_for_rate_limit()
-                    response = self.client.models.generate_content(
+                    llm_response = self.client.chat(
+                        messages=[{"role": "user", "content": prompt}],
                         model=self.model_name,
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            temperature=sc.temperature,
-                            seed=sc.seed,
-                        ),
+                        temperature=sc.temperature,
+                        seed=sc.seed,
+                        response_mime_type="application/json",
                     )
+                    response = _LLMResponseAdapter(llm_response)
                     if not self._check_response_completion(response, retry):
                         if retry < 4:
                             time.sleep(2)
@@ -844,22 +880,21 @@ CRITICAL: synonyms_to_avoid must be populated for V1 detection. Every aggregate.
         for retry in range(5):
             try:
                 self._wait_for_rate_limit()
-                response = self.client.models.generate_content(
+                llm_response = self.client.chat(
+                    messages=[{"role": "user", "content": prompt}],
                     model=self.model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=sc.temperature,
-                        seed=sc.seed,
-                    ),
+                    temperature=sc.temperature,
+                    seed=sc.seed,
+                    response_mime_type="application/json",
                 )
+                response = _LLMResponseAdapter(llm_response)
 
                 # Check if response was truncated
                 if not self._check_response_completion(response, retry):
                     if retry < 4:
                         time.sleep(2)
                         continue
-                
+
                 result = self._parse_json_response(self._safe_response_text(response))
 
                 if (

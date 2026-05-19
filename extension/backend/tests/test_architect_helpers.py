@@ -19,7 +19,7 @@ class TestSafeResponseText:
     def _make_architect(self):
         from core.architect import DomainArchitect
         with patch.dict(os.environ, {"GEMINI_API_KEY": "fake_for_test"}):
-            with patch("core.architect.genai"):
+            with patch("core.llm.gemini.genai.Client"):
                 return DomainArchitect()
 
     def test_returns_text_when_present(self):
@@ -46,7 +46,7 @@ class TestQuotaErrorBackoff:
     def _make_architect(self):
         from core.architect import DomainArchitect
         with patch.dict(os.environ, {"GEMINI_API_KEY": "fake_for_test"}):
-            with patch("core.architect.genai"):
+            with patch("core.llm.gemini.genai.Client"):
                 return DomainArchitect()
 
     def test_returns_false_for_non_quota_error(self):
@@ -95,7 +95,7 @@ class TestScoutParallel:
     def _make_architect(self, scout_max_workers=None):
         from core.architect import DomainArchitect
         with patch.dict(os.environ, {"GEMINI_API_KEY": "fake_for_test"}):
-            with patch("core.architect.genai"):
+            with patch("core.llm.gemini.genai.Client"):
                 return DomainArchitect(scout_max_workers=scout_max_workers)
 
     def test_default_is_sequential(self):

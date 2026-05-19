@@ -25,16 +25,25 @@ def _arch():
 
 def test_extract_per_context_makes_one_llm_call_per_context():
     arch = _arch()
-    ok_response = MagicMock()
-    ok_response.candidates = [MagicMock()]
-    ok_response.candidates[0].finish_reason = "STOP"
-    ok_response.text = (
-        '{"context": "X", "entities": [{"name": "E", "attributes": [], '
-        '"confidence": 0.9, "justification": "t", "evidence_sentence_indices": [0]}], '
-        '"value_objects": [], "services": [], "aggregates": [], '
-        '"domain_events": [], "business_rules": []}'
+    # Post-WP-01a-commit-6: DomainArchitect calls self.client.chat(...) which
+    # returns an LLMResponse, then wraps it in _LLMResponseAdapter so legacy
+    # helpers (_safe_response_text, _check_response_completion, token tracker)
+    # keep working. We stub a fake LLMResponse-shaped object.
+    from core.llm.base import LLMResponse, TokenUsage
+    ok_response = LLMResponse(
+        content=(
+            '{"context": "X", "entities": [{"name": "E", "attributes": [], '
+            '"confidence": 0.9, "justification": "t", "evidence_sentence_indices": [0]}], '
+            '"value_objects": [], "services": [], "aggregates": [], '
+            '"domain_events": [], "business_rules": []}'
+        ),
+        parsed=None,
+        usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        model_id="gemini-3.1-pro-preview",
+        provider="gemini",
+        json_failed=False,
     )
-    arch.client.models.generate_content.return_value = ok_response
+    arch.client.chat.return_value = ok_response
 
     with patch.object(arch, "_save_intermediate"), \
          patch.object(arch, "_report_progress"), \
@@ -52,5 +61,5 @@ def test_extract_per_context_makes_one_llm_call_per_context():
         sentences = ["s0", "s1", "s2"]
         results = arch.extract_per_context_details(contexts, sentences)
     # 3 contexts → 3 calls
-    assert arch.client.models.generate_content.call_count == 3
+    assert arch.client.chat.call_count == 3
     assert len(results) == 3
