@@ -2,7 +2,7 @@
 
 > **Bu dosya status board'dur. Detaylı içerik için**: `todos/MASTER_PLAN.md` (canonical roadmap), `todos/AGENT_QUICKSTART.md` (entry point), `todos/WP_DAGILIM_BARAN_ALI.md` (ownership).
 >
-> **Last updated**: 2026-05-08 v2 (post-audit, D1-D7 locked, RQ5 silindi)
+> **Last updated**: 2026-05-21 v3 (WP-01a + WP-NEW-B Stage 1 + WP-CORE-1 shipped)
 
 ---
 
@@ -10,9 +10,10 @@
 
 - **Yazarlar**: Baran Dincoguz + Ali Kendir + Prof. Dr. Murat Karakaya (supervisor, no WP ownership)
 - **Hedef**: Springer EMSE regular track, Ağustos-Eylül 2026 submission
-- **Toplam aktif WP**: **23** (was 22; +3 new, -2 dropped)
+- **Toplam aktif WP**: **23** (was 22; +3 new, -2 dropped) + **WP-CORE-1** unplanned (typed pipeline hardening, shipped)
 - **Faz 0**: ✅ DONE (4 commit on main: 4a893c8, 2609001, 696188d, 56919da)
-- **Sıradaki adım**: WP-01a TDD Commit-1 (Baran)
+- **Faz 1**: WP-01a ✅, WP-NEW-B Stage 1 ✅, WP-CORE-1 ✅ — kalan: WP-00, WP-01b, WP-01c, WP-01d
+- **Sıradaki adım**: WP-01b run-spec orchestrator (Baran) veya WP-NEW-B Stage 2 paper render
 
 ---
 
@@ -48,11 +49,12 @@ Status legend: `[ ]` TODO · `[~]` IN_PROGRESS · `[!]` BLOCKED · `[x]` DONE ·
 ### Faz 1 — Çekirdek Altyapı (W2-4)
 
 - [ ] **WP-00** Scope lock (`configs/scope.yaml`, 6 model + N=10 + 3 domain) — owner: Joint — depends-on: [] — effort: S
-- [ ] **WP-01a** Provider abstraction (`core/llm/` paketi, 9-commit TDD big-bang) — owner: Baran — depends-on: [WP-00] — effort: M — Hoca: 1 (enables RQ2)
+- [x] **WP-01a** Provider abstraction (`core/llm/` paketi, 9-commit TDD big-bang) — owner: Baran — depends-on: [WP-00] — effort: M — Hoca: 1 (enables RQ2) — **SHIPPED 2026-05-19** (commits b627505..e380983, see [[WP-01a-provider-abstraction]] backfill in `development_docs/`)
 - [ ] **WP-01b** Run-spec orchestrator (idempotent worker + YAML manifest) — owner: Baran — depends-on: [WP-00] — effort: M — Hoca: 1, 6
 - [ ] **WP-01c** Token tracking + json_failed metric (6-model normalization) — owner: Baran — depends-on: [WP-01a] — effort: S — Hoca: 1
 - [ ] **WP-01d** P1/P2/P3 pipeline classes — owner: Baran — depends-on: [WP-01a, WP-01b, WP-01c] — effort: M — Hoca: 1
-- [ ] **WP-NEW-B** Schema-Conformance Probe (6 model × 3 schema smoke) — owner: Baran — depends-on: [WP-01a] — effort: S
+- [~] **WP-NEW-B** Schema-Conformance Probe (6 model × 3 schema smoke) — owner: Baran — depends-on: [WP-01a] — effort: S — **Stage 1 SHIPPED 2026-05-19** (6×3 real probe, `runs/probe-20260519-175042.{json,manifest.json}`, see `development_docs/WP-NEW-B-Stage-1-schema-probe.md`); **Stage 2 TODO** (markdown table generator → Tablo 7 appendix)
+- [x] **WP-CORE-1** Typed pipeline contracts + deterministic Synthesizer (unplanned hardening) — owner: Baran — depends-on: [WP-01a] — effort: M — **SHIPPED 2026-05-20** (14 commits, `be85ca4..352ac4b`, see `development_docs/WP-CORE-1-typed-pipeline.md`). Fixed live FM-CRASH; pipeline now runs E2E on D1 SRS.
 
 ### Faz 2 — Veri + Eval Altyapısı (W3-5, paralel)
 
@@ -190,5 +192,5 @@ gantt
 
 ---
 
-**Last reviewed**: 2026-05-08 (post-audit + D1-D7 lock)
-**Next review**: After WP-00 sign-off (expected end of W1)
+**Last reviewed**: 2026-05-21 (WP-01a + WP-NEW-B Stage 1 + WP-CORE-1 shipped sync)
+**Next review**: After WP-01b run-spec orchestrator kickoff
