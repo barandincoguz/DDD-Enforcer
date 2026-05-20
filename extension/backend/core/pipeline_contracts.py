@@ -164,6 +164,14 @@ class VerifierIssue(BaseModel):
 
 
 class VerifierResult(BaseModel):
-    """Verifier output: deterministic + semantic issues across stages."""
-    is_ok: bool
+    """Verifier output: deterministic + semantic issues across stages.
+
+    API-compatible with the legacy core.verifier.types.VerifierResult
+    dataclass that the Refiner loop (core/refiner/loop.py) consumes:
+    same `ok` field name + `error_count()` helper method.
+    """
+    ok: bool
     issues: List[VerifierIssue] = Field(default_factory=list)
+
+    def error_count(self) -> int:
+        return sum(1 for i in self.issues if i.severity == "ERROR")

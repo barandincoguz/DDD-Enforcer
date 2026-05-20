@@ -693,7 +693,7 @@ RESPOND WITH JSON for {context_name} only:
   }}],
   "value_objects": [],
   "services": [],
-  "aggregates": [{{"name": "X", "members": ["EntityName"]}}],
+  "aggregates": [{{"name": "X", "description": "Consistency boundary around X and its members.", "members": ["EntityName"]}}],
   "domain_events": [],
   "business_rules": []
 }}
@@ -812,7 +812,7 @@ Do not invent data not present in the sentences."""
 
             contract_issues = [_to_contract_issue(i) for i in legacy_issues]
             has_error = any(i.severity == "ERROR" for i in contract_issues)
-            return ContractVerifierResult(is_ok=(not has_error), issues=contract_issues)
+            return ContractVerifierResult(ok=(not has_error), issues=contract_issues)
 
         deps = PipelineDeps(
             scout=scout_fn,

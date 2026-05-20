@@ -109,10 +109,11 @@ def test_verifier_issue_construct():
     assert issue.check_id == "D6"
 
 
-def test_verifier_result_is_ok_when_no_issues():
-    r = VerifierResult(is_ok=True)
-    assert r.is_ok is True
+def test_verifier_result_ok_when_no_issues():
+    r = VerifierResult(ok=True)
+    assert r.ok is True
     assert r.issues == []
+    assert r.error_count() == 0
 
 
 def test_unresolved_extra_field_raises():
