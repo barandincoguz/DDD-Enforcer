@@ -148,3 +148,180 @@ def test_parse_nonexistent_file_raises_file_not_found():
 
     with pytest.raises(FileNotFoundError):
         parser.parse_file("/nonexistent/file.txt")
+
+
+def test_parse_txt_truncates_at_kaynakca_heading(tmp_path):
+    txt_file = tmp_path / "tr-references.txt"
+    # 5 lines: bibliography at index 3 (>= midpoint 2). Should truncate.
+    txt_file.write_text(
+        "Müşteri siparişleri kayıt altına alınmalıdır.\n"
+        "Sipariş iptalleri kayıt altına alınmalıdır.\n"
+        "Sistem ödeme tahsil etmelidir.\n"
+        "Kaynakça\n"
+        "1. Smith, J. (2020). DDD in practice.\n",
+        encoding="utf-8",
+    )
+
+    content = SRSDocumentParser().parse_file(str(txt_file))
+
+    assert "Müşteri siparişleri" in content
+    assert "Sistem ödeme tahsil etmelidir." in content
+    assert "Smith, J." not in content
+
+
+def test_parse_txt_truncates_at_kaynaklar_heading(tmp_path):
+    txt_file = tmp_path / "tr-references-plural.txt"
+    # 5 lines: bibliography at index 3 (>= midpoint 2). Should truncate.
+    txt_file.write_text(
+        "Sistem ödeme kaydını tutmalıdır.\n"
+        "Müşteri profili oluşturulmalıdır.\n"
+        "Sepet özeti hesaplanmalıdır.\n"
+        "Kaynaklar\n"
+        "1. Evans, E. (2003). Domain-Driven Design.\n",
+        encoding="utf-8",
+    )
+
+    content = SRSDocumentParser().parse_file(str(txt_file))
+
+    assert "Sistem ödeme" in content
+    assert "Sepet özeti" in content
+    assert "Evans, E." not in content
+
+
+def test_parse_txt_truncates_at_numbered_top_level_references(tmp_path):
+    txt_file = tmp_path / "numbered-references.txt"
+    # 5 lines: bibliography at index 3 (>= midpoint 2). Should truncate.
+    txt_file.write_text(
+        "The system shall log all transactions.\n"
+        "The system shall enforce idempotent submission.\n"
+        "The system shall reject malformed payloads.\n"
+        "5. References\n"
+        "[1] IEEE 830-1998. Recommended Practice.\n",
+        encoding="utf-8",
+    )
+
+    content = SRSDocumentParser().parse_file(str(txt_file))
+
+    assert "log all transactions" in content
+    assert "idempotent submission" in content
+    assert "IEEE 830-1998" not in content
+
+
+def test_parse_txt_does_not_truncate_at_nested_subsection_references_in_first_half(tmp_path):
+    txt_file = tmp_path / "subsection-references.txt"
+    # 8 lines: `3.4 References` at index 1 (< midpoint 4). Should NOT truncate.
+    txt_file.write_text(
+        "Section 3 — Functional Requirements.\n"
+        "3.4 References\n"
+        "The system shall accept ISO 8601 timestamps.\n"
+        "The system shall reject unauthenticated requests.\n"
+        "4. Non-functional Requirements\n"
+        "The system shall respond within 200 ms.\n"
+        "6. Glossary\n"
+        "Term: aggregate root.\n",
+        encoding="utf-8",
+    )
+
+    content = SRSDocumentParser().parse_file(str(txt_file))
+
+    assert "3.4 References" in content
+    assert "ISO 8601 timestamps" in content
+    assert "respond within 200 ms" in content
+    assert "Term: aggregate root." in content
+
+
+def test_parse_txt_does_not_truncate_inline_kaynaklar_mention(tmp_path):
+    txt_file = tmp_path / "inline-kaynaklar.txt"
+    # 4 lines, inline use of "Kaynaklarımız" — never matches the regex.
+    txt_file.write_text(
+        "Sistem güvenliği önemlidir.\n"
+        "Kaynaklarımız geniştir ve sistem buna göre tasarlanmalıdır.\n"
+        "Veritabanı yedeklemeleri saatlik alınır.\n"
+        "Sipariş yönetimi modülü güncellenmelidir.\n",
+        encoding="utf-8",
+    )
+
+    content = SRSDocumentParser().parse_file(str(txt_file))
+
+    assert "Kaynaklarımız geniştir" in content
+    assert "Sipariş yönetimi" in content
+
+
+def test_parse_txt_truncates_at_nested_5_1_references_at_end(tmp_path):
+    txt_file = tmp_path / "appendix-references.txt"
+    # 6 lines: `5.1 References` at index 4 (>= midpoint 3). Should truncate.
+    # Verifies that the position guard does NOT block legitimate bibliography
+    # subsections like `5.1 References` (appendix-style layout).
+    txt_file.write_text(
+        "The system shall persist orders.\n"
+        "The system shall enforce price floors.\n"
+        "5. Appendix\n"
+        "Appendix A — error codes.\n"
+        "5.1 References\n"
+        "[1] Fowler, M. (2002). Enterprise Patterns.\n",
+        encoding="utf-8",
+    )
+
+    content = SRSDocumentParser().parse_file(str(txt_file))
+
+    assert "persist orders" in content
+    assert "Appendix A" in content
+    assert "Fowler, M." not in content
+
+
+def test_parse_txt_truncates_at_references_with_trailing_colon(tmp_path):
+    txt_file = tmp_path / "colon-references.txt"
+    # 5 lines: `References:` at index 3 (>= midpoint 2). Should truncate.
+    txt_file.write_text(
+        "The system shall validate input.\n"
+        "The system shall log audit trails.\n"
+        "The system shall enforce role-based access.\n"
+        "References:\n"
+        "[1] OWASP ASVS 4.0.\n",
+        encoding="utf-8",
+    )
+
+    content = SRSDocumentParser().parse_file(str(txt_file))
+
+    assert "validate input" in content
+    assert "role-based access" in content
+    assert "OWASP" not in content
+
+
+@pytest.mark.parametrize(
+    "line,should_match",
+    [
+        # positive matches
+        ("References", True),
+        ("REFERENCES", True),
+        ("Bibliography", True),
+        ("BIBLIOGRAPHY", True),
+        ("Kaynakça", True),
+        ("KAYNAKÇA", True),
+        ("Kaynaklar", True),
+        ("KAYNAKLAR", True),
+        ("# References", True),
+        ("## Bibliography", True),
+        ("5. References", True),
+        ("5.1 References", True),
+        ("5.1 Kaynakça", True),
+        ("5.1.2 Kaynaklar", True),
+        ("References:", True),
+        ("Kaynaklar:", True),
+        ("Kaynaklar：", True),  # U+FF1A fullwidth colon
+        ("references", True),
+        # negative — must NOT match
+        ("References to external systems shall be preserved.", False),
+        ("Kaynaklarımız geniştir.", False),
+        ("Some References", False),
+        ("3.4 References to Other Documents", False),
+        ("3.4 Subsection References", False),
+        ("Bibliography of authors:", False),
+        ("", False),
+        ("  ", False),
+    ],
+)
+def test_reference_heading_pattern_direct_grammar(line, should_match):
+    parser = SRSDocumentParser()
+    match = parser.reference_heading_pattern.match(line.strip())
+    assert bool(match) is should_match, f"Pattern mismatch for: {line!r}"
