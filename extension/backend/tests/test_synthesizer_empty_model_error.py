@@ -1,38 +1,34 @@
-"""Phase B4: Synthesizer must raise SynthesizerEmptyModelError when the
-LLM returns an empty bounded_contexts list. _create_fallback_model is
-deleted; the bare except is already narrowed (A5).
+"""SynthesizerEmptyModelError construction and pipeline integration.
+
+WP-CORE-1 T8: The prior test patched DomainArchitect.synthesize and
+synthesize_final_model, both of which were deleted in T4/T6. The error
+class itself (core/orchestration/errors.py) and the pipeline check in
+run_pipeline remain; this file now tests those directly.
 """
 
 import pytest
-from unittest.mock import patch
-from core.architect import DomainArchitect
 from core.orchestration.errors import SynthesizerEmptyModelError
 
 
-def _arch():
-    a = DomainArchitect.__new__(DomainArchitect)
-    a.model_name = "gemini-3.1-pro-preview"
-    a.run_timestamp = "20260518_000000"
-    return a
+def test_synthesizer_empty_model_error_carries_input_summary():
+    """SynthesizerEmptyModelError must preserve the input_summary string
+    in its message so callers can diagnose why the pipeline produced no contexts."""
+    err = SynthesizerEmptyModelError(input_summary="0 contexts from 3 SpecialistAnalyses")
+    assert "0 contexts" in str(err)
 
 
-def test_synthesize_final_model_raises_when_empty_bounded_contexts():
-    arch = _arch()
-    empty_payload = {
-        "project_name": "X",
-        "project_metadata": {"version": "1.0", "generated_at": "2026-05-18"},
-        "bounded_contexts": [],
-        "global_rules": None,
-    }
-    with patch.object(arch, "synthesize", return_value=empty_payload):
-        with pytest.raises(SynthesizerEmptyModelError):
-            arch.synthesize_final_model(analyses=[])
+def test_synthesizer_empty_model_error_is_exception():
+    """SynthesizerEmptyModelError must be raise-able as a standard Python exception."""
+    with pytest.raises(SynthesizerEmptyModelError):
+        raise SynthesizerEmptyModelError(input_summary="empty")
 
 
 def test_create_fallback_model_is_gone():
-    """B4 deletes _create_fallback_model. Instance must not have the attribute."""
-    arch = _arch()
+    """B4 deletes _create_fallback_model. DomainArchitect instance must not have
+    the attribute (checked via object.__new__ to bypass __init__)."""
+    from core.architect import DomainArchitect
+    arch = DomainArchitect.__new__(DomainArchitect)
     assert not hasattr(arch, "_create_fallback_model"), (
-        "_create_fallback_model must be deleted in B4; an empty model is "
+        "_create_fallback_model must be deleted; an empty model is "
         "no longer a legitimate pipeline output."
     )

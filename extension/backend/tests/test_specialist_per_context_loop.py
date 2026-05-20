@@ -53,7 +53,7 @@ def test_extract_per_context_makes_one_llm_call_per_context():
              arch, "_parse_json_response",
              return_value={
                  "context": "X",
-                 "entities": [{"name": "E", "attributes": [], "confidence": 0.9, "justification": "t", "evidence_sentence_indices": [0]}],
+                 "entities": [{"name": "E", "description": "An entity.", "attributes": [], "confidence": 0.9, "justification": "t", "evidence_sentence_indices": [0]}],
                  "value_objects": [], "services": [], "aggregates": [], "domain_events": [], "business_rules": [],
              },
          ):
