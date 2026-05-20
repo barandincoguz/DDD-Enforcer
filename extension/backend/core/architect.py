@@ -707,59 +707,112 @@ Do not invent data not present in the sentences."""
     # =========================================================================
 
     def analyze_document(self, text: str) -> DomainModel:
-        """Run the 5-stage pipeline on raw SRS text and return the final DomainModel.
+        """Run the 5-stage pipeline on raw SRS text and return a typed DomainModel.
 
-        Phase C7: this method becomes a thin facade over
-        core.orchestration.pipeline.run_pipeline. Stage callables wrap the
-        existing identify_contexts / extract_per_context_details / synthesize
-        methods so legacy behaviour is preserved aside from the new Verifier
-        (D1+D3+D4+D5 checks) and the section-aware Scout chunking.
+        Each stage produces a typed envelope from core.pipeline_contracts.
+        Synthesizer is deterministic + per-context narrow LLM enrichment
+        + D6/D7/D8 hard-fail invariants (via core.synthesizer).
         """
+        from core.synthesizer import synthesize_domain_model
+        from core.pipeline_contracts import (
+            ScoutOutput, ArchitectOutput, VerifierResult as ContractVerifierResult,
+            VerifierIssue as ContractVerifierIssue,
+        )
 
-        def scout_fn(srs_text: str):
-            return section_aware_chunks(srs_text, token_budget=10000)
+        def _to_contract_issue(old_issue) -> ContractVerifierIssue:
+            """Adapt core.verifier.types.VerifierIssue (dataclass) to
+            core.pipeline_contracts.VerifierIssue (Pydantic)."""
+            sev = old_issue.severity
+            # IssueSeverity enum values are "error"/"warn"; contract expects "ERROR"/"WARN"
+            sev_str = sev.value.upper() if hasattr(sev, "value") else str(sev).upper()
+            return ContractVerifierIssue(
+                severity=sev_str,
+                check_id=getattr(old_issue, "issue_type", "unknown"),
+                target=getattr(old_issue, "location", ""),
+                message=old_issue.message,
+            )
 
-        def architect_fn(scout_chunks):
-            sentences = [chunk["text"] for chunk in scout_chunks]
-            ctx_names = self.identify_contexts(sentences)
-            return [{"name": name, "supporting_sentence_ids": []} for name in ctx_names]
-
-        def specialist_fn(contexts, scout_chunks):
-            sentences = [c["text"] for c in scout_chunks]
-            ctx_names = [c["name"] for c in contexts]
-            return self.extract_per_context_details(ctx_names, sentences)
-
-        # TODO(WP-CORE-1 T6+T7): Specialist now returns List[SpecialistAnalysis]
-        # (typed Pydantic), not List[Dict]. This adapter still subscripts
-        # as dict — it will crash on any live pipeline run. Refactor to
-        # typed access (s.context.context_name, s.entities, etc.) in T6.
-        def synthesizer_fn(specialist_outputs):
-            legacy_input = [
-                {"context": s["context_name"], "analysis": s}
-                for s in specialist_outputs
+        def scout_fn(srs_text: str) -> ScoutOutput:
+            chunks = section_aware_chunks(srs_text, token_budget=10000)
+            from core.pipeline_contracts import SectionedSentence, ChunkMetadata
+            sentences = [
+                SectionedSentence(
+                    index=i,
+                    text=chunk["text"],
+                    section=chunk.get("section"),
+                )
+                for i, chunk in enumerate(chunks)
             ]
-            raw_dict = self.synthesize(legacy_input)
-            return self._cleanup_domain_data(raw_dict)
+            return ScoutOutput(
+                sentences=sentences,
+                chunk_metadata=ChunkMetadata(
+                    chunk_count=len(chunks),
+                    total_chars=sum(len(c["text"]) for c in chunks),
+                ),
+            )
 
-        def verifier_fn(snapshot):
-            scout_indices = set(range(sum(len(c["text"].split(".")) for c in snapshot["scout"])))
-            contexts = snapshot["architect"]
-            issues = []
-            issues.extend(check_d1_supporting_sentence_ids_subset(contexts, scout_indices))
+        def architect_fn(scout: ScoutOutput) -> ArchitectOutput:
+            sentence_texts = [s.text for s in scout.sentences]
+            ctx_names = self.identify_contexts(sentence_texts)
+            contexts = [
+                ContextHypothesis(context_name=n, description=f"{n} context")
+                for n in ctx_names
+            ]
+            return ArchitectOutput(contexts=contexts)
+
+        def specialist_fn(
+            arch: ArchitectOutput, scout: ScoutOutput
+        ) -> List[SpecialistAnalysis]:
+            ctx_names = [c.context_name for c in arch.contexts]
+            sentence_texts = [s.text for s in scout.sentences]
+            return self.extract_per_context_details(ctx_names, sentence_texts)
+
+        def synthesizer_fn(analyses: List[SpecialistAnalysis]) -> DomainModel:
+            return synthesize_domain_model(
+                analyses,
+                llm_client=self.client,
+                project_name=getattr(self, "project_name", "DomainModel"),
+            )
+
+        def verifier_fn(snapshot: Dict[str, Any]) -> ContractVerifierResult:
+            scout_obj: ScoutOutput = snapshot["scout"]
+            architect_obj: ArchitectOutput = snapshot["architect"]
+            specialist_obj: List[SpecialistAnalysis] = snapshot["specialist"]
+
+            scout_indices = {s.index for s in scout_obj.sentences}
+            contexts_dicts = [
+                {"name": c.context_name, "supporting_sentence_ids": c.supporting_sentence_ids}
+                for c in architect_obj.contexts
+            ]
             entities_by_context = {
-                s["context_name"]: s.get("entities", [])
-                for s in snapshot["specialist"]
+                a.context.context_name: [e.model_dump() for e in a.entities]
+                for a in specialist_obj
             }
-            issues.extend(check_d3_entity_names_unique_across_contexts(entities_by_context))
-            for s in snapshot["specialist"]:
-                issues.extend(check_d2_entity_evidence_nonempty(
-                    context_name=s["context_name"], entities=s.get("entities", [])
+
+            legacy_issues = []
+            legacy_issues.extend(
+                check_d1_supporting_sentence_ids_subset(contexts_dicts, scout_indices)
+            )
+            legacy_issues.extend(
+                check_d3_entity_names_unique_across_contexts(entities_by_context)
+            )
+            for a in specialist_obj:
+                legacy_issues.extend(check_d2_entity_evidence_nonempty(
+                    context_name=a.context.context_name,
+                    entities=[e.model_dump() for e in a.entities],
                 ))
-                issues.extend(check_d4_aggregate_members_exist_in_context(
-                    s["context_name"], s.get("entities", []), s.get("aggregates", [])
+                legacy_issues.extend(check_d4_aggregate_members_exist_in_context(
+                    a.context.context_name,
+                    [e.model_dump() for e in a.entities],
+                    [agg.model_dump() for agg in a.aggregates],
                 ))
-            issues.extend(check_d5_allowed_dependencies_reference_existing_contexts(contexts))
-            return VerifierResult(ok=(len(issues) == 0), issues=issues)
+            legacy_issues.extend(
+                check_d5_allowed_dependencies_reference_existing_contexts(contexts_dicts)
+            )
+
+            contract_issues = [_to_contract_issue(i) for i in legacy_issues]
+            has_error = any(i.severity == "ERROR" for i in contract_issues)
+            return ContractVerifierResult(is_ok=(not has_error), issues=contract_issues)
 
         deps = PipelineDeps(
             scout=scout_fn,
@@ -773,26 +826,6 @@ Do not invent data not present in the sentences."""
     # =========================================================================
     # HELPER METHODS
     # =========================================================================
-
-    def _cleanup_domain_data(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Structural-only normalization of the Synthesizer's raw JSON.
-
-        Phase A6 (FM-20): no longer fabricates defaults. If the LLM omitted
-        a field, leave it omitted — let downstream Pydantic validation or
-        the Verifier surface the gap. The only transformation kept is
-        coercing domain_events from `[{"name": "X"}]` (object form some
-        models emit) to `["X"]` (list-of-string form the schema expects).
-        """
-        if "bounded_contexts" in json_data:
-            for ctx in json_data["bounded_contexts"]:
-                ul = ctx.get("ubiquitous_language", {})
-                events = ul.get("domain_events")
-                if isinstance(events, list):
-                    ul["domain_events"] = [
-                        e["name"] if isinstance(e, dict) and "name" in e else e
-                        for e in events
-                    ]
-        return json_data
 
     def _safe_response_text(self, response) -> str:
         """Return response.text or empty string if None.
