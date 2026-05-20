@@ -19,6 +19,7 @@
 | # | Doc | WP | Status | Headline |
 |---|---|---|---|---|
 | 1 | [WP-NEW-B Stage 1 — schema_probe real run](WP-NEW-B-Stage-1-schema-probe.md) | WP-NEW-B | SHIPPED 2026-05-19 | 6×3 conformance probe shipped real paper data; closed Gemini perfect (30/30), OSS-via-Ollama strict-schema near-zero (1/60) |
+| 2 | [WP-CORE-1 — Typed pipeline + deterministic Synthesizer](WP-CORE-1-typed-pipeline.md) | WP-CORE-1 | SHIPPED 2026-05-20 | Pydantic typed contracts at every stage boundary + LLM-rewrite Synthesizer → deterministic merge + per-context narrow enrich + D6/D7/D8 invariants. Fixed live FM-CRASH; pipeline now runs E2E on D1 SRS (4 contexts × 7 D1-strict entities × 6 VOs × 6 aggregates). |
 
 ## Reserved (prior-session work; backfill on demand)
 

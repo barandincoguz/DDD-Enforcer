@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-05-20T13:42:42Z",
+  "run_kind": "domain_model_generation",
+  "srs_path": "extension/backend/inputs/SRS.docx",
+  "git_commit": "048a53288173397a6224af2ccdc1da2f18b74ec0",
+  "git_dirty": true,
+  "git_dirty_files": [
+    "M extension/backend/core/AST/intermediate/ast_signals_diagnostics.json",
+    " M extension/backend/core/architect.py",
+    " M extension/backend/core/orchestration/pipeline.py",
+    " M extension/backend/core/pipeline_contracts.py",
+    " M extension/backend/core/synthesizer/__init__.py",
+    " M extension/backend/domain/model.json",
+    " M extension/backend/tests/test_pipeline_contracts.py",
+    " M extension/backend/validation_metrics_report.json",
+    "?? extension/backend/core/intermediate/20260519_230928_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_154009_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_154745_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_154814_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_160846_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_160846_3_specialist.json",
+    "?? extension/backend/core/intermediate/20260520_161203_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_161203_3_specialist.json",
+    "?? extension/backend/core/intermediate/20260520_161916_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_161916_3_specialist.json",
+    "?? extension/backend/core/intermediate/20260520_163012_2_architect.json",
+    "?? extension/backend/core/intermediate/20260520_163012_3_specialist.json",
+    "?? extension/backend/domain/model.PRE-FRESH-RUN-BACKUP.json"
+  ],
+  "python_version": "3.13.3 (v3.13.3:6280bb54784, Apr  8 2025, 10:47:54) [Clang 15.0.0 (clang-1500.3.9.4)]",
+  "platform": "macOS-26.2-arm64-arm-64bit-Mach-O",
+  "package_versions": {
+    "google-genai": "1.41.0",
+    "openai": "1.55.3",
+    "pydantic": "2.11.10"
+  },
+  "wp": "WP-CORE-1",
+  "model_summary": {
+    "contexts": 4,
+    "total_entities": 7,
+    "d1_strict": true
+  },
+  "notes": "First successful end-to-end live run after WP-CORE-1 (typed pipeline + deterministic synthesizer + D6/D7/D8). D8 auto-heal fired 3x on dangling aggregate members (Specialist hallucinations). Refiner exhausted retries on semantic verifier issues (tolerated per WP-CORE-1 pragmatic baseline; issue-aware re-prompting is a follow-up)."
+}
