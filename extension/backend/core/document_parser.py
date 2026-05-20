@@ -5,9 +5,16 @@ from typing import List
 from core.document_parser_readers import read_docx, read_pdf, read_txt
 
 class SRSDocumentParser:
+    # A bibliography sits in the latter half of an SRS; treating a match in the
+    # first half as a false-positive avoids mid-document subsection name clashes.
+    REFERENCE_HEADING_MIN_DOCUMENT_FRACTION = 0.5
+
     def __init__(self):
         self.reference_heading_pattern = re.compile(
-            r"^(?:#{1,6}\s*)?(?:\d+(?:\.\d+)*\.?\s+)?(?:references|bibliography|kaynakça)\s*$",
+            r"^(?:#{1,6}\s*)?"
+            r"(?:\d+(?:\.\d+)*\.?\s+)?"
+            r"(?:references|bibliography|kaynakça|kaynaklar)"
+            r"(?:\s*[:：])?\s*$",
             re.IGNORECASE,
         )
         self.contents_heading_pattern = re.compile(
@@ -59,8 +66,13 @@ class SRSDocumentParser:
 
     def _truncate_at_references(self, text: str) -> str:
         lines = text.split("\n")
-        for index, line in enumerate(lines):
-            if self.reference_heading_pattern.match(line.strip()):
+        if not lines:
+            return text
+        earliest_match_index = int(
+            len(lines) * self.REFERENCE_HEADING_MIN_DOCUMENT_FRACTION
+        )
+        for index in range(earliest_match_index, len(lines)):
+            if self.reference_heading_pattern.match(lines[index].strip()):
                 return "\n".join(lines[:index])
         return text
 
