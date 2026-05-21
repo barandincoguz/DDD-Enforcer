@@ -392,13 +392,17 @@ def test_parse_non_empty_txt_returns_text_normally(tmp_path):
     assert parser.parse_file(str(good)) == "Hello world."
 
 
-def test_parse_references_only_txt_raises_empty_srs_document_error(tmp_path):
-    """Post-truncation-empty (WP-CORE-2 cross-integration) is caught."""
-    only_refs = tmp_path / "only_refs.txt"
-    only_refs.write_text("References\n")
+def test_parse_post_truncation_empty_raises_empty_srs_document_error(tmp_path):
+    """Cross-WP-CORE-2 integration: when _truncate_at_references strips
+    everything (whitespace padding pushes a latter-half References heading
+    past REFERENCE_HEADING_MIN_DOCUMENT_FRACTION = 0.5 position guard, and
+    only whitespace precedes it), parse_file must raise."""
+    text = " \n" * 6 + "References\n"
+    trunc = tmp_path / "trunc.txt"
+    trunc.write_text(text)
     parser = SRSDocumentParser()
     with pytest.raises(EmptySRSDocumentError):
-        parser.parse_file(str(only_refs))
+        parser.parse_file(str(trunc))
 
 
 def test_empty_srs_document_error_message_contains_file_path(tmp_path):

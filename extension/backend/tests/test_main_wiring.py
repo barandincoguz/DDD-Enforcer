@@ -4,22 +4,25 @@ Verifies the `_parse_srs_batch` helper and `initialize_rag` SOFT path
 without touching real FastAPI, real LLMs, or real ChromaDB.
 """
 
-import pytest
-
-from core.document_parser import EmptySRSDocumentError
-from main import _parse_srs_batch, initialize_rag
+from core.document_parser import EmptySRSDocumentError, SRSDocumentParser
+from main import _parse_srs_batch
 
 
-class _StubParser:
-    """Minimal SRSDocumentParser-shaped stub for testing batch helper."""
+class _StubParser(SRSDocumentParser):
+    """SRSDocumentParser-shaped stub for testing batch helper.
+
+    Subclasses SRSDocumentParser so the helper's typed `parser:
+    SRSDocumentParser` signature accepts the stub (substitutability).
+    """
 
     def __init__(self, behaviors):
+        super().__init__()
         self.behaviors = behaviors
         self.calls = []
 
-    def parse_file(self, path):
-        self.calls.append(path)
-        behavior = self.behaviors[path]
+    def parse_file(self, file_path: str) -> str:
+        self.calls.append(file_path)
+        behavior = self.behaviors[file_path]
         if isinstance(behavior, Exception):
             raise behavior
         return behavior

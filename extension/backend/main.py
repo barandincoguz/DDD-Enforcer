@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 
-from typing import Any, Dict, List, Generator
+from typing import Any, Dict, List, Generator, Optional, Tuple
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -30,7 +30,7 @@ from config import (
 )
 from core.architect import DomainArchitect
 from core.code_parser import has_advanced_validation_signals
-from core.document_parser import SRSDocumentParser
+from core.document_parser import EmptySRSDocumentError, SRSDocumentParser
 from core.llm.validator import LLMClient
 from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
@@ -52,14 +52,56 @@ def find_srs_files() -> List[str]:
     return files
 
 
+def _parse_srs_batch(
+    parser: SRSDocumentParser,
+    file_paths: List[str],
+) -> Tuple[str, List[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """Parse all SRS files for a batch endpoint.
+
+    Returns (combined_text, srs_docs, error).
+    - error is None on success (at least one non-empty file parsed).
+    - error is a {"success": False, "error": ...} dict on:
+        * per-file non-empty exception (FileNotFoundError, unsupported, etc.)
+        * all files parsed to empty content (post-loop aggregate check).
+    Per-file EmptySRSDocumentError is logged and the file is skipped;
+    partial batches succeed.
+    """
+    combined_text = ""
+    srs_docs: List[Dict[str, Any]] = []
+    for file_path in file_paths:
+        try:
+            raw_text = parser.parse_file(file_path)
+        except EmptySRSDocumentError as exc:
+            print(f"  ⚠️  Skipping empty document: {exc}")
+            continue
+        except Exception as exc:
+            print(f"  ❌ Failed to parse: {exc}")
+            return (
+                "",
+                [],
+                {
+                    "success": False,
+                    "error": f"Failed to parse {Path(file_path).name}: {exc}",
+                },
+            )
+        combined_text += f"\n\n--- Document: {Path(file_path).name} ---\n\n"
+        combined_text += raw_text
+        srs_docs.append({"path": file_path, "content": raw_text})
+
+    if not srs_docs:
+        return (
+            "",
+            [],
+            {"success": False, "error": "All documents were empty after parsing"},
+        )
+    return combined_text, srs_docs, None
+
+
 def generate_domain_model(srs_path: str) -> Dict[str, Any]:
     """Generate domain model from SRS document using AI pipeline."""
     doc_parser = SRSDocumentParser()
     raw_text = doc_parser.parse_file(srs_path)
     print(f"   -> Parsed document: {len(raw_text)} characters")
-
-    if not raw_text.strip():
-        raise ValueError("Document is empty or could not be parsed.")
 
     architect = DomainArchitect()
     final_model: DomainModel = architect.analyze_document(text=raw_text)
@@ -96,15 +138,17 @@ def initialize_rag(srs_files: List[str]) -> RAGPipeline:
     if srs_files:
         srs_path = srs_files[0]
         doc_parser = SRSDocumentParser()
-        raw_text = doc_parser.parse_file(srs_path)
-
-        if raw_text.strip():
-            filename = Path(srs_path).name
-            ext = Path(srs_path).suffix[1:]
-            chunk_count = rag.index_document(
-                raw_text=raw_text, doc_id="srs_main", doc_name=filename, doc_type=ext
-            )
-            print(f"[RAG] Indexed {chunk_count} chunks from {filename}")
+        try:
+            raw_text = doc_parser.parse_file(srs_path)
+        except EmptySRSDocumentError as exc:
+            print(f"[RAG] skip empty SRS: {exc}")
+            return rag
+        filename = Path(srs_path).name
+        ext = Path(srs_path).suffix[1:]
+        chunk_count = rag.index_document(
+            raw_text=raw_text, doc_id="srs_main", doc_name=filename, doc_type=ext
+        )
+        print(f"[RAG] Indexed {chunk_count} chunks from {filename}")
 
     return rag
 
@@ -303,32 +347,13 @@ def generate_model_endpoint(request: GenerateModelRequest):
         }
     
     try:
-        # Parse and combine all documents
         doc_parser = SRSDocumentParser()
-        combined_text = ""
-        srs_docs: List[Dict[str, Any]] = []
-        
-        for file_path in request.file_paths:
-            print(f"  📄 Parsing: {file_path}")
-            try:
-                raw_text = doc_parser.parse_file(file_path)
-                combined_text += f"\n\n--- Document: {Path(file_path).name} ---\n\n"
-                combined_text += raw_text
-                srs_docs.append({"path": file_path, "content": raw_text})
-                print(f"     -> {len(raw_text)} characters")
-            except Exception as e:
-                print(f"     ❌ Failed to parse: {e}")
-                return {
-                    "success": False,
-                    "error": f"Failed to parse {Path(file_path).name}: {str(e)}",
-                }
-        
-        if not combined_text.strip():
-            return {
-                "success": False,
-                "error": "All documents are empty or could not be parsed",
-            }
-        
+        combined_text, srs_docs, error = _parse_srs_batch(
+            doc_parser, request.file_paths
+        )
+        if error is not None:
+            return error
+
         print(f"  📊 Total combined text: {len(combined_text)} characters")
         
         # Generate domain model using AI
@@ -363,17 +388,20 @@ def generate_model_endpoint(request: GenerateModelRequest):
         try:
             rag = RAGPipeline()
             for file_path in request.file_paths:
-                raw_text = doc_parser.parse_file(file_path)
-                if raw_text.strip():
-                    filename = Path(file_path).name
-                    ext = Path(file_path).suffix[1:]
-                    chunk_count = rag.index_document(
-                        raw_text=raw_text,
-                        doc_id=f"srs_{filename}",
-                        doc_name=filename,
-                        doc_type=ext,
-                    )
-                    print(f"     -> Indexed {chunk_count} chunks from {filename}")
+                try:
+                    raw_text = doc_parser.parse_file(file_path)
+                except EmptySRSDocumentError as exc:
+                    print(f"     [RAG] skip empty SRS: {exc}")
+                    continue
+                filename = Path(file_path).name
+                ext = Path(file_path).suffix[1:]
+                chunk_count = rag.index_document(
+                    raw_text=raw_text,
+                    doc_id=f"srs_{filename}",
+                    doc_name=filename,
+                    doc_type=ext,
+                )
+                print(f"     -> Indexed {chunk_count} chunks from {filename}")
             app_state["rag"] = rag
             print("  ✅ RAG initialized!")
         except Exception as e:
@@ -433,21 +461,11 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
             
             # Parse and combine all documents
             doc_parser = SRSDocumentParser()
-            combined_text = ""
-            srs_docs: List[Dict[str, Any]] = []
-            
-            for file_path in request.file_paths:
-                try:
-                    raw_text = doc_parser.parse_file(file_path)
-                    combined_text += f"\n\n--- Document: {Path(file_path).name} ---\n\n"
-                    combined_text += raw_text
-                    srs_docs.append({"path": file_path, "content": raw_text})
-                except Exception as e:
-                    result_holder["error"] = f"Failed to parse {Path(file_path).name}: {str(e)}"
-                    return
-            
-            if not combined_text.strip():
-                result_holder["error"] = "All documents are empty or could not be parsed"
+            combined_text, srs_docs, error = _parse_srs_batch(
+                doc_parser, request.file_paths
+            )
+            if error is not None:
+                result_holder["error"] = error["error"]
                 return
             
             # Generate domain model with progress callback
@@ -477,16 +495,19 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
             try:
                 rag = RAGPipeline()
                 for file_path in request.file_paths:
-                    raw_text = doc_parser.parse_file(file_path)
-                    if raw_text.strip():
-                        filename = Path(file_path).name
-                        ext = Path(file_path).suffix[1:]
-                        rag.index_document(
-                            raw_text=raw_text,
-                            doc_id=f"srs_{filename}",
-                            doc_name=filename,
-                            doc_type=ext,
-                        )
+                    try:
+                        raw_text = doc_parser.parse_file(file_path)
+                    except EmptySRSDocumentError as exc:
+                        print(f"     [RAG] skip empty SRS: {exc}")
+                        continue
+                    filename = Path(file_path).name
+                    ext = Path(file_path).suffix[1:]
+                    rag.index_document(
+                        raw_text=raw_text,
+                        doc_id=f"srs_{filename}",
+                        doc_name=filename,
+                        doc_type=ext,
+                    )
                 app_state["rag"] = rag
             except Exception:
                 app_state["rag"] = None

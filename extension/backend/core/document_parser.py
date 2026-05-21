@@ -4,6 +4,17 @@ from typing import List
 
 from core.document_parser_readers import read_docx, read_pdf, read_txt
 
+
+class EmptySRSDocumentError(ValueError):
+    """Raised by SRSDocumentParser.parse_file when the post-processed text is empty.
+
+    Subclasses ValueError so coarse ``except ValueError`` callers keep
+    the same outcome; the dedicated type lets new callers be explicit
+    when they want to distinguish empty content from other value errors
+    (FileNotFoundError, "Unsupported file type", etc.).
+    """
+
+
 class SRSDocumentParser:
     # A bibliography sits in the latter half of an SRS; treating a match in the
     # first half as a false-positive avoids mid-document subsection name clashes.
@@ -48,7 +59,12 @@ class SRSDocumentParser:
             raw = read_txt(file_path)
         else:
             raise ValueError(f"Unsupported file type: {ext}")
-        return self._post_process(raw)
+        processed = self._post_process(raw)
+        if not processed:
+            raise EmptySRSDocumentError(
+                f"Document parsed to empty content (post-processing): {file_path}"
+            )
+        return processed
 
     def _post_process(self, text: str) -> str:
         cleaned = self._normalize_text(text)
