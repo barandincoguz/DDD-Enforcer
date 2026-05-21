@@ -843,7 +843,11 @@ Do not invent data not present in the sentences."""
             synthesizer=synthesizer_fn,
             verifier=verifier_fn,
         )
-        return run_pipeline(srs_text=text, deps=deps)
+        return run_pipeline(
+            srs_text=text,
+            deps=deps,
+            srs_path=self._current_srs_path,
+        )
 
     # =========================================================================
     # HELPER METHODS

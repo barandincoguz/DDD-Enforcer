@@ -33,9 +33,34 @@ class SpecialistFailureError(PipelineError):
 
 
 class SynthesizerEmptyModelError(PipelineError):
-    def __init__(self, input_summary: str, message: Optional[str] = None):
+    """Raised when the pipeline detects an empty Specialist input or an
+    empty DomainModel from an injected synthesizer.
+
+    Per AGENTS.md "Error handling: explicit failure. No silent degradation":
+    an empty DomainModel is never a legitimate pipeline output (see
+    test_create_fallback_model_is_gone). This exception preserves the
+    PipelineError taxonomy for that case.
+
+    Carries:
+        input_summary: brief textual description of the failing input
+            (e.g., "0 SpecialistAnalysis from upstream pipeline" or
+            "synthesizer returned 0 bounded contexts (bypassed Pydantic)").
+        srs_path: the SRS being processed (or "<unknown>" if unset). Matches
+            the WP-CORE-4 pattern for IntermediateSaveError.
+    """
+
+    def __init__(
+        self,
+        input_summary: str,
+        srs_path: str = "<unknown>",
+        message: Optional[str] = None,
+    ):
         self.input_summary = input_summary
-        super().__init__(message or f"Synthesizer returned an empty DomainModel (input: {input_summary})")
+        self.srs_path = srs_path
+        super().__init__(
+            message
+            or f"Synthesizer returned an empty DomainModel (srs={srs_path}; input: {input_summary})"
+        )
 
 
 class RefinementExhaustedError(PipelineError):
