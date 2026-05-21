@@ -47,3 +47,49 @@ Post-WP pytest baseline: 305 passed, 31 deselected (net +33 tests vs pre-WP 272)
 
 Dev doc: `development_docs/WP-CORE-2-reference-truncate-fix.md`.
 INDEX row: appended to ACTIVE table.
+
+
+## 2026-05-21 07:52 D-CODEX-REVIEW-WP-CORE-3
+Codex xhigh adversarial review of WP-CORE-3 spec v1 returned **2 CRITICAL + 5 WARN**.
+
+| # | severity | finding | disposition |
+|---|---|---|---|
+| C-1 | CRITICAL | Mixed-batch behavior mislabeled as unchanged. v1 said "no change to batch atomicity" but proposed making each empty file kill the batch. | **HANDLED** in spec v2 — batch loops now skip-and-continue on `EmptySRSDocumentError`; aggregate check switched from broken `combined_text.strip()` to `srs_docs` emptiness. Pre-WP post-loop guard was already dead code (separator headers made strip always non-empty); folded fix into WP. Behavior change documented explicitly in R-5. |
+| C-2 | CRITICAL | Main call-site migration declared untested; greps only prove string removal, not control-flow correctness. | **HANDLED** in spec v2 — extracted `_parse_srs_batch(parser, file_paths) -> (combined_text, srs_docs, error_or_none)` helper as testable seam; added T-WIRE-1..4 (mixed batch, all-empty aggregate, per-file read failure, `initialize_rag` skip) via `_StubParser(SRSDocumentParser)` subclass + monkeypatching. |
+| W-1 | WARN | SOFT-vs-uncaught policy ambiguity. | **HANDLED** in spec v2 — new §"Per-path empty-input policy" table with HARD/SOFT/MIXED rows. |
+| W-2 | WARN | LLM-layer precondition (parse_file is sole ingress) unstated. | **HANDLED** in spec v2 — new §"Scope and preconditions" with grep evidence proving sole-ingress for production `DomainArchitect.analyze_document(text=...)`. |
+| W-3 | WARN | Intermediate GREEN commit half-migrates the contract. | **HANDLED** in spec v2 — implementation order collapses GREEN + REFACTOR into one atomic behavior commit. RED commit lands all tests first to preserve TDD discipline. |
+| W-4 | WARN | Logging policy cites nonexistent `AGENTS.md "Logging policy: silent OR print"` rule. | **HANDLED** in spec v2 — citation removed; rationale rewritten to cite the actual `main.py` `print`-everywhere convention with `logging`-module introduction deferred to F-9. |
+| W-5 | WARN | Acceptance grep overbroad and behavior-blind. | **HANDLED** in spec v2 — behavior acceptance criteria added (T-WIRE-* outcomes + `except EmptySRSDocumentError` count ≥ 4); greps retained only as secondary cleanup verification. |
+
+All 7 findings handled inline. Zero WARNs accepted-with-rationale (unlike WP-CORE-2 where 4 of 6 WARNs were deferred). Spec v2 is implementation-ready.
+
+
+## 2026-05-21 09:32 D-EMPTY-INPUT-CONTRACT-2026-05-21
+**Decision:** Chose **Alt C** (parser raises uniformly + per-path policy at callers) over Alt B (two `parse_file` entry points, one raising one not) and Alt E (helper-extraction only without parser raise).
+
+**Rationale:**
+- AGENTS.md "Stable entrypoints, isolate change-prone logic" — the empty-input invariant belongs inside the parser, not duplicated across six call sites.
+- Alt B codifies the leaky contract into the API (two entry points = policy in shape).
+- Alt E papers over only the batch case; single-file `generate_domain_model` and SOFT RAG sites would still leak.
+- `EmptySRSDocumentError IS-A ValueError` chosen over new `DomainParserError` hierarchy: smallest-correct-change; preserves `except ValueError` callers; broader hierarchy is speculative generalization.
+- Empty check **after** `_post_process` (not after raw read): captures three failure modes for free (0-byte input, whitespace-only, cross-WP-CORE-2 post-truncation-empty).
+
+**Outcome:** GREEN commit `daefeb0`. Pytest 305 → 321 (+16 tests). Dev doc: `development_docs/WP-CORE-3-empty-input-contract.md`.
+
+
+## 2026-05-21 09:37 D-SHIP-WP-CORE-3
+
+WP-CORE-3 SHIPPED. SHAs:
+- RED commit (test-first): `91dbeb4` — `test(parser, main): WP-CORE-3 red-phase tests for empty-input contract`
+- GREEN commit (atomic): `daefeb0` — `fix(parser, main): WP-CORE-3 EmptySRSDocumentError — explicit empty-input contract`
+- DOC commit (this entry's commit): to be recorded in the next loop tick.
+
+Post-WP pytest baseline: 321 passed, 31 deselected (net +16 tests vs pre-WP 305). Live D1 E2E re-run skipped — empty-input contract strictly tightens behavior; D1 SRS has non-empty content and triggers no new code paths.
+
+Dev doc: `development_docs/WP-CORE-3-empty-input-contract.md`.
+INDEX row: appended to ACTIVE table.
+
+Latent bug folded in: post-loop `combined_text.strip()` guards at `/generate-model{,-stream}` were dead code (broken by separator-header inclusion); fixed via `srs_docs`-emptiness aggregate check in the new helper.
+
+Behavior change documented (R-5): mixed batches (one empty + one good file) now succeed cleanly (empty skipped + logged); previously the empty file silently degraded combined input with separator-only content.
