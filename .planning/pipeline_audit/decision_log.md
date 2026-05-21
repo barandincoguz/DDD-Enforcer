@@ -93,3 +93,45 @@ INDEX row: appended to ACTIVE table.
 Latent bug folded in: post-loop `combined_text.strip()` guards at `/generate-model{,-stream}` were dead code (broken by separator-header inclusion); fixed via `srs_docs`-emptiness aggregate check in the new helper.
 
 Behavior change documented (R-5): mixed batches (one empty + one good file) now succeed cleanly (empty skipped + logged); previously the empty file silently degraded combined input with separator-only content.
+
+---
+
+## 2026-05-21 10:00 D-CL2
+Close-lookup #2 completed on `core/architect.py` (LOC=923) + `core/orchestration/pipeline.py` (LOC=84) + `core/orchestration/errors.py` (LOC=70). Findings card: `.planning/pipeline_audit/findings/architect.md`. 11 findings catalogued (after F-21 added during spec drafting + F-20 downgrade to MINOR after verification): 0 BLOCKER, 4 MAJOR (F-11, F-13, F-14, F-21), 6 MINOR (F-12, F-15, F-17, F-18, F-19, F-20-downgraded), 1 TRIVIAL (F-16). 6 anomalies recorded (3 latent observability bugs + 3 design smells). Component-catalog row updated PENDING → DONE. No Codex consult at audit time (TL;DR actionable).
+
+## 2026-05-21 10:10 D-PICK-WP-CORE-4
+Selected **F-13** (`_save_intermediate` silently swallows I/O exceptions) bundled with anomaly **`_current_srs_path` never assigned** for WP-CORE-4:
+- F-13 severity: MAJOR. Bug: `core/architect.py:880-891` catches `Exception` and prints + continues. 4 callsites silently lose intermediate JSON diagnostics. EMSE-reproducibility-blocking per CLAUDE.md §"Persistent Development Memory".
+- Anomaly severity: latent MINOR alone; MAJOR when bundled because save-failure error messages need an SRS path. The two observability fixes interlock at the error-message level.
+- Why bundle (vs. ship separately): both touch `DomainArchitect`; both implement AGENTS.md "no silent degradation"; pattern matches WP-CORE-3's fold-in of post-loop guard bug into the empty-input fix.
+- Why not F-11 (parallel Scout race): M-L effort, concurrency redesign; loop cadence stays at S-effort MAJOR per iteration.
+- Why not F-14 (SynthesizerEmptyModelError escape): M effort, policy decision (hard-fail vs degrade) requires extra Codex round-trip.
+- Why not F-21 (vacuous D1 pass): Architect prompt + parsing change; out of "smallest correct change" envelope.
+- Codex consult: spec adversarial review at step 7 (mandatory per loop ritual).
+
+**Outcome:** spec v1 → Codex xhigh review → spec v2.
+
+## 2026-05-21 10:15 D-CODEX-REVIEW-WP-CORE-4
+Codex xhigh adversarial review verdict: **REVISE**. 2 CRITICAL + 5 WARN + 3 NITS + 7 OQ.
+
+| # | finding | category | disposition |
+|---|---|---|---|
+| C-1 | Architect-stage `_save_intermediate` calls at lines 449/462 are inside `identify_contexts`' broad `except Exception` retry wrapper (line 485); raised `IntermediateSaveError` silently caught, retried 5×, rewrapped as `ArchitectExtractionError`. | propagation hole | **HANDLED** in spec v2 — add `except IntermediateSaveError: raise` between line 483 (`except ArchitectExtractionError: raise`) and line 485 (`except Exception as e:`) in `identify_contexts`. Specialist save at line 650 is already outside its retry loop; no equivalent guard needed there. |
+| C-2 | RED tests stub `_save_intermediate` directly but don't test real production propagation; false-green risk for the C-1 path. | test gap | **HANDLED** in spec v2 — added T-SAVE-4 (`_save_intermediate` failure inside `identify_contexts` → assert `IntermediateSaveError` propagates, NOT `ArchitectExtractionError`) + T-SAVE-5 (same for Specialist). |
+| W-1 | `IntermediateSaveError(OSError)` violates the orchestration error taxonomy in `errors.py` (which has `PipelineError` as base). | taxonomy consistency | **HANDLED** — moved to `core/orchestration/errors.py`, base = `PipelineError`. |
+| W-2 | Conditional assignment `if srs_path is not None: ...` leaks stale path on instance reuse. | correctness | **HANDLED** — unconditional `self._current_srs_path = srs_path or "<unknown>"` at start of every `analyze_document`. Added T-SRS-4 reuse test. |
+| W-3 | "; "-joined batch label "bounded by validation" claim unsupported (no max-length on `GenerateModelRequest.file_paths`). | unsupported claim | **HANDLED** — dropped bounded claim; label is display-only; no truncation introduced (KISS). |
+| W-4 | Scout's `_save_intermediate` call at line 236 is in DEAD `extract_domain_sentences` — only `tests/test_architect_helpers.py:119` exercises it. `analyze_document`'s nested `scout_fn` does NOT call it. | stale spec text | **HANDLED** — adjusted Motivation §F-13 to note Scout save is dead from production; production-reachable saves are Architect (lines 449/462) + Specialist (line 650). Fix still applied uniformly for legacy-path consistency. New anomaly "typed Scout dump missing in scout_fn" added to findings doc. |
+| W-5 | `IntermediateSaveError` message lacks `srs_path`. Endpoint users won't know which SRS failed. | observability binding | **HANDLED** — added `srs_path` field to error constructor; populated from `self._current_srs_path` at raise time. The two observability fixes interlock at error-message level. |
+| N-1 | Test count inconsistent (6 vs 7). | doc bug | **HANDLED** — resolved to 11 total: T-SAVE-1..5 + T-SRS-1..4 + T-WIRE-MAIN-1..3. |
+| N-2 | `JSONDecodeError` cited under `json.dump` rationale (wrong direction). | doc bug | **HANDLED** — removed; encoder-side errors are `TypeError` + `ValueError` (circular ref). |
+| N-3 | Env-var no-op patch escape hatch speculative. | scope creep | **HANDLED** — removed from OQ#3 disposition. |
+| OQ1 | DISAGREE: `OSError` base wrong. | base class | **ADOPTED** — `PipelineError` base. |
+| OQ2 | PARTIALLY: catch list correct but Architect retry must re-raise. | composite | **ADOPTED both** — narrow `(OSError, TypeError, ValueError)` + C-1 re-raise. |
+| OQ3 | PARTIALLY: label OK but no max-length. | composite | **HANDLED via W-3.** |
+| OQ4 | PARTIALLY: getattr cleanup defensible either way. | judgment | **KEPT getattr** as belt-and-suspenders (smallest correct change). |
+| OQ5 | DISAGREE: defer endpoint wiring tests. | test coverage | **ADOPTED Codex** — added T-WIRE-MAIN-2 + T-WIRE-MAIN-3. |
+| OQ6 | PARTIALLY: "no other callers" vs "no other production callers". | phrasing | **HANDLED** — spec adjusted to "no other production callers". |
+| OQ7 | AGREE: defer F-21. | scope | **CONFIRMED** — F-21 deferred to WP-CORE-5+. |
+
+**Outcome:** zero deferred WARNs (contrast WP-CORE-2 which deferred 4/6 WARNs as out-of-scope). v2 ready for plan-phase.

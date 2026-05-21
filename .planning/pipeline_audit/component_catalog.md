@@ -10,9 +10,9 @@ Populated by Explore subagent 2026-05-21 01:36 GMT+3. Each row: `path | LOC_effe
 |---|---|---|---|---|
 | extension/backend/core/document_parser.py | 182 | Parse SRS docs (DOCX/PDF/TXT) + extract domain-relevant content via regex + content filtering. | 1 | DONE (10 findings F-1..F-10) |
 | extension/backend/core/document_parser_readers.py | 127 | Format-specific readers (DOCX/PDF/TXT) with content extraction + text normalization. | 1 | DONE (covered with parser.py) |
-| extension/backend/core/architect.py | 752 | 4-stage pipeline orchestrator (Scout→Architect→Specialist→Synthesizer) with threading, retry, LLM integration. | 2 | PENDING |
-| extension/backend/core/orchestration/pipeline.py | 60 | Typed stage driver with dependency injection for stage callables. | 2 | PENDING |
-| extension/backend/core/orchestration/errors.py | 51 | Exception classes for orchestration failures (ArchitectExtractionError, SpecialistFailureError, SynthesizerEmptyModelError). | 2 | PENDING |
+| extension/backend/core/architect.py | 923 | 5-stage pipeline orchestrator (Scout→Architect→Specialist→Synthesizer→Verifier) with threading, retry, LLM integration. | 2 | DONE (10 findings F-11..F-20) |
+| extension/backend/core/orchestration/pipeline.py | 84 | Typed stage driver with dependency injection for stage callables. | 2 | DONE (covered with architect.py) |
+| extension/backend/core/orchestration/errors.py | 70 | Exception classes for orchestration failures (ArchitectExtractionError, SpecialistFailureError, SynthesizerEmptyModelError). | 2 | DONE (covered with architect.py) |
 | extension/backend/core/pipeline_contracts.py | 113 | Pydantic envelopes for stage boundaries (ScoutOutput, ArchitectOutput, SpecialistAnalysis, VerifierResult, SynthesizerOutput). | 3 | PENDING |
 | extension/backend/core/schemas.py | 169 | Domain model content classes (Entity, ValueObject, Aggregate, Service, DomainEvent) with validation + serialization. | 3 | PENDING |
 | extension/backend/core/llm/base.py | 62 | Abstract LLMClient interface; common retry/rate-limit contract for Gemini + Ollama. | 4 | PENDING |
@@ -105,4 +105,4 @@ Populated by Explore subagent 2026-05-21 01:36 GMT+3. Each row: `path | LOC_effe
 
 ---
 
-**Last refresh:** 2026-05-21 01:36 GMT+3
+**Last refresh:** 2026-05-21 14:15 GMT+3
