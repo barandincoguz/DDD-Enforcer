@@ -1,9 +1,9 @@
 # Pipeline Audit — CURRENT pointer
 
 **Last update:** 2026-05-21 09:37 GMT+3
-**Last action:** Iteration 2 in flight — WP-CORE-3 (F-3 empty-input contract) RED `91dbeb4` + GREEN `daefeb0` committed. DOC phase landing now. Atomic GREEN per spec v2 W-3 (parser raise + helper + 6 callsite migrations in one commit).
-**Next:** Iteration 3 — coordinator should pick **`core/architect.py` close-lookup** (priority 2; 752 LOC; recommended per handoff). Alternative: continue ingestion layer with F-1 (`read_pdf` defensive handling) or F-2 (`read_txt` cp1254 binary garbage). See iteration 2 handoff doc when written.
+**Last action:** Iteration 2 closed — WP-CORE-3 fully shipped (4 commits: RED `91dbeb4`, GREEN-atomic `daefeb0`, DOC `48e3d98`, planning-artifacts `2646856`). Handoff written for next session at `.planning/pipeline_audit/handoff-2026-05-21-0937.md`.
+**Next:** Iteration 3 — coordinator should pick **`core/architect.py` close-lookup** (priority 2; 752 LOC; recommended per handoff). Alternative: F-1 / F-2 ingestion continuation. See handoff §"Recommended next iteration."
 
 **Baseline (sacred):** pytest -m "not integration" → 321 passed, 31 deselected.
-**Pre-loop HEAD:** 3d13f26 (handoff iteration-1 close)
-**Iteration 2 HEAD (post-GREEN):** daefeb0
+**Pre-loop HEAD:** 3d13f26 (iteration-1 handoff close)
+**Iteration 2 final HEAD:** 2646856
