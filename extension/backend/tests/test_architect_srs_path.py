@@ -43,13 +43,29 @@ def _bare_arch():
 
 
 def _stub_run_pipeline(*args, **kwargs):
-    """Stub for core.orchestration.pipeline.run_pipeline that returns an
-    empty DomainModel so analyze_document can complete without real LLM calls."""
-    from core.schemas import DomainModel, GlobalRules
+    """Stub for core.orchestration.pipeline.run_pipeline that returns a minimal
+    valid DomainModel (Pydantic requires project_metadata + non-empty
+    bounded_contexts) so analyze_document can complete without real LLM calls."""
+    from core.schemas import (
+        BoundedContext, DomainModel, Entity, ProjectMetadata, UbiquitousLanguage,
+    )
     return DomainModel(
         project_name="Test",
-        contexts=[],
-        global_rules=GlobalRules(),
+        project_metadata=ProjectMetadata(version="1.0", generated_at="2026-05-21"),
+        bounded_contexts=[
+            BoundedContext(
+                context_name="Ctx",
+                description="d",
+                ubiquitous_language=UbiquitousLanguage(
+                    entities=[Entity(
+                        name="E", description="d", confidence=0.9,
+                        justification="t", evidence_sentence_indices=[0],
+                    )],
+                    value_objects=[], domain_events=[],
+                ),
+            )
+        ],
+        global_rules=None,
     )
 
 

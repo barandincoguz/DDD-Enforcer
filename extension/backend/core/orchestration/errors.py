@@ -68,3 +68,33 @@ class SpecialistShapeError(SpecialistFailureError):
             f"{len(errors)} validation error(s); first: {errors[0] if errors else 'none'}"
         )
         super().__init__(context_name=context_name, message=message)
+
+
+class IntermediateSaveError(PipelineError):
+    """Raised when stage diagnostic JSON cannot be persisted to INTERMEDIATE_DIR.
+
+    Per AGENTS.md "no silent degradation": stage diagnostic artifacts are
+    EMSE reproducibility evidence; silent loss is a methodology gap.
+
+    Carries:
+        stage: the pipeline stage label (e.g., "2_architect", "3_specialist").
+        filepath: the intended on-disk path.
+        cause: the wrapped exception (OSError / TypeError / ValueError).
+        srs_path: the SRS being processed (or "<unknown>" if pre-analyze_document).
+    """
+
+    def __init__(
+        self,
+        stage: str,
+        filepath: str,
+        cause: Exception,
+        srs_path: str = "<unknown>",
+    ):
+        self.stage = stage
+        self.filepath = filepath
+        self.cause = cause
+        self.srs_path = srs_path
+        super().__init__(
+            f"Failed to save intermediate output for stage='{stage}' "
+            f"at '{filepath}' (srs={srs_path}): {type(cause).__name__}: {cause}"
+        )

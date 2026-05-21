@@ -104,7 +104,7 @@ def generate_domain_model(srs_path: str) -> Dict[str, Any]:
     print(f"   -> Parsed document: {len(raw_text)} characters")
 
     architect = DomainArchitect()
-    final_model: DomainModel = architect.analyze_document(text=raw_text)
+    final_model: DomainModel = architect.analyze_document(text=raw_text, srs_path=srs_path)
 
     # AST enrichment for higher precision/traceability
     workspace_path = os.getenv("WORKSPACE_PATH", "")
@@ -359,7 +359,10 @@ def generate_model_endpoint(request: GenerateModelRequest):
         # Generate domain model using AI
         print("  🤖 Generating domain model with AI...")
         architect = DomainArchitect()
-        final_model: DomainModel = architect.analyze_document(text=combined_text)
+        final_model: DomainModel = architect.analyze_document(
+            text=combined_text,
+            srs_path="; ".join(str(p) for p in request.file_paths),
+        )
 
         # AST enrichment from workspace Python files
         workspace_path = os.getenv("WORKSPACE_PATH", "")
@@ -470,7 +473,10 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
             
             # Generate domain model with progress callback
             architect = DomainArchitect(progress_callback=progress_callback)
-            final_model: DomainModel = architect.analyze_document(text=combined_text)
+            final_model: DomainModel = architect.analyze_document(
+                text=combined_text,
+                srs_path="; ".join(str(p) for p in request.file_paths),
+            )
 
             workspace_path = os.getenv("WORKSPACE_PATH", "")
             if workspace_path:

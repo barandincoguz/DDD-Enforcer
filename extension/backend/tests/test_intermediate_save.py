@@ -121,7 +121,7 @@ def test_save_failure_in_identify_contexts_propagates_intermediate_save_error():
     arch.client.chat.return_value = ok_response
 
     # Force _save_intermediate to raise IntermediateSaveError directly.
-    def raising_save(stage, _data):
+    def raising_save(stage, data):  # noqa: ARG001 — `data` kept for signature parity with _save_intermediate
         raise IntermediateSaveError(
             stage=stage,
             filepath="/fake/path.json",
@@ -171,7 +171,7 @@ def test_save_failure_in_extract_per_context_details_propagates_intermediate_sav
     )
     arch.client.chat.return_value = ok_response
 
-    def raising_save(stage, _data):
+    def raising_save(stage, data):  # noqa: ARG001 — `data` kept for signature parity with _save_intermediate
         raise IntermediateSaveError(
             stage=stage,
             filepath="/fake/path.json",

@@ -27,6 +27,7 @@ from core.llm._response_adapter import LLMResponseAdapter
 from core.schemas import DomainModel
 from core.orchestration.errors import (
     ArchitectExtractionError,
+    IntermediateSaveError,
     SpecialistFailureError,
     SpecialistShapeError,
     SynthesizerEmptyModelError,
@@ -116,6 +117,9 @@ class DomainArchitect:
         # Ensure intermediate directory exists
         os.makedirs(INTERMEDIATE_DIR, exist_ok=True)
         self.run_timestamp = time.strftime("%Y%m%d_%H%M%S")
+        # WP-CORE-4: track which SRS is being processed for error message context.
+        # Unconditionally reassigned at start of every analyze_document() call.
+        self._current_srs_path: str = "<unknown>"
 
         print("\n" + "="*70)
         print("🏗️  DOMAIN ARCHITECT INITIALIZED")
@@ -482,6 +486,8 @@ RESPOND WITH JSON:
 
             except ArchitectExtractionError:
                 raise
+            except IntermediateSaveError:
+                raise  # WP-CORE-4 C-1: never silently rewrap save failures as ArchitectExtractionError
             except Exception as e:
                 if not self._is_quota_error_and_backoff(e, retry):
                     print(f"   [WARN] Context identification error: {e}")
@@ -706,13 +712,29 @@ Do not invent data not present in the sentences."""
     # MAIN PIPELINE
     # =========================================================================
 
-    def analyze_document(self, text: str) -> DomainModel:
+    def analyze_document(
+        self,
+        text: str,
+        srs_path: Optional[str] = None,
+    ) -> DomainModel:
         """Run the 5-stage pipeline on raw SRS text and return a typed DomainModel.
 
         Each stage produces a typed envelope from core.pipeline_contracts.
         Synthesizer is deterministic + per-context narrow LLM enrichment
         + D6/D7/D8 hard-fail invariants (via core.synthesizer).
+
+        Args:
+            text: SRS document text (already parsed by SRSDocumentParser).
+            srs_path: Optional source path label for error messages. Single file
+                path for lifespan boot, "; "-joined for batch endpoints. Defaults
+                to "<unknown>" when not supplied (e.g., direct internal calls
+                from tests).
         """
+        # WP-CORE-4 (W-2): unconditional assignment guards against stale path on
+        # instance reuse — a second call with srs_path=None must NOT leak the
+        # previous run's path.
+        self._current_srs_path = srs_path or "<unknown>"
+
         from core.synthesizer import synthesize_domain_model
         from core.pipeline_contracts import (
             ScoutOutput, ArchitectOutput, VerifierResult as ContractVerifierResult,
@@ -878,17 +900,25 @@ Do not invent data not present in the sentences."""
         return False
 
     def _save_intermediate(self, stage: str, data: Dict[str, Any]):
-        """Save intermediate pipeline output to JSON file."""
+        """Save intermediate pipeline output to JSON file.
+
+        Raises IntermediateSaveError on any I/O or serialization failure.
+        Per AGENTS.md "no silent degradation": stage diagnostic artifacts are
+        EMSE reproducibility evidence; silent loss is a methodology gap.
+        """
+        filename = f"{self.run_timestamp}_{stage}.json"
+        filepath = os.path.join(INTERMEDIATE_DIR, filename)
         try:
-            filename = f"{self.run_timestamp}_{stage}.json"
-            filepath = os.path.join(INTERMEDIATE_DIR, filename)
-            
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            
-            print(f"  💾 Saved intermediate output: {filename}")
-        except Exception as e:
-            print(f"  ⚠️  Failed to save intermediate output: {e}")
+        except (OSError, TypeError, ValueError) as e:
+            raise IntermediateSaveError(
+                stage=stage,
+                filepath=filepath,
+                cause=e,
+                srs_path=getattr(self, "_current_srs_path", "<unknown>"),
+            ) from e
+        print(f"  💾 Saved intermediate output: {filename}")
     
     def _parse_json_response(self, response_text: str) -> Dict[str, Any] | List[Any]:
         """Parse JSON from LLM response.

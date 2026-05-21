@@ -102,12 +102,28 @@ def test_initialize_rag_silently_returns_empty_rag_on_empty_srs(monkeypatch):
 
 
 def _stub_domain_model():
-    """Minimal DomainModel for test stubs to return."""
-    from core.schemas import DomainModel, GlobalRules
+    """Minimal valid DomainModel — Pydantic requires project_metadata +
+    non-empty bounded_contexts."""
+    from core.schemas import (
+        BoundedContext, DomainModel, Entity, ProjectMetadata, UbiquitousLanguage,
+    )
     return DomainModel(
         project_name="TestProject",
-        bounded_contexts=[],
-        global_rules=GlobalRules(),
+        project_metadata=ProjectMetadata(version="1.0", generated_at="2026-05-21"),
+        bounded_contexts=[
+            BoundedContext(
+                context_name="Ctx",
+                description="d",
+                ubiquitous_language=UbiquitousLanguage(
+                    entities=[Entity(
+                        name="E", description="d", confidence=0.9,
+                        justification="t", evidence_sentence_indices=[0],
+                    )],
+                    value_objects=[], domain_events=[],
+                ),
+            )
+        ],
+        global_rules=None,
     )
 
 
@@ -200,8 +216,18 @@ def test_generate_model_stream_endpoint_forwards_joined_srs_path(monkeypatch, tm
     )
     response = main.generate_model_stream_endpoint(request)
 
-    # Drain the streaming generator — this also starts the worker thread.
-    events = list(response.body_iterator)
+    # body_iterator is an async iterator (StreamingResponse adapts the sync
+    # generator). Drive it to completion via asyncio.run — this also starts
+    # the worker thread, lets it call analyze_document, and joins.
+    import asyncio
+
+    async def _drain(it):
+        items = []
+        async for item in it:
+            items.append(item)
+        return items
+
+    events = asyncio.run(_drain(response.body_iterator))
     assert events, "stream should have yielded at least one event"
 
     # By the time the generator finishes, the worker thread has joined.
