@@ -135,3 +135,73 @@ Codex xhigh adversarial review verdict: **REVISE**. 2 CRITICAL + 5 WARN + 3 NITS
 | OQ7 | AGREE: defer F-21. | scope | **CONFIRMED** — F-21 deferred to WP-CORE-5+. |
 
 **Outcome:** zero deferred WARNs (contrast WP-CORE-2 which deferred 4/6 WARNs as out-of-scope). v2 ready for plan-phase.
+
+## 2026-05-21 10:55 D-PICK-WP-CORE-5
+Selected **F-11** (parallel Scout rate-limit reentrancy race) for iteration 4 per handoff-2026-05-21-1033 §"Recommended next iteration" Option A:
+- Severity: MAJOR. Concurrency primitive — `_wait_for_rate_limit` at `core/architect.py:145-155` timestamps `last_request_time` at lock-release, not API-send-time. Jitter between unlock and `client.chat()` invocation accumulates over N parallel workers.
+- Effort estimate: M-L (concurrency redesign).
+- Why now: highest-impact remaining OPEN MAJOR; foundational primitive; F-14/F-21 fixes will coexist with parallel Scout.
+- Codex consult: spec adversarial review at step 7 (mandatory per loop ritual).
+
+**Outcome:** spec v1 drafted at `docs/superpowers/specs/2026-05-21-wp-core-5-parallel-scout-rate-limit-design.md` → Codex xhigh review (next entry).
+
+## 2026-05-21 11:08 D-CODEX-REVIEW-WP-CORE-5
+Codex xhigh adversarial review verdict: **NOT READY FOR RED.** 3 CRITICAL + 5 WARN + 3 NITS + 3 OQ. Findings invalidate spec framing + RED design.
+
+| # | finding | category | disposition |
+|---|---|---|---|
+| C-1 | `extract_domain_sentences` (`ThreadPoolExecutor`-based parallel Scout the spec targeted) is **dead from production**. `analyze_document.scout_fn` at lines 757-774 calls only `section_aware_chunks()` — no LLM, no `_wait_for_rate_limit`. F-11 symptom dormant in current production code. | scope misframing | **ABANDON WP** — confirmed by observation 3618 (2026-05-21 10:11) from WP-CORE-4 sweep. Rewiring `extract_domain_sentences` into `analyze_document.scout_fn` is its own larger WP; not in scope. |
+| C-2 | Reservation pattern paces `_wait_for_rate_limit()` returns, not `client.chat()` send-time. Actual wire-level microslip lives in post-return / pre-send window. Correct primitive must gate `client.chat()` entry. | design wrong | **ABANDON WP** — fix would require a rate-limited send helper, not a reservation rewrite. Out of "smallest correct change" envelope without first establishing send-time as the invariant. |
+| C-3 | T-RATE-3/T-RATE-4 (parallel multi-worker wall-clock gaps) pass against current implementation. Current lock-held `time.sleep` already serializes returns + totals. RED tests don't red-signal F-11. | test design wrong | **ABANDON WP** — would need send-level deterministic test with injected post-wait jitter; rewriting RED is half the work. |
+| W-1..W-5, N-1..N-3, OQ-1..OQ-3 | Various tightening + EMSE-evidence asks. | composite | **MOOT given abandon.** Preserved in Codex output (saved to this entry below) for the record. |
+
+Raw Codex output:
+- **CRITICAL-1**: scope — parallel Scout path dead in `analyze_document` (`scout_fn` builds `section_aware_chunks` only).
+- **CRITICAL-2**: invariant — reservation paces returns, not sends; lock-release-to-`client.chat()` gap remains.
+- **CRITICAL-3**: RED tests pass against current code; need send-level deterministic test.
+- **WARN-1**: thundering-herd if host pauses past multiple reserved slots (sleep outside lock).
+- **WARN-2**: F-11 description overstates pre-send Python work + cumulative slip ("30 × j" claim unsupported).
+- **WARN-3**: CI flake risk from `<= 0.5s` upper bound + 10 ms tolerance on `time.sleep()` jitter.
+- **WARN-4**: T-RATE-5 conflicts with stated "black-box only" — would need internal-attribute access.
+- **WARN-5**: EMSE-paper claim of "empirically defensible 6 s contract" under-evidenced; need before/after measurements + N=10 baseline.
+- **NIT-1**: test paths omit `extension/backend/` prefix.
+- **NIT-2**: OQ numbering skips from 2 to 4.
+- **NIT-3**: monotonic_start rationale unnecessary; `max(now, 0.0)` already correct.
+- **OQ-1**: invariant choice — return spacing vs `client.chat` entry spacing vs wire-send spacing.
+- **OQ-2**: "hard 6 s minimum delay" quota model assumption — verify vs Gemini docs (sliding RPM window?).
+- **OQ-3**: starvation analysis shouldn't rely on CPython `threading.Lock` fairness (no FIFO contract).
+
+**User decision (2026-05-21 ~11:08):** drop WP-CORE-5; pivot iteration 4 to F-14 (`SynthesizerEmptyModelError` pipeline escape). F-11 stays OPEN with status note "DORMANT — parallel Scout path dead from production; reopen when `extract_domain_sentences` is rewired into `analyze_document.scout_fn` or `section_aware_chunks` gains an LLM call." Sequential primitive slip (~1-5 ms per gap) within 6 s buffer in practice; defense-in-depth fix can wait.
+
+**Outcome:** spec v1 marked ABANDONED at top (banner preserved for audit trail); WP-CORE-5b spawned for F-14. No commits this WP.
+
+## 2026-05-21 11:09 D-PICK-WP-CORE-5b
+Selected **F-14** (`SynthesizerEmptyModelError` pipeline escape) for iteration 4 pivot:
+- Severity: MAJOR. `core/orchestration/pipeline.py:81-83` raises `SynthesizerEmptyModelError` with no analogous degrade-handler (unlike `RefinementExhaustedError` at lines 68-74 which falls back to best-effort). Hard-fail on degenerate Synthesizer output silently propagates to `main.py:107` → caught generically as `Exception` at lifespan handler line 180 → `app_state["domain_rules"] = {}`. EMSE-reproducibility gap.
+- Effort estimate: M (policy decision + 1-2 file changes).
+- Why over F-21 (vacuous D1): F-14 is a clear policy choice with concrete options (hard-fail-with-context / degrade-best-effort / retry-relaxed); F-21 requires Architect prompt change which has uncertain LLM-behavior impact. F-14 = test-first-friendly.
+- Codex consult: spec adversarial review at step 7 (mandatory).
+
+**Outcome:** spec v1 to be drafted at `docs/superpowers/specs/2026-05-21-wp-core-5b-synthesizer-empty-model-policy-design.md`.
+
+## 2026-05-21 11:30 D-CODEX-REVIEW-WP-CORE-5b
+Codex xhigh adversarial review verdict: **GO with 3 conditions.** 0 CRITICAL + 6 WARN + 3 NITS + 3 OQ. All findings handled inline in spec v2 (zero deferred — third consecutive zero-deferred iteration after WP-CORE-3 + WP-CORE-4).
+
+| # | finding | category | disposition |
+|---|---|---|---|
+| W-1 | `refiner-empty-success-path`: `refine_until_clean` non-exception path returns whatever `stage_runner` last produced; if rerun returns `[]` AND verifier accepts, `refined_specialist` becomes `[]` even though initial `specialist_output` was non-empty. Spec v1 missed this edge. | edge gap | **HANDLED via T-EMPTY-3** — new test: first Specialist returns non-empty, verifier fails once, rerun returns `[]`, verifier accepts → pipeline raises `SynthesizerEmptyModelError`. |
+| W-2 | `specialist-empty-is-only-blocked-upstream`: `extract_per_context_details([])` returns `[]` cleanly (no raise); the "Specialist raises" claim in spec v1 Discovery 3 was overstated. | accuracy | **HANDLED** — Discovery 3 reworded: production chain is protected by **Architect's** upstream raise; Specialist itself has no empty-input guard. |
+| W-3 | `keep-post-boundary-check`: deleting the post-call check loses a cheap boundary invariant for injected/future synthesizers. `PipelineDeps.synthesizer` is freely injectable. | safety net | **HANDLED** — post-call check retained as belt-and-suspenders for injected synthesizers that bypass Pydantic via `DomainModel.model_construct(...)`. T-EMPTY-4 added to cover this layer. |
+| W-4 | `missing-refiner-empty-test`: covered by W-1 disposition. | test gap | **HANDLED via T-EMPTY-3.** |
+| W-5 | `t-empty-4-duplicates-existing-layer`: Pydantic-validator coverage already at `test_synthesizer_deterministic_merge.py:97-103`. | redundancy | **HANDLED** — v1's "T-EMPTY-4 direct ValidationError" test dropped; coverage exists. |
+| W-6 | `red-commit-ci-risk`: RED commit with pytest exit 1 ok locally but bad pushed-history hygiene. | discipline | **CONFIRMED EXISTING** — loop discipline keeps commits local until user-driven `git push`. Documented in spec v2 §Atomic commit sequence. |
+| W-7 | `taxonomy-not-consumed`: `main.py` catches generic `Exception`; PipelineError taxonomy is future-facing not operational today. | framing | **HANDLED** — §Motivation reframed as "contract cleanup for paper-methodology integrity" not "production hardening". |
+| W-8 | `f21-priority`: F-21 has clearer paper impact (every project run vacuously passes D1 check). | scope advice | **ACKNOWLEDGED** — WP-CORE-5b ships as quick cleanup per user decision; F-21 queued as iteration-5 target. |
+| N-1 | `dead-code-scope`: post-call check is dead only for in-tree synthesizer, not globally. | precision | **HANDLED** — Discovery 2 tightened. |
+| N-2 | `taxonomy-test-overlap`: T-EMPTY-1 + T-EMPTY-2 overlap. | redundancy | **HANDLED** — merged into single `pytest.raises(PipelineError) as exc; isinstance(exc.value, SynthesizerEmptyModelError)`. |
+| N-3 | `emse-framing-holds`: hard-fail grounded; do not add recovery modes. | confirmation | **CONFIRMED** — §Non-goals unchanged. |
+| OQ-1 | Pre-call vs catch-and-rewrap. | design | **PRE-CALL ADOPTED** (Codex agreed; KISS). |
+| OQ-2 | `srs-path` symmetry with `IntermediateSaveError`. | symmetry | **ADOPTED** — `srs_path: str = "<unknown>"` added; widened `run_pipeline` signature; threaded from `analyze_document`. T-EMPTY-5 verifies. |
+| OQ-3 | `main-handler-test`: lifespan/endpoints catch generic `Exception`; no handler-selection change. | scope | **NO ACTION** (Codex agreed). |
+
+**Outcome:** zero deferred WARNs (third consecutive iteration matching WP-CORE-3 + WP-CORE-4 standard). v2 ready for plan-phase. WP-CORE-5b shipped: RED `cc82e64`, GREEN `27a5d98`, DOC commit pending (this one), PLANNING pending. Baseline 332 → 338 (+6 tests; zero regression). Iteration-5 target: F-21 per W-8 advice.

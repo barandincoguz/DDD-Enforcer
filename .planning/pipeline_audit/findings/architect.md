@@ -20,6 +20,13 @@
 **Test gap:** yes — no concurrent rate-limit test exists. `test_specialist_per_context_loop` patches `_wait_for_rate_limit` entirely (line 50).
 **AGENTS/CLAUDE rule cited:** AGENTS.md "Concurrency: thread-safety invariants must hold under arbitrarily-interleaved execution"; CLAUDE.md "Rate limiting (free-tier 6s min_delay) — enforce even with parallel Scout".
 
+**Status update (2026-05-21 11:08 GMT+3) — DORMANT.** WP-CORE-5 attempted; Codex xhigh review surfaced three CRITICALs:
+- The parallel Scout path the spec targeted (`extract_domain_sentences` `ThreadPoolExecutor` at line 228) is dead from production. `analyze_document.scout_fn` at lines 757-774 calls only `section_aware_chunks()` — no LLM, no `_wait_for_rate_limit`. F-11 symptom is dormant in current production code.
+- A correct primitive fix would gate `client.chat()` entry (send-time), not `_wait_for_rate_limit()` return — the reservation pattern in the abandoned spec paced returns only.
+- Sequential primitive slip (~1-5 ms per gap) is within 6 s buffer in practice; defense-in-depth fix can wait.
+
+**Reopen condition:** when `extract_domain_sentences` is rewired into `analyze_document.scout_fn` OR `section_aware_chunks` gains an LLM call OR Pro-tier with `min_delay < 1 s` becomes default. See `decision_log.md` D-CODEX-REVIEW-WP-CORE-5 for full review.
+
 ### F-12 — Specialist shape-error retry does not re-track tokens after JSON parse recovery — MINOR
 
 **Component:** core/architect.py
@@ -46,6 +53,13 @@
 **Blast radius:** PIPELINE — silent empty model on Synthesizer degenerate case.
 **Test gap:** yes — no test for the synthesizer-empty-model flow in the orchestrated pipeline. `test_pipeline_orchestration.py` covers refiner exhaustion (lines 97-160) but not synthesizer failure.
 **AGENTS/CLAUDE rule cited:** AGENTS.md "Stable entrypoints: when a boundary contract can fail, the handler must be explicit or the caller must document the failure mode"; CLAUDE.md §"D6/D7/D8 hard-fail invariants" (but SynthesizerEmptyModelError is NOT an invariant, it's a degenerate case).
+
+**Status update (2026-05-21 11:45 GMT+3) — SHIPPED in WP-CORE-5b at `27a5d98`.** Audit text reframed by Codex review:
+- The originally-described "hard-fail vs degrade-best-effort policy gap" is misframed. Hard-fail is already an explicit, regression-locked policy: `tests/test_synthesizer_empty_model_error.py:test_create_fallback_model_is_gone` enforces deletion of `_create_fallback_model` with the rationale "an empty model is no longer a legitimate pipeline output." Degrade-best-effort would regress that.
+- The originally-described "synthesizer can only return an empty model if merge produces zero contexts" was inaccurate. The in-tree `synthesize_domain_model` calls `build_deterministic_skeleton` which builds one BC per analysis (no merge filtering). When `analyses == []`, the resulting `DomainModel(bounded_contexts=[])` raises `pydantic.ValidationError` via `_non_empty` (`core/schemas.py:207-215`) — never reaching the post-call `SynthesizerEmptyModelError` raise. So `SynthesizerEmptyModelError` was **unreachable for the in-tree synthesizer** and the actual escaping exception was `ValidationError` (not a `PipelineError` subclass).
+- Production trigger dormant: Architect raises `ArchitectExtractionError` upstream on zero contexts, so `refined_specialist == []` cannot happen via `analyze_document` in production today.
+
+**Fix shipped:** pre-call guard at `pipeline.py` raises `SynthesizerEmptyModelError(PipelineError)` when `refined_specialist == []` (closes both initial-empty AND refiner-shrink-success edges per Codex W-1); post-call boundary check retained as belt-and-suspenders for injected synthesizers that bypass Pydantic via `DomainModel.model_construct` (Codex W-3); `srs_path` added to error per WP-CORE-4 symmetry (OQ-2). Three layers of defense, each at its appropriate scope. Test delta 332 → 338 (+6 tests). See `decision_log.md` D-CODEX-REVIEW-WP-CORE-5b for full Codex disposition + `development_docs/WP-CORE-5b-synthesizer-empty-model-policy.md` for full rationale.
 
 ### F-15 — Refiner failure degrades to best-effort but does not log the final-attempt verifier result — MINOR
 
