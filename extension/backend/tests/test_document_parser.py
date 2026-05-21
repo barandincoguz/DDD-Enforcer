@@ -325,3 +325,109 @@ def test_reference_heading_pattern_direct_grammar(line, should_match):
     parser = SRSDocumentParser()
     match = parser.reference_heading_pattern.match(line.strip())
     assert bool(match) is should_match, f"Pattern mismatch for: {line!r}"
+
+
+# ---------- WP-CORE-3 — Empty-input contract (F-3) ----------
+
+import re
+
+from core.document_parser import EmptySRSDocumentError
+
+
+def test_parse_empty_txt_raises_empty_srs_document_error(tmp_path):
+    empty = tmp_path / "empty.txt"
+    empty.write_text("")
+    parser = SRSDocumentParser()
+    with pytest.raises(EmptySRSDocumentError):
+        parser.parse_file(str(empty))
+
+
+def test_parse_whitespace_only_txt_raises_empty_srs_document_error(tmp_path):
+    ws = tmp_path / "ws.txt"
+    ws.write_text("\n\n   \t\n")
+    parser = SRSDocumentParser()
+    with pytest.raises(EmptySRSDocumentError):
+        parser.parse_file(str(ws))
+
+
+def test_parse_empty_pdf_raises_empty_srs_document_error(tmp_path, monkeypatch):
+    placeholder = tmp_path / "x.pdf"
+    placeholder.write_bytes(b"%PDF-1.4\n%dummy\n")
+    monkeypatch.setattr("core.document_parser.read_pdf", lambda p: "")
+    parser = SRSDocumentParser()
+    with pytest.raises(EmptySRSDocumentError):
+        parser.parse_file(str(placeholder))
+
+
+def test_parse_empty_docx_raises_empty_srs_document_error(tmp_path, monkeypatch):
+    placeholder = tmp_path / "x.docx"
+    placeholder.write_bytes(b"PK\x03\x04dummy")
+    monkeypatch.setattr("core.document_parser.read_docx", lambda p: "")
+    parser = SRSDocumentParser()
+    with pytest.raises(EmptySRSDocumentError):
+        parser.parse_file(str(placeholder))
+
+
+def test_empty_srs_document_error_is_value_error(tmp_path):
+    empty = tmp_path / "empty.txt"
+    empty.write_text("")
+    parser = SRSDocumentParser()
+    with pytest.raises(ValueError):
+        parser.parse_file(str(empty))
+
+
+def test_parse_unsupported_extension_still_raises_plain_value_error(tmp_path):
+    weird = tmp_path / "x.xyz"
+    weird.write_text("anything")
+    parser = SRSDocumentParser()
+    with pytest.raises(ValueError, match="Unsupported file type") as exc_info:
+        parser.parse_file(str(weird))
+    assert not isinstance(exc_info.value, EmptySRSDocumentError)
+
+
+def test_parse_non_empty_txt_returns_text_normally(tmp_path):
+    good = tmp_path / "ok.txt"
+    good.write_text("Hello world.\n")
+    parser = SRSDocumentParser()
+    assert parser.parse_file(str(good)) == "Hello world."
+
+
+def test_parse_references_only_txt_raises_empty_srs_document_error(tmp_path):
+    """Post-truncation-empty (WP-CORE-2 cross-integration) is caught."""
+    only_refs = tmp_path / "only_refs.txt"
+    only_refs.write_text("References\n")
+    parser = SRSDocumentParser()
+    with pytest.raises(EmptySRSDocumentError):
+        parser.parse_file(str(only_refs))
+
+
+def test_empty_srs_document_error_message_contains_file_path(tmp_path):
+    empty = tmp_path / "empty.txt"
+    empty.write_text("")
+    parser = SRSDocumentParser()
+    with pytest.raises(EmptySRSDocumentError, match=re.escape(str(empty))):
+        parser.parse_file(str(empty))
+
+
+def test_parse_nonexistent_file_still_raises_file_not_found_post_contract():
+    parser = SRSDocumentParser()
+    with pytest.raises(FileNotFoundError):
+        parser.parse_file("/nonexistent/file.txt")
+
+
+@pytest.mark.parametrize(
+    "ext, patch_target",
+    [
+        (".pdf", "core.document_parser.read_pdf"),
+        (".docx", "core.document_parser.read_docx"),
+    ],
+)
+def test_each_binary_reader_empty_raises_empty_srs_document_error(
+    tmp_path, monkeypatch, ext, patch_target
+):
+    placeholder = tmp_path / f"x{ext}"
+    placeholder.write_bytes(b"placeholder bytes")
+    monkeypatch.setattr(patch_target, lambda p: "")
+    parser = SRSDocumentParser()
+    with pytest.raises(EmptySRSDocumentError):
+        parser.parse_file(str(placeholder))
