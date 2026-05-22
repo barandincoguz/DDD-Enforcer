@@ -205,3 +205,34 @@ Codex xhigh adversarial review verdict: **GO with 3 conditions.** 0 CRITICAL + 6
 | OQ-3 | `main-handler-test`: lifespan/endpoints catch generic `Exception`; no handler-selection change. | scope | **NO ACTION** (Codex agreed). |
 
 **Outcome:** zero deferred WARNs (third consecutive iteration matching WP-CORE-3 + WP-CORE-4 standard). v2 ready for plan-phase. WP-CORE-5b shipped: RED `cc82e64`, GREEN `27a5d98`, DOC commit pending (this one), PLANNING pending. Baseline 332 → 338 (+6 tests; zero regression). Iteration-5 target: F-21 per W-8 advice.
+
+## 2026-05-22 12:30 D-PICK-WP-CORE-6
+Selected **F-21** (D1 verifier vacuous-pass) for iteration 5 per Codex W-8 from WP-CORE-5b review:
+- Severity: MAJOR. Production-LIVE bug: D1 has passed vacuously for every project run in history because Architect's `identify_contexts` returns bare context-name strings, leaving `ContextHypothesis.supporting_sentence_ids` at Pydantic default `[]`. EMSE methodology paper claim "D1 catches contexts citing un-emitted sentences" is currently empirically vacuous.
+- Effort estimate: M (Architect prompt + parsing + cross-stage data flow).
+- Why over F-11 (DORMANT) or MINOR cluster: highest-paper-impact remaining MAJOR; affects every run, not a dormant edge.
+- Codex consult: spec adversarial review at step 7 (mandatory per loop ritual + production-reachability subsection required per iteration-4 lesson).
+
+**Outcome:** spec v1 drafted at `docs/superpowers/specs/2026-05-21-wp-core-6-d1-verifier-non-vacuous-design.md` → Codex xhigh review (next entry).
+
+## 2026-05-22 12:50 D-CODEX-REVIEW-WP-CORE-6
+Codex xhigh adversarial review verdict: **4 CRITICAL + 4 WARN + 6 NIT + 1 OQ.** All CRITICAL+WARN handled inline in spec v2; 1 OQ deferred with explicit scope-bounded rationale + concrete revisit trigger (post-F-22).
+
+| # | finding | category | disposition |
+|---|---|---|---|
+| C-1 (A7) | `final-model-loss`: Even with Architect populating IDs, Specialist receives `List[str]` names only (architect.py:788), rebuilds `ContextHypothesis(context_name=ctx_name, description="")` fresh at line 707 with default empty IDs. Synthesizer merge copies the empty list. Final DomainModel still vacuous. | scope gap | **ADOPTED.** Spec v2 widens scope: `extract_per_context_details` signature changes from `List[str]` to `List[ContextHypothesis]`. `specialist_fn` passes `list(arch.contexts)` directly. Line 707 ctx-rebuild deleted; input ctx re-used. Synthesizer merge unchanged (already copies; just receives non-empty input now). T-INT-1 added for E2E coverage. |
+| C-2 (A2-d3-mask) | `d3-mask`: D-3 (D1 ERROR on empty IDs) doesn't enforce because Refiner exhausts → pipeline.py catches → degrades to best-effort. ERROR is logged-and-discarded. | enforcement gap | **ADOPTED with reframe.** D-3 kept as honest signal (defense-in-depth against future Architect prompt regression). Paired with D-6 degrade-log enrichment (closes A5-risk4). Full enforcement deferred to F-22 (NEW backlog). |
+| C-3 (A3-integration-gap) | `integration-gap`: 5 tests insufficient; no E2E test verifying IDs survive Architect → Specialist → Synthesizer. | test gap | **ADOPTED via T-INT-1**: `analyze_document` E2E with mocked LLM responses; assert final `DomainModel.bounded_contexts[0].supporting_sentence_ids` matches Architect's IDs. |
+| C-4 (A5-risk4) | `risk4-understated`: `RefinementExhaustedError.issues` reduced to `print(type(exc).__name__)`; D1 errors not reliably logged. | observability gap | **ADOPTED via D-6**: split `except Exception` into `except RefinementExhaustedError` (issues-list log) + fallback. Closes the run-manifest visibility gap. |
+| W-1 (A2-truncation) | `truncation-mid-prefix`: `_truncate_with_head_tail` char-slices; can chop `[N] ` mid-prefix. | correctness gap | **ADOPTED via D-4**: new `_truncate_numbered_pairs(pairs, max_chars, head_ratio)` helper drops whole `(idx, text)` pairs from middle. Pair atomicity preserved. |
+| W-2 (A3-top-level-old-shape) | `top-level-list-bypass`: parser at architect.py:464-476 accepts top-level list `["X", "Y"]`. | parsing gap | **ADOPTED via D-5b**: top-level list branch DELETED. Strict dict-wrapper only with per-context shape validation. |
+| W-3 (A4-scope) | `commit-plan-mis-scoped`: GREEN mis-scoped until integration + downstream propagation included. | scope | **ADOPTED** via C-1 + C-3 expansion. GREEN now covers 4 production files (was 3). |
+| W-4 (A6-f22) | `refiner-cant-rerun-architect`: limitation should become F-22 or be fixed now. | backlog hygiene | **ADOPTED as F-22 backlog add.** New OPEN MAJOR row in DOC commit. Deferred fix (own WP). |
+| N-1, N-2 (A1) | Discovery claims accurate. | confirmation | **ACCEPT-AS-IS.** |
+| N-3 (A2-strict-shape) | Strict rejection correct (no compat surface). | confirmation | **ACCEPT-AS-IS.** |
+| N-4 (A3-tarch2-trace) | T-ARCH-2 RED expectation accurate. | confirmation | **ACCEPT-AS-IS.** |
+| N-5 (A3-prompt-test) | T-ARCH-3 spy/substr OK if inspects `client.chat(messages=[...])` payload. | confirmation | **ACCEPT-AS-IS** — test calls `mock_chat.call_args.kwargs["messages"][0]["content"]`. |
+| N-6 (A5-methodology + A6-lineage) | EMSE framing + F-21 lineage accurate. | confirmation | **ACCEPT-AS-IS.** |
+| OQ-1 (A6-srs-path) | Adding `srs_path` to D1 issues not symmetric without `VerifierIssue` schema widening. | scope | **DEFERRED with rationale.** Verifier issues are runtime-only (not persisted artifacts like orchestration errors); adding `srs_path` requires schema change + 5-site threading. Revisit trigger: post-F-22 (if verifier issues become Refiner control-flow primary signals). |
+
+**Outcome:** 4 CRITICAL + 4 WARN all ADOPTED inline; 6 NIT all confirmed; 1 OQ deferred with concrete revisit trigger. The 4-iteration zero-deferred streak (CORE-3/4/5b/6) ends here, by design — the OQ deferral is scope-bounded with a promotion criterion, not vague "future work" drift. WP-CORE-6 shipped: RED `fd7f203`, GREEN `a86bbbb`, DOC commit pending (this one), PLANNING pending. Baseline 338 → 348 (+10 tests; zero regression). Iteration-6 target: F-22.
