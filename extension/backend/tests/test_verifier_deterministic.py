@@ -118,3 +118,28 @@ def test_d5_flags_unknown_dependency():
     issues = check_d5_allowed_dependencies_reference_existing_contexts(contexts)
     assert len(issues) == 1
     assert "GhostContext" in issues[0].message
+
+
+# =============================================================================
+# WP-CORE-6 — D1 non-empty clause (closes F-21 vacuous-pass)
+# =============================================================================
+
+
+def test_d1_check_flags_context_with_empty_supporting_sentence_ids():
+    """T-D1-NV-1 (WP-CORE-6): D1 must flag empty supporting_sentence_ids as
+    ERROR. Pre-WP-CORE-6, this case passed vacuously (empty list ⊆ any set)."""
+    contexts = [{"name": "OrderMgmt", "supporting_sentence_ids": []}]
+    issues = check_d1_supporting_sentence_ids_subset(contexts, SCOUT_INDICES)
+    assert len(issues) == 1
+    assert issues[0].issue_type == "ungrounded_context"
+    assert issues[0].severity == IssueSeverity.ERROR
+    assert "no supporting_sentence_ids" in issues[0].message
+    assert "OrderMgmt" in issues[0].message
+
+
+def test_d1_check_passes_when_supporting_sentence_ids_non_empty_subset():
+    """T-D1-NV-2 (WP-CORE-6): regression-lock — non-empty subset still passes
+    after adding the non-empty clause."""
+    contexts = [{"name": "OrderMgmt", "supporting_sentence_ids": [0, 2]}]
+    issues = check_d1_supporting_sentence_ids_subset(contexts, {0, 1, 2, 3})
+    assert issues == []

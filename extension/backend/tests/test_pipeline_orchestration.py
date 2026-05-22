@@ -272,3 +272,36 @@ def test_pipeline_post_call_check_catches_injected_synthesizer_returning_empty_m
     assert "bypassed Pydantic" in str(exc_info.value), (
         "Post-call check should emit a distinct message from the pre-call guard."
     )
+
+
+# =============================================================================
+# WP-CORE-6 — Degrade-log includes full issues list (Codex C-4)
+# =============================================================================
+
+
+def test_refiner_exhaustion_log_includes_issues_list(capsys):
+    """T-DEGRADE-LOG-1 (Codex C-4): when Refiner exhausts on persistent
+    verifier issues, the degrade-log must include each issue's stage,
+    location, and message — not just type(exc).__name__."""
+    deps = _make_typed_deps()
+    # Verifier always returns the same D1 issue → Refiner exhausts max_cycles=2
+    bad_issue = VerifierIssue(
+        stage="architect",
+        location="architect:contexts[OrderMgmt].supporting_sentence_ids",
+        issue_type="ungrounded_context",
+        severity=IssueSeverity.ERROR,
+        message="Context 'OrderMgmt' has no supporting_sentence_ids — cannot verify SRS grounding",
+    )
+    deps.verifier = lambda snapshot: VerifierResult(ok=False, issues=[bad_issue])
+
+    # Run; expect best-effort degrade (no exception); capture stdout
+    model = run_pipeline(srs_text="x", deps=deps)
+    assert model is not None  # degrades gracefully
+
+    captured = capsys.readouterr().out
+    assert "architect:contexts[OrderMgmt].supporting_sentence_ids" in captured, (
+        "Degrade-log must include the failing issue's location"
+    )
+    assert "no supporting_sentence_ids" in captured, (
+        "Degrade-log must include the failing issue's message"
+    )
