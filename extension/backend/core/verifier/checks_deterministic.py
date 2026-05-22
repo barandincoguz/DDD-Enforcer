@@ -8,10 +8,31 @@ def check_d1_supporting_sentence_ids_subset(
     contexts: List[Dict],
     scout_sentence_indices: Set[int],
 ) -> List[VerifierIssue]:
-    """D1: every BC.supporting_sentence_ids ⊆ Scout-emitted indices."""
+    """D1: every BC.supporting_sentence_ids is (a) non-empty AND (b) ⊆ Scout-emitted indices.
+
+    Non-emptiness clause added per WP-CORE-6 to close the F-21 vacuous-pass
+    defect: prior to WP-CORE-6, Architect never populated this field, so the
+    subset check passed trivially (empty list ⊆ any set) for every project
+    run. The non-empty clause is an honest-signal defense; full pipeline-level
+    enforcement requires F-22 (Refiner stage-aware re-runs).
+    """
     issues: List[VerifierIssue] = []
     for ctx in contexts:
-        bad = [i for i in ctx.get("supporting_sentence_ids", []) if i not in scout_sentence_indices]
+        ids = ctx.get("supporting_sentence_ids", [])
+        if not ids:
+            issues.append(VerifierIssue(
+                stage="architect",
+                location=f"architect:contexts[{ctx.get('name')}].supporting_sentence_ids",
+                issue_type="ungrounded_context",
+                severity=IssueSeverity.ERROR,
+                message=(
+                    f"Context {ctx.get('name')!r} has no supporting_sentence_ids "
+                    f"— cannot verify SRS grounding"
+                ),
+                suggestion="Architect must cite ≥1 Scout-emitted sentence index per context",
+            ))
+            continue
+        bad = [i for i in ids if i not in scout_sentence_indices]
         if bad:
             issues.append(VerifierIssue(
                 stage="architect",

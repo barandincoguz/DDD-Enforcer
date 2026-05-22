@@ -57,7 +57,13 @@ def test_extract_per_context_makes_one_llm_call_per_context():
                  "value_objects": [], "services": [], "aggregates": [], "domain_events": [], "business_rules": [],
              },
          ):
-        contexts = ["OrderMgmt", "Billing", "Inventory"]
+        # WP-CORE-6: signature widened from List[str] to List[ContextHypothesis]
+        from core.pipeline_contracts import ContextHypothesis
+        contexts = [
+            ContextHypothesis(context_name="OrderMgmt", supporting_sentence_ids=[0]),
+            ContextHypothesis(context_name="Billing", supporting_sentence_ids=[1]),
+            ContextHypothesis(context_name="Inventory", supporting_sentence_ids=[2]),
+        ]
         sentences = ["s0", "s1", "s2"]
         results = arch.extract_per_context_details(contexts, sentences)
     # 3 contexts → 3 calls

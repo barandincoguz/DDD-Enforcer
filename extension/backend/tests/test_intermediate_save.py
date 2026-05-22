@@ -135,7 +135,12 @@ def test_save_failure_in_identify_contexts_propagates_intermediate_save_error():
          patch.object(arch.token_tracker, "track_api_call"), \
          patch.object(
              arch, "_parse_json_response",
-             return_value={"contexts": ["CoreDomain"]},
+             # WP-CORE-6: new strict-shape object array (was ["CoreDomain"])
+             return_value={
+                 "contexts": [
+                     {"name": "CoreDomain", "supporting_sentence_ids": [0]}
+                 ],
+             },
          ):
         with pytest.raises(IntermediateSaveError):
             arch.identify_contexts(domain_sentences=["one.", "two."])
@@ -196,4 +201,9 @@ def test_save_failure_in_extract_per_context_details_propagates_intermediate_sav
              },
          ):
         with pytest.raises(IntermediateSaveError):
-            arch.extract_per_context_details(["X"], ["s0", "s1"])
+            # WP-CORE-6: signature widened from List[str] to List[ContextHypothesis]
+            from core.pipeline_contracts import ContextHypothesis
+            arch.extract_per_context_details(
+                [ContextHypothesis(context_name="X", supporting_sentence_ids=[0])],
+                ["s0", "s1"],
+            )

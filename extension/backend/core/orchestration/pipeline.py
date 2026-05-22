@@ -13,7 +13,10 @@ from core.pipeline_contracts import (
     SpecialistAnalysis,
     VerifierResult,
 )
-from core.orchestration.errors import SynthesizerEmptyModelError
+from core.orchestration.errors import (
+    RefinementExhaustedError,
+    SynthesizerEmptyModelError,
+)
 from core.refiner.loop import refine_until_clean
 
 
@@ -76,6 +79,22 @@ def run_pipeline(
             verifier=lambda s: deps.verifier({**snapshot, "specialist": s}),
             max_cycles=2,
         )
+    except RefinementExhaustedError as exc:
+        # WP-CORE-6 (D-6 / Codex C-4): enrich degrade-log with full issues
+        # list so D1 (and other) verifier ERRORs are visible in the run
+        # manifest. Pre-WP-CORE-6 log emitted only type(exc).__name__,
+        # making post-mortem debugging impossible — exc.issues was
+        # constructed but discarded at log time.
+        issues_summary = "; ".join(
+            f"{i.severity.value if hasattr(i.severity, 'value') else i.severity}@"
+            f"{i.stage}:{i.location}: {i.message}"
+            for i in exc.issues
+        )
+        print(
+            f"  ⚠️  refiner exhausted retries ({len(exc.issues)} unresolved issue(s)); "
+            f"continuing with last Specialist output. Issues: {issues_summary}"
+        )
+        refined_specialist = specialist_output
     except Exception as exc:
         # Refiner exhausted retries on semantic issues. The architectural
         # contract (typed envelopes + D6/D7/D8 hard-fail invariants) is

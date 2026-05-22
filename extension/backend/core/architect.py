@@ -17,7 +17,7 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from dotenv import load_dotenv
 from pydantic import ValidationError
@@ -80,6 +80,58 @@ def _truncate_with_head_tail(text: str, max_chars: int, head_ratio: float = 0.6)
     head_size = int(budget * head_ratio)
     tail_size = budget - head_size
     return f"{text[:head_size]}{marker}{text[-tail_size:]}"
+
+
+def _truncate_numbered_pairs(
+    pairs: List[Tuple[int, str]],
+    max_chars: int,
+    head_ratio: float = 0.6,
+) -> List[Tuple[int, str]]:
+    """Truncate a numbered (index, text) list by dropping whole pairs from
+    the middle when the cumulative formatted length exceeds `max_chars`.
+
+    WP-CORE-6 (Codex W-1): unlike `_truncate_with_head_tail` which slices
+    raw characters and can chop `[N] ` mid-prefix, this helper preserves
+    pair atomicity — any `[N]` survived in the output corresponds to a
+    valid Scout index. Greedy head-fill then greedy tail-fill (reversed)
+    until budgets are met; whole pairs are kept or dropped, never split.
+
+    Default ratio: 60% head / 40% tail (matches `_truncate_with_head_tail`).
+    """
+    def _formatted_len(idx: int, text: str) -> int:
+        return len(f"[{idx}] {text}\n")
+
+    total = sum(_formatted_len(i, t) for i, t in pairs)
+    if total <= max_chars:
+        return pairs
+
+    head_budget = int(max_chars * head_ratio)
+    tail_budget = max_chars - head_budget
+
+    head: List[Tuple[int, str]] = []
+    head_size = 0
+    for pair in pairs:
+        pair_size = _formatted_len(*pair)
+        if head_size + pair_size > head_budget:
+            break
+        head.append(pair)
+        head_size += pair_size
+
+    tail: List[Tuple[int, str]] = []
+    tail_size = 0
+    # Walk pairs in reverse, skipping anything already claimed by head.
+    head_indices = {i for i, _ in head}
+    for pair in reversed(pairs):
+        if pair[0] in head_indices:
+            break
+        pair_size = _formatted_len(*pair)
+        if tail_size + pair_size > tail_budget:
+            break
+        tail.append(pair)
+        tail_size += pair_size
+    tail.reverse()
+
+    return head + tail
 
 
 class DomainArchitect:
@@ -364,44 +416,70 @@ Return empty array [] if no sentences match the criteria."""
     # STAGE 2: ARCHITECT - Identify Bounded Contexts
     # =========================================================================
 
-    def identify_contexts(self, domain_sentences: List[str]) -> List[str]:
+    def identify_contexts(
+        self, domain_sentences: List[str]
+    ) -> List[Dict[str, Any]]:
         """
-        Identify bounded contexts from domain sentences.
+        Identify bounded contexts from domain sentences with sentence-grounding.
 
-        Analyzes all extracted domain knowledge to identify distinct
-        business areas with their own terminology and rules.
+        WP-CORE-6: returns object-array shape — each context names the
+        sentence indices that justify its identification. The previous
+        return type `List[str]` left `ContextHypothesis.supporting_sentence_ids`
+        empty, which caused D1 verifier check to pass vacuously for every
+        run (F-21).
+
+        Args:
+            domain_sentences: Scout-extracted sentences; their position in
+                this list is the index referenced by `supporting_sentence_ids`.
+
+        Returns:
+            List of dicts with keys `name` (str) and `supporting_sentence_ids`
+            (List[int]).
         """
         print("\n┌─────────────────────────────────────────────────────────────────┐")
         print("│ STAGE 2: ARCHITECT - Identifying Bounded Contexts              │")
         print("└─────────────────────────────────────────────────────────────────┘")
-        
+
         self._report_progress("Architect", "started", "Identifying bounded contexts", 0)
 
-        text = "\n".join(domain_sentences)
+        # WP-CORE-6 (D-4 / Codex W-1): number sentences before truncation
+        # so any `[N]` the LLM sees corresponds to a valid Scout index.
+        # `_truncate_numbered_pairs` drops whole (idx, text) pairs from the
+        # middle rather than chopping characters across a prefix boundary.
+        numbered_pairs: List[Tuple[int, str]] = list(enumerate(domain_sentences))
         max_chars = 50000
-        if len(text) > max_chars:
-            print(f"  ✂️  Truncating input: {len(text):,} → {max_chars:,} chars (head + tail preserved)")
-            text = _truncate_with_head_tail(text, max_chars=max_chars)
+        truncated_pairs = _truncate_numbered_pairs(numbered_pairs, max_chars=max_chars)
+        if len(truncated_pairs) < len(numbered_pairs):
+            print(
+                f"  ✂️  Truncating input: {len(numbered_pairs)} sentences → "
+                f"{len(truncated_pairs)} sentences (head + tail preserved)"
+            )
+        numbered_text = "\n".join(f"[{i}] {s}" for i, s in truncated_pairs)
 
-        prompt = f"""Identify distinct Bounded Contexts from the domain knowledge below.
+        prompt = f"""Identify distinct Bounded Contexts from the numbered domain sentences below.
 
 A Bounded Context is a cohesive business area with:
 - Its own terminology and ubiquitous language
 - Clear ownership of specific entities
 - Defined boundaries and responsibilities
 
-DOMAIN KNOWLEDGE:
-{text}
+NUMBERED DOMAIN SENTENCES (each line is `[index] sentence`):
+{numbered_text}
 
 CONSTRAINTS:
 - Identify 3-8 contexts (avoid over/under-fragmentation)
 - Use PascalCase business names (OrderManagement, not order_mgmt)
 - Each entity belongs to ONE primary context
 - Avoid generic names (CoreDomain, BusinessLogic, MainSystem)
+- Each context MUST cite ≥1 supporting_sentence_id from the numbered list above.
+  If you cannot justify a context with at least one sentence, do not include it.
 
-RESPOND WITH JSON:
+RESPOND WITH STRICT JSON OBJECT (no bare strings, no top-level list):
 {{
-  "contexts": ["ContextName1", "ContextName2", ...]
+  "contexts": [
+    {{"name": "ContextName1", "supporting_sentence_ids": [0, 3, 12]}},
+    {{"name": "ContextName2", "supporting_sentence_ids": [5, 9]}}
+  ]
 }}"""
 
         sc = stage_config("Architect")
@@ -446,9 +524,25 @@ RESPOND WITH JSON:
                     operation="identify_contexts"
                 )
 
+                # WP-CORE-6 (D-5b / Codex W-2): strict-shape only — accept
+                # ONLY `{"contexts": [{"name": str, "supporting_sentence_ids": List[int]}]}`.
+                # Reject (a) bare-string dict `{"contexts": ["X"]}` and (b)
+                # top-level list `["X", "Y"]` (the legacy `elif isinstance(result, list)`
+                # branch is removed).
                 if isinstance(result, dict) and "contexts" in result:
                     contexts = result["contexts"]
-                    if contexts and len(contexts) > 0:
+                    shape_ok = (
+                        isinstance(contexts, list)
+                        and len(contexts) > 0
+                        and all(
+                            isinstance(c, dict)
+                            and isinstance(c.get("name"), str)
+                            and isinstance(c.get("supporting_sentence_ids"), list)
+                            and all(isinstance(i, int) for i in c["supporting_sentence_ids"])
+                            for c in contexts
+                        )
+                    )
+                    if shape_ok:
                         # Save intermediate output
                         self._save_intermediate(
                             stage="2_architect",
@@ -456,26 +550,16 @@ RESPOND WITH JSON:
                                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                                 "contexts_identified": len(contexts),
                                 "contexts": contexts,
-                                "input_sentences_count": len(domain_sentences)
-                            }
+                                "input_sentences_count": len(domain_sentences),
+                            },
                         )
-                        self._report_progress("Architect", "completed", f"Found {len(contexts)} contexts", 100)
+                        self._report_progress(
+                            "Architect", "completed",
+                            f"Found {len(contexts)} contexts", 100,
+                        )
                         return contexts
-                elif isinstance(result, list) and len(result) > 0:
-                    # Save intermediate output
-                    self._save_intermediate(
-                        stage="2_architect",
-                        data={
-                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                            "contexts_identified": len(result),
-                            "contexts": result,
-                            "input_sentences_count": len(domain_sentences)
-                        }
-                    )
-                    self._report_progress("Architect", "completed", f"Found {len(result)} contexts", 100)
-                    return result
 
-                print(f"  ⚠️  Empty response - Retry {retry + 1}/5")
+                print(f"  ⚠️  Empty or malformed response - Retry {retry + 1}/5")
                 if retry < 4:
                     continue
                 self._report_progress("Architect", "error", "Architect produced empty contexts", 100)
@@ -572,19 +656,28 @@ RESPOND WITH JSON:
             ) from e
 
     def extract_per_context_details(
-        self, contexts: List[str], domain_sentences: List[str]
+        self,
+        contexts: List[ContextHypothesis],
+        domain_sentences: List[str],
     ) -> List[SpecialistAnalysis]:
         """Per-context Specialist loop (FM-23).
 
         Issues one LLM call per bounded context with a focused prompt
         that mentions only that one context. Forces exclusive entity
         ownership at the prompt level.
+
+        WP-CORE-6 (Codex C-1): signature changed from `contexts: List[str]`
+        to `contexts: List[ContextHypothesis]` so Architect's
+        `supporting_sentence_ids` is preserved into `SpecialistAnalysis.context`.
+        Synthesizer's deterministic merge then copies the IDs into the final
+        `BoundedContext.supporting_sentence_ids` (closing F-21 end-to-end).
         """
         results: List[SpecialistAnalysis] = []
         numbered_sentences_text = "\n".join(
             f"[{i}] {s}" for i, s in enumerate(domain_sentences)
         )
-        for ctx_name in contexts:
+        for ctx in contexts:
+            ctx_name = ctx.context_name
             prompt = self._build_specialist_prompt_per_context(
                 context_name=ctx_name,
                 numbered_sentences_text=numbered_sentences_text,
@@ -615,12 +708,10 @@ RESPOND WITH JSON:
                             context_name=ctx_name,
                             message=f"Specialist parse failed for {ctx_name} after 5 retries",
                         )
-                    # Typed boundary validation — converts list-not-dict crashes (the
-                    # live pipeline failure mode at the old L692) into a SpecialistShapeError
-                    # that the retry loop can act on.
-                    # identify_contexts returns bare context-name strings (no descriptions).
-                    # Synthesizer fills BoundedContext.description later. Empty here is honest.
-                    ctx = ContextHypothesis(context_name=ctx_name, description="")
+                    # WP-CORE-6 (Codex C-1): re-use the input `ctx` instead of
+                    # rebuilding `ContextHypothesis(context_name=ctx_name, description="")`.
+                    # Re-building dropped Architect's supporting_sentence_ids, which is
+                    # exactly the F-21 vacuous-pass cause.
                     try:
                         analysis = DomainArchitect._validate_specialist_payload(result, ctx)
                     except SpecialistShapeError as shape_err:
@@ -775,19 +866,29 @@ Do not invent data not present in the sentences."""
 
         def architect_fn(scout: ScoutOutput) -> ArchitectOutput:
             sentence_texts = [s.text for s in scout.sentences]
-            ctx_names = self.identify_contexts(sentence_texts)
+            # WP-CORE-6: identify_contexts now returns object array with
+            # supporting_sentence_ids; thread them into ContextHypothesis.
+            ctx_proposals = self.identify_contexts(sentence_texts)
             contexts = [
-                ContextHypothesis(context_name=n, description=f"{n} context")
-                for n in ctx_names
+                ContextHypothesis(
+                    context_name=c["name"],
+                    description=f"{c['name']} context",
+                    supporting_sentence_ids=c["supporting_sentence_ids"],
+                )
+                for c in ctx_proposals
             ]
             return ArchitectOutput(contexts=contexts)
 
         def specialist_fn(
             arch: ArchitectOutput, scout: ScoutOutput
         ) -> List[SpecialistAnalysis]:
-            ctx_names = [c.context_name for c in arch.contexts]
+            # WP-CORE-6 (Codex C-1): pass full ContextHypothesis list
+            # (not just names) so supporting_sentence_ids survives
+            # Architect → Specialist → SpecialistAnalysis.context.
             sentence_texts = [s.text for s in scout.sentences]
-            return self.extract_per_context_details(ctx_names, sentence_texts)
+            return self.extract_per_context_details(
+                list(arch.contexts), sentence_texts,
+            )
 
         def synthesizer_fn(analyses: List[SpecialistAnalysis]) -> DomainModel:
             return synthesize_domain_model(

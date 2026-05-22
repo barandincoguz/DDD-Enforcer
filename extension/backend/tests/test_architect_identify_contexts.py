@@ -32,20 +32,17 @@ def _make_architect():
     return a
 
 
-def _llm_response_json(payload: dict | list) -> MagicMock:
-    """Build a MagicMock llm_response whose adapter returns the given JSON string.
-
-    The chat client returns an opaque object; LLMResponseAdapter + _safe_response_text
-    extract .text. _check_response_completion needs `usage_metadata.candidates_token_count`.
-    """
-    resp = MagicMock()
-    resp.text = json.dumps(payload)
-    # Truncation guard reads usage_metadata fields; populate so completion check passes.
-    resp.usage_metadata.prompt_token_count = 10
-    resp.usage_metadata.candidates_token_count = 5
-    resp.usage_metadata.cached_content_token_count = 0
-    resp.candidates = [MagicMock(finish_reason="STOP")]
-    return resp
+def _llm_response_json(payload):
+    """Build an LLMResponse with JSON content matching client.chat return shape."""
+    from core.llm.base import LLMResponse, TokenUsage
+    return LLMResponse(
+        content=json.dumps(payload),
+        parsed=None,
+        usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        model_id="gemini-3.1-pro-preview",
+        provider="gemini",
+        json_failed=False,
+    )
 
 
 class TestIdentifyContextsReturnShape:
