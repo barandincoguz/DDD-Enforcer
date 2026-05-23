@@ -199,7 +199,13 @@ class DomainArchitect:
     # =========================================================================
 
     def _wait_for_rate_limit(self):
-        """Enforce minimum delay between API requests. Thread-safe."""
+        """Enforce minimum delay between API requests. Thread-safe.
+
+        Uses `self._rate_limit_lock` (threading.Lock) to serialize concurrent
+        Scout workers when DDD_SCOUT_MAX_WORKERS > 1. `self.token_tracker`
+        is independently thread-safe via its own `_lock` at
+        core/token_tracker.py:44 + :97 (WP-CORE-19 F-20 documentation).
+        """
         with self._rate_limit_lock:
             elapsed = time.time() - self.last_request_time
             if elapsed < self.min_delay:
