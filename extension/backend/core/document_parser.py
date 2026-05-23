@@ -2,7 +2,22 @@ import os
 import re
 from typing import List
 
-from core.document_parser_readers import read_docx, read_pdf, read_txt
+from core.document_parser_readers import (
+    MisLabeledFileError,
+    read_docx,
+    read_pdf,
+    read_txt,
+)
+
+
+# WP-CORE-9 (F-2): re-export MisLabeledFileError so consumers can import via
+# the parser entrypoint (mirrors EmptySRSDocumentError below). Avoids forcing
+# callers to know the reader-module internals.
+__all__ = [
+    "EmptySRSDocumentError",
+    "MisLabeledFileError",
+    "SRSDocumentParser",
+]
 
 
 class EmptySRSDocumentError(ValueError):
