@@ -14,6 +14,34 @@ from typing import Dict, List
 
 
 SECTION_HEADER_RE = re.compile(r"^(\d+(?:\.\d+)*)\s+(.+?)$", re.MULTILINE)
+_SUBCHUNK_SUFFIX = ".chunk_"
+
+
+def count_truncated_sections(chunks: List[Dict]) -> int:
+    """Return the number of distinct top-level sections that had to be
+    subdivided into more than one sub-chunk by `section_aware_chunks`.
+
+    A section is "truncated" (in the audit sense) when its content
+    exceeded the token budget and was split into `<id>.chunk_1`,
+    `<id>.chunk_2`, ...  This helper collapses those sub-chunks back to
+    their base section id and counts the unique bases.  A section that
+    fit in a single chunk contributes 0; a section that produced 5
+    sub-chunks contributes 1.
+
+    Closes the "ChunkMetadata.truncated_chunks always-zero" audit gap:
+    `scout_fn` in `core/architect.py` plumbs this count into the
+    `ScoutOutput.chunk_metadata.truncated_chunks` field so downstream
+    paper-data consumers see the real subdivision count rather than the
+    hardcoded default of 0.
+    """
+    truncated_bases: set[str] = set()
+    for chunk in chunks:
+        section_id = chunk.get("section_id", "")
+        if not isinstance(section_id, str):
+            continue
+        if _SUBCHUNK_SUFFIX in section_id:
+            truncated_bases.add(section_id.split(_SUBCHUNK_SUFFIX, 1)[0])
+    return len(truncated_bases)
 
 
 def section_aware_chunks(text: str, token_budget: int = 10000) -> List[Dict]:

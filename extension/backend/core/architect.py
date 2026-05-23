@@ -785,6 +785,7 @@ Do not invent data not present in the sentences."""
         def scout_fn(srs_text: str) -> ScoutOutput:
             chunks = section_aware_chunks(srs_text, token_budget=10000)
             from core.pipeline_contracts import SectionedSentence, ChunkMetadata
+            from core.scout.chunking import count_truncated_sections
             sentences = [
                 SectionedSentence(
                     index=i,
@@ -798,6 +799,11 @@ Do not invent data not present in the sentences."""
                 chunk_metadata=ChunkMetadata(
                     chunk_count=len(chunks),
                     total_chars=sum(len(c["text"]) for c in chunks),
+                    # Closes the "truncated_chunks always-zero" audit gap:
+                    # count distinct top-level sections that produced
+                    # `<id>.chunk_N` sub-chunks (i.e., real subdivision
+                    # events from oversize sections).
+                    truncated_chunks=count_truncated_sections(chunks),
                 ),
             )
 
