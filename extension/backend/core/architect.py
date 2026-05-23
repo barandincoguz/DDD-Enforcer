@@ -44,6 +44,7 @@ from core.verifier.checks_deterministic import (
 from core.verifier.types import VerifierResult
 from core.token_tracker import TokenTracker
 from configs.models import stage_config
+from core.refiner.prompts import render_refinement_prompt
 
 load_dotenv()
 
@@ -732,6 +733,234 @@ Every entity.evidence_sentence_indices must contain at least one Scout-numbered 
 Do not invent data not present in the sentences."""
 
     # =========================================================================
+    # SPECIALIST WITH FEEDBACK (WP-CORE-30b Task 2)
+    # =========================================================================
+
+    def _specialist_with_feedback(
+        self,
+        arch: "ArchitectOutput",
+        scout: "ScoutOutput",
+        prev_output: List["SpecialistAnalysis"],
+        issues: List[Any],
+    ) -> List["SpecialistAnalysis"]:
+        """Narrow per-context specialist rerun driven by verifier feedback.
+
+        For each context in arch.contexts:
+          - If the context is NOT in the affected set (no issues targeting it):
+            copy the prev_output entry verbatim.
+          - If the context IS in the affected set:
+            build a refinement prompt via render_refinement_prompt, call the
+            LLM, parse the response into a fresh SpecialistAnalysis.
+            On unrecoverable failure after 5 retries: fall back to the
+            previous entry so the pipeline can continue.
+
+        Operation labels for token tracking use the prefix
+        "specialist_with_feedback:<ctx_name>:attempt-N" so run manifests
+        distinguish feedback reruns from first-attempt specialist calls.
+
+        Args:
+            arch: Current ArchitectOutput (context list to iterate).
+            scout: ScoutOutput providing numbered sentences.
+            prev_output: List[SpecialistAnalysis] from the previous run.
+            issues: List of VerifierIssue objects (pipeline_contracts or
+                verifier.types) whose target/location carries a
+                "specialist:<ctx_name>[.<field>]" prefix.
+
+        Returns:
+            New List[SpecialistAnalysis] — same length as arch.contexts.
+        """
+        from core.pipeline_contracts import ArchitectOutput as _AO, ScoutOutput as _SO
+
+        # ------------------------------------------------------------------
+        # Step 1: build lookup from prev_output by context_name.
+        # ------------------------------------------------------------------
+        prev_by_ctx: Dict[str, SpecialistAnalysis] = {
+            a.context.context_name: a for a in prev_output
+        }
+
+        # ------------------------------------------------------------------
+        # Step 2: derive affected context names from issues.
+        # Convention: target (or location) starts with "specialist:" and may
+        # carry a sub-path: "specialist:<ctx_name>.<field>".
+        # ------------------------------------------------------------------
+        def _parse_target_ctx(issue: Any) -> Optional[str]:
+            """Return the context name embedded in a specialist: target, or None."""
+            raw = getattr(issue, "target", None) or getattr(issue, "location", "") or ""
+            if not isinstance(raw, str) or not raw.startswith("specialist:"):
+                return None
+            # Drop the "specialist:" prefix, then take the portion before the
+            # first dot to isolate the context name.
+            after_prefix = raw[len("specialist:"):]
+            ctx_name = after_prefix.split(".")[0].strip()
+            return ctx_name if ctx_name else None
+
+        affected_ctx_names: set = {
+            name
+            for issue in issues
+            for name in [_parse_target_ctx(issue)]
+            if name is not None
+        }
+
+        # ------------------------------------------------------------------
+        # Step 3: build numbered sentence text (mirrors extract_per_context_details).
+        # ------------------------------------------------------------------
+        sentence_texts = [s.text for s in scout.sentences]
+        numbered_sentences_text = "\n".join(
+            f"[{i}] {s}" for i, s in enumerate(sentence_texts)
+        )
+
+        # ------------------------------------------------------------------
+        # Step 4: render_refinement_prompt expects core.verifier.types.VerifierIssue
+        # (dataclass with .severity.value, .location, .suggestion).
+        # Pipeline issues are core.pipeline_contracts.VerifierIssue (Pydantic
+        # with .severity str, .target, no .suggestion).  Adapt on the fly.
+        # ------------------------------------------------------------------
+        from core.verifier.types import VerifierIssue as LegacyVerifierIssue, IssueSeverity
+
+        def _to_legacy_issue(issue: Any) -> LegacyVerifierIssue:
+            sev_raw = getattr(issue, "severity", "error")
+            if isinstance(sev_raw, str):
+                sev = (
+                    IssueSeverity.ERROR
+                    if sev_raw.upper() == "ERROR"
+                    else IssueSeverity.WARN
+                )
+            else:
+                sev = sev_raw  # already an IssueSeverity enum
+            location = (
+                getattr(issue, "target", None)
+                or getattr(issue, "location", "")
+                or ""
+            )
+            return LegacyVerifierIssue(
+                stage="specialist",
+                location=location,
+                issue_type=getattr(issue, "check_id", "unknown"),
+                severity=sev,
+                message=getattr(issue, "message", ""),
+                suggestion=getattr(issue, "suggestion", None),
+            )
+
+        # ------------------------------------------------------------------
+        # Step 5: iterate contexts, re-prompt affected ones, copy the rest.
+        # ------------------------------------------------------------------
+        sc = stage_config("Specialist")
+        results: List[SpecialistAnalysis] = []
+
+        for ctx in arch.contexts:
+            ctx_name = ctx.context_name
+
+            if ctx_name not in affected_ctx_names:
+                # Not affected — copy prev entry verbatim.
+                if ctx_name in prev_by_ctx:
+                    results.append(prev_by_ctx[ctx_name])
+                else:
+                    # Defensive: prev entry missing — skip with a warning.
+                    print(
+                        f"  [WARN] specialist_with_feedback: no prev entry for "
+                        f"unaffected context '{ctx_name}'; skipping."
+                    )
+                continue
+
+            # Affected context: build refinement prompt and call LLM.
+            prev_analysis = prev_by_ctx.get(ctx_name)
+            if prev_analysis is None:
+                # Defensive fallback: no prev analysis — run original specialist
+                # prompt for this single context so the rerun still produces
+                # something useful.
+                print(
+                    f"  [WARN] specialist_with_feedback: no prev entry for "
+                    f"affected context '{ctx_name}'; falling back to fresh prompt."
+                )
+                try:
+                    fallback = self.extract_per_context_details([ctx], sentence_texts)
+                    results.extend(fallback)
+                except Exception as fallback_exc:
+                    print(
+                        f"  [WARN] specialist_with_feedback: fresh-prompt fallback "
+                        f"also failed for '{ctx_name}': {fallback_exc}"
+                    )
+                continue
+
+            prev_json = prev_analysis.model_dump_json(indent=2)
+
+            # Filter issues to this context only.
+            ctx_issues_raw = [i for i in issues if _parse_target_ctx(i) == ctx_name]
+            ctx_issues_legacy = [_to_legacy_issue(i) for i in ctx_issues_raw]
+
+            refinement_prompt = render_refinement_prompt(
+                stage_name="specialist",
+                previous_output_json=prev_json,
+                issues=ctx_issues_legacy,
+            )
+
+            success = False
+            for retry in range(5):
+                operation = f"specialist_with_feedback:{ctx_name}:attempt-{retry + 1}"
+                try:
+                    self._wait_for_rate_limit()
+                    llm_response = self.client.chat(
+                        messages=[{"role": "user", "content": refinement_prompt}],
+                        model=self.model_name,
+                        temperature=sc.temperature,
+                        seed=sc.seed,
+                        response_mime_type="application/json",
+                    )
+                    response = LLMResponseAdapter(llm_response)
+                    self.token_tracker.track_api_call(
+                        response,
+                        stage="Specialist",
+                        operation=operation,
+                    )
+                    if not self._check_response_completion(response, retry):
+                        if retry < 4:
+                            time.sleep(2)
+                            continue
+                    result = self._parse_json_response(self._safe_response_text(response))
+                    if isinstance(result, dict) and result.get("error") == "json_parse_failed":
+                        _record_json_parse_failure_if_emitter(
+                            stage="specialist",
+                            operation=operation,
+                            model_id=getattr(llm_response, "model_id", self.model_name),
+                        )
+                        if retry < 4:
+                            time.sleep(2)
+                            continue
+                        break  # fall through to prev_analysis fallback
+                    try:
+                        analysis = DomainArchitect._validate_specialist_payload(result, ctx)
+                    except SpecialistShapeError as shape_err:
+                        print(
+                            f"  [WARN] specialist_with_feedback shape error for "
+                            f"{ctx_name} - Retry {retry + 1}/5 "
+                            f"({len(shape_err.validation_errors)} validation error(s))"
+                        )
+                        if retry < 4:
+                            time.sleep(2)
+                            continue
+                        break  # fall through to prev_analysis fallback
+                    results.append(analysis)
+                    success = True
+                    break
+                except SpecialistFailureError:
+                    raise
+                except Exception as e:
+                    if not self._is_quota_error_and_backoff(e, retry):
+                        if retry >= 4:
+                            break  # fall through to prev_analysis fallback
+
+            if not success:
+                # Unrecoverable failure: fall back to prev_analysis so the
+                # pipeline can continue. The refiner-exhausted path takes over.
+                print(
+                    f"  [WARN] specialist_with_feedback: LLM rerun failed for "
+                    f"'{ctx_name}' after 5 retries; using prev_analysis as fallback."
+                )
+                results.append(prev_analysis)
+
+        return results
+
+    # =========================================================================
     # MAIN PIPELINE
     # =========================================================================
 
@@ -853,6 +1082,18 @@ Do not invent data not present in the sentences."""
                 list(arch.contexts), sentence_texts,
             )
 
+        def specialist_with_feedback_fn(
+            arch: ArchitectOutput,
+            scout: ScoutOutput,
+            prev_output: List[SpecialistAnalysis],
+            issues: List[Any],
+        ) -> List[SpecialistAnalysis]:
+            # WP-CORE-30b Task 2: narrow per-context rerun driven by verifier
+            # feedback.  Delegates to DomainArchitect._specialist_with_feedback
+            # so the method can also be tested directly without running the
+            # full pipeline.
+            return self._specialist_with_feedback(arch, scout, prev_output, issues)
+
         def synthesizer_fn(analyses: List[SpecialistAnalysis]) -> DomainModel:
             return synthesize_domain_model(
                 analyses,
@@ -907,6 +1148,7 @@ Do not invent data not present in the sentences."""
             specialist=specialist_fn,
             synthesizer=synthesizer_fn,
             verifier=verifier_fn,
+            specialist_with_feedback=specialist_with_feedback_fn,
         )
         return run_pipeline(
             srs_text=text,
