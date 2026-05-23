@@ -15,6 +15,7 @@ from core.AST.ast_signal_discovery import DEFAULT_SKIP_DIRS, extract_class_facts
 from core.AST.ast_signal_enrichment import SignalEnricher
 from core.AST.ast_signal_types import CandidateSignal
 from core.AST.import_graph import apply_import_topology_to_model
+from core.AST.mutability_index import build_mutability_index
 from core.schemas import DomainModel
 
 
@@ -60,7 +61,17 @@ class ASTModelSignalExtractor:
         enricher = SignalEnricher(workspace_path=workspace_path)
         signals = enricher.deduplicate_signals(signals)
         enricher.apply_grounding(signals, srs_docs)
-        model_data = enricher.enrich_model(model_data, signals, srs_docs=srs_docs)
+        # WP-CORE-27a: build the AST-derived mutability index and pass it
+        # through so the enricher can stamp `is_mutable_in_code` on each
+        # LLM-claimed Value Object.  Without this, D9 is vacuously
+        # satisfied for every VO (every entry sits at the schema default).
+        mutability_index = build_mutability_index(python_files)
+        model_data = enricher.enrich_model(
+            model_data,
+            signals,
+            srs_docs=srs_docs,
+            mutability_index=mutability_index,
+        )
         # WP-CORE-31b: auto-populate BoundedContext.allowed_dependencies
         # from the AST-derived import topology + record cross-check diff.
         # Runs after the main enrichment pass so any contexts the

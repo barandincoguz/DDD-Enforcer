@@ -78,6 +78,7 @@ class SignalEnricher:
         model_data: Dict[str, Any],
         signals: List[CandidateSignal],
         srs_docs: Optional[List[Dict[str, Any]]] = None,
+        mutability_index: Optional[Dict[str, bool]] = None,
     ) -> Dict[str, Any]:
         contexts = model_data.get("bounded_contexts", [])
         # A model is treated as "auto-created" when there are no contexts at
@@ -122,6 +123,22 @@ class SignalEnricher:
             ).append(signal)
 
         self._check_traceability(model_data, merged_signals_by_context)
+        # WP-CORE-27a: stamp `is_mutable_in_code` on every LLM-claimed VO
+        # using the AST-derived mutability index.  Items whose class
+        # name does not appear in the index are left at the schema
+        # default (False) — the conservative behaviour for an
+        # AST-invisible VO is "no D9 violation signal".  Backward compat
+        # for callers that supply `mutability_index=None`: this loop is
+        # a no-op.
+        if mutability_index is not None:
+            for context in contexts:
+                ul = context.get("ubiquitous_language", {}) or {}
+                for vo in ul.get("value_objects", []) or []:
+                    name_key = str(vo.get("name", "")).lower()
+                    if name_key in mutability_index:
+                        vo["is_mutable_in_code"] = bool(
+                            mutability_index[name_key]
+                        )
         self._finalize_rates()
         self._write_diagnostics()
         return model_data
