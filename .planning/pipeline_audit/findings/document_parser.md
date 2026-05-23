@@ -40,7 +40,10 @@
 **Test gap:** yes — no test for empty-file behavior across the three reader types.
 **AGENTS/CLAUDE rule cited:** AGENTS.md "Stable entrypoints" + "no permissive fallbacks during development"; the contract is leaky.
 
-### F-4 — TOC heuristic is anchored to first 120 raw lines and `cluster < 2` threshold; layout-mode PDFs leak TOC into Scout — MAJOR (uncertain)
+### F-4 — TOC heuristic is anchored to first 120 raw lines and `cluster < 2` threshold; layout-mode PDFs leak TOC into Scout — MAJOR (uncertain → LIVE confirmed) — SHIPPED (WP-CORE-12 `7ec8240`)
+
+**Status update (2026-05-23 15:20 GMT+3) — SHIPPED.** Reachability verified: pypdf extraction_mode="layout" (project default at document_parser_readers.py:270) produces TOC lines with whitespace separators not dot leaders; `_normalize_line` collapses 3+ spaces to `" | "` (table preservation); pre-WP-CORE-12 `toc_line_pattern` required literal `\.{4,}`, matched neither form → leak confirmed. Fix: regex leader group broadened to alternation `\.{4,}` | `\s+\|\s+` | `\s{3,}`. Cluster<2 + 120-line window guards retained. Baseline 394 → 397 (+3 tests). See `[[WP-CORE-12-toc-heuristic-layout-mode]]`.
+
 
 **Component:** document_parser.py
 **Evidence:** `extension/backend/core/document_parser.py:81-101` (`_find_toc_line_indexes`); `:103-117` (`_flush_toc_cluster`); regex at `:17-20`

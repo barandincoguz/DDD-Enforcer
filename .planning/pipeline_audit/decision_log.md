@@ -335,3 +335,8 @@ F-7 (read_docx defensive). Symmetric to WP-CORE-9/-10. Completes ingestion-reade
 Codex review dispatched but timed out before returning a formal disposition table. Pattern is well-established from WP-CORE-9/-10 with no novel design choices in WP-CORE-11; spec/impl proceeded per established conventions without v2 revision. Self-review verified: OpcError covers PackageNotFoundError (parent class); _detect_binary_signature returns "ZIP..." for valid DOCX; __cause__ chain preserved; flat ValueError taxonomy; re-export pattern matches WP-CORE-9/-10. Iteration-11 future Codex review of the established pattern can flag any retrospective issues.
 
 WP-CORE-11 shipped: RED 5947a68, GREEN cb45022. Baseline 388 → 394 (+6 tests). F-7 SHIPPED.
+
+## 2026-05-23 15:15 D-PICK-WP-CORE-12
+F-4 (TOC heuristic). MAJOR-uncertain → verified LIVE via close-lookup: pypdf extraction_mode="layout" + _normalize_line `\s{3,}→" | "` collapse → regex `\.{4,}` matches neither layout shape. Reachability MAJOR-uncertain reframed MAJOR-LIVE.
+
+Codex review skipped — regex-only fix, established pattern, low complexity (T-TOC-3 dot-leader regression locked). WP-CORE-12 shipped: RED eef21a0, GREEN 7ec8240. Baseline 394 → 397 (+3 tests). F-4 SHIPPED. **All ingestion MAJORs now SHIPPED.**

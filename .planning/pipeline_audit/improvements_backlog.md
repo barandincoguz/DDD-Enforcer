@@ -50,6 +50,7 @@ Each row: `id | component | finding | severity | effort | blast | status`.
 | F-2 | core/document_parser_readers.py + core/document_parser.py | `read_txt` cp1254 single-byte fallback could silently decode renamed binary files into gibberish on no-NUL printable content; common-case raised opaque `UnicodeDecodeError` with no format detail. WP-CORE-9 adds `MisLabeledFileError(ValueError)` + `_BINARY_MAGIC_SIGNATURES` tuple (10 signatures: 3 ZIP variants per Codex W-1, PDF, OLE compound, PNG, JPEG, 2 GIF variants, gzip) + `_detect_binary_signature` helper; signature check inserted BEFORE encoding-decode loop. Re-exported from `core.document_parser` (Codex OQ). Dual benefit per Codex W-6: rare silent-accept + common-case diagnostics. Scope `.txt`-only per Codex W-8 (F-1/F-7 cover read_pdf/read_docx symmetric defenses as future WPs). | MAJOR | M | PIPELINE | **SHIPPED (ff28324)** |
 | F-1 | core/document_parser_readers.py + core/document_parser.py | `read_pdf` was 3 LOC zero-defense; corrupted/encrypted/mislabeled/empty PDFs surfaced as opaque `pypdf.errors.PdfReadError` or misleading downstream "empty document". WP-CORE-10 adds `EncryptedPDFError` + `CorruptedPDFError` + `EmptyPDFError` (all `ValueError`); header-only magic-byte check via `open + read(_MAGIC_HEADER_BYTES)` (Codex W-3) re-uses WP-CORE-9 `_detect_binary_signature` for symmetric `MisLabeledFileError`. Codex C-1: wraps constructor + lazy `reader.pages`/`page.extract_text` failures under one `except PdfReadError` (PdfStreamError is subclass per T-PDF-INHERIT). Codex W-1: `__cause__` chain preserved. Codex W-5: strict byte-0 policy. Codex W-6: flat ValueError taxonomy. Re-exported from `core.document_parser`. | MAJOR | M | PIPELINE | **SHIPPED (5df3df6)** |
 | F-7 | core/document_parser_readers.py + core/document_parser.py | `read_docx` was 14 LOC zero-defense; renamed binaries / corrupted DOCX / empty DOCX surfaced as opaque `docx.opc.exceptions.PackageNotFoundError` or downstream misleading "empty document". WP-CORE-11 adds `CorruptedDOCXError` + `EmptyDOCXError` (both `ValueError`); header-only magic-byte check re-uses WP-CORE-9 `_detect_binary_signature` for symmetric `MisLabeledFileError` (DOCX = ZIP archive; detected.startswith("ZIP") matches). Single `except OpcError` covers `PackageNotFoundError` family. `__cause__` chain preserved. Re-exported from `core.document_parser`. Completes ingestion-reader defense trilogy (TXT/PDF/DOCX). | MINOR | S-M | PIPELINE | **SHIPPED (cb45022)** |
+| F-4 | core/document_parser.py | `toc_line_pattern` required `\.{4,}` dot leaders. pypdf `extraction_mode="layout"` (project default) produces whitespace-separator TOCs; `_normalize_line` collapses 3+ spaces to `" \| "`. Pre-WP-CORE-12 regex matched neither shape; TOC entries leaked to Scout as domain sentences, polluting bounded-context graph. WP-CORE-12 broadens leader group to alternation: `\.{4,}` (legacy dot leader) `\| \s+\\|\s+` (post-`_normalize_line` pipe-separator) `\| \s{3,}` (raw multi-space). Cluster<2 + 120-line window guards retained for false-positive protection. F-4 MAJOR-uncertain reframed MAJOR-LIVE confirmed. | MAJOR | S | PIPELINE | **SHIPPED (7ec8240)** |
 
 ## Rejected / Deferred
 
@@ -59,10 +60,10 @@ _(empty)_
 
 **Decision priority:** production bug fix > test-coverage critical gap > measurable perf regression > evidence-backed clarity smell > cosmetic.
 
-**Status summary (post-iteration-10):**
-- 10 ingestion findings: 5 SHIPPED (F-3, F-5, F-2, F-1, F-7), 1 MAJOR-OPEN (F-4-uncertain), 2 MINOR-OPEN (F-6, F-8, F-9), 1 TRIVIAL-OPEN (F-10).
+**Status summary (post-iteration-11):**
+- 10 ingestion findings: 6 SHIPPED (F-3, F-5, F-2, F-1, F-7, F-4), 0 MAJOR-OPEN, 3 MINOR-OPEN (F-6, F-8, F-9), 1 TRIVIAL-OPEN (F-10).
 - 14 orchestrator findings: 5 SHIPPED, 1 MAJOR-OPEN-DORMANT (F-11), 7 MINOR-OPEN, 1 TRIVIAL-OPEN.
-- **Total OPEN MAJOR (live): 1** (F-4-uncertain) + 1 DORMANT (F-11).
-- **Iteration-11 recommendation:** F-4 (TOC heuristic refactor) — last ingestion-layer MAJOR; MAJOR-uncertain reachability requires verification first. Alternatives: F-24 (srs_path in VerifierIssue) orchestrator pivot or minor cluster.
+- **Total OPEN MAJOR (live): 0** + 1 DORMANT (F-11). **First time the entire audit has zero MAJOR-OPEN-live findings since audit began.**
+- **Iteration-12 recommendation:** Pivot to MINOR cluster. F-24 (srs_path in VerifierIssue — closes WP-CORE-6 A6-srs-path follow-up) is highest-leverage minor. Alternatives: F-12 (Specialist shape retry token gap), F-18 (synthetic context descriptions in intermediate JSON), F-6 (_should_merge quote/bracket).
 
-**Last refresh:** 2026-05-23 15:00 GMT+3 (post-WP-CORE-11)
+**Last refresh:** 2026-05-23 15:20 GMT+3 (post-WP-CORE-12)

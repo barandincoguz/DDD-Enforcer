@@ -1,11 +1,12 @@
 # Pipeline Audit — CURRENT pointer
 
 **Last update:** 2026-05-23 (GMT+3)
-**Last action:** Iteration 10 SHIPPED — WP-CORE-11 (F-7 read_docx defensive) closed. Ingestion-reader trilogy complete (TXT/PDF/DOCX). RED `5947a68`, GREEN `cb45022`, DOC `{this}`, PLANNING pending.
-**Next:** Iteration 11 candidates:
-  - **F-4 (MAJOR-OPEN-uncertain)** TOC heuristic refactor — last ingestion-layer MAJOR.
-  - **F-24 (MINOR)** srs_path in VerifierIssue schema (orchestrator).
-  - **F-12 / F-15 / F-17 / F-18 / F-19 / F-20** orchestrator MINOR cluster.
+**Last action:** Iteration 11 SHIPPED — WP-CORE-12 (F-4 TOC heuristic layout-mode). Ingestion-layer MAJOR backlog now ZERO live.
+**Next:** Iteration 12 candidates — orchestrator pivot OR minor cluster:
+  - **F-24 (MINOR)** srs_path in VerifierIssue schema. 13-callsite migration. Closes WP-CORE-6 A6-srs-path follow-up.
+  - **F-12 (MINOR)** Specialist shape-error retry token tracking gap.
+  - **F-15 / F-17 / F-18 / F-19 / F-20** orchestrator MINOR cluster.
+  - **F-6 / F-8 / F-9** ingestion MINOR cluster.
 
-**Baseline:** 394 passed, 31 deselected.
-**Iteration 10 GREEN HEAD:** cb45022.
+**Baseline:** 397 passed, 31 deselected.
+**Iteration 11 GREEN HEAD:** 7ec8240.
