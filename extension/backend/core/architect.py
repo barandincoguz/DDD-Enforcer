@@ -921,7 +921,7 @@ Do not invent data not present in the sentences."""
             contexts = [
                 ContextHypothesis(
                     context_name=c["name"],
-                    description=f"{c['name']} context",
+                    description="",  # WP-CORE-14 (F-18): empty; downstream synthesizer fills
                     supporting_sentence_ids=c["supporting_sentence_ids"],
                 )
                 for c in ctx_proposals
@@ -941,7 +941,7 @@ Do not invent data not present in the sentences."""
             contexts = [
                 ContextHypothesis(
                     context_name=c["name"],
-                    description=f"{c['name']} context",
+                    description="",  # WP-CORE-14 (F-18): empty; downstream synthesizer fills
                     supporting_sentence_ids=c["supporting_sentence_ids"],
                 )
                 for c in ctx_proposals

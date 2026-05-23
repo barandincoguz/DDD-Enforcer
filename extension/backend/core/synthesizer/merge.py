@@ -36,7 +36,11 @@ def build_deterministic_skeleton(
         )
         bc = BoundedContext(
             context_name=analysis.context.context_name,
-            description=analysis.context.description or f"{analysis.context.context_name} context",
+            # WP-CORE-14 (F-18): pass description through; empty if upstream
+            # didn't produce one (downstream enrich step LLM-populates).
+            # No synthetic f"{name} context" placeholder that previously
+            # masked intermediate-vs-final mismatch in debugging.
+            description=analysis.context.description,
             allowed_dependencies=None,  # filled by enrich
             supporting_sentence_ids=list(analysis.context.supporting_sentence_ids),
             business_rules=list(analysis.business_rules) or None,

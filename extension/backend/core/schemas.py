@@ -149,7 +149,15 @@ class UbiquitousLanguage(BaseModel):
 class BoundedContext(BaseModel):
     """Definition of a bounded context."""
     context_name: str = Field(description="Name of the bounded context")
-    description: str = Field(description="What this context is responsible for")
+    description: str = Field(
+        default="",
+        description=(
+            "What this context is responsible for. Empty post-merge is "
+            "acceptable; downstream enrich step LLM-populates. WP-CORE-14 "
+            "removed the synthetic f'{name} context' placeholder that "
+            "previously masked intermediate-vs-final-description mismatch."
+        ),
+    )
     allowed_dependencies: Optional[List[str]] = Field(
         default=None,
         description="List of other contexts this context can depend on"
