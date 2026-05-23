@@ -150,6 +150,10 @@ class DomainArchitect:
 
         self.client = GeminiClient(api_key=api_key)
         self.model_name = model or stage_config("Architect").model_id
+        # WP-CORE-16 (F-17): eagerly validate every stage's config at __init__
+        # so KeyError surfaces at backend startup, not at first LLM call.
+        for _stage in ("Scout", "Architect", "Specialist", "Synthesizer", "Validator"):
+            stage_config(_stage)
         self.last_request_time = 0
         self.min_delay = (
             min_delay
