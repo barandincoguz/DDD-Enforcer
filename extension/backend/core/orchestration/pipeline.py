@@ -69,6 +69,10 @@ ScoutFn = Callable[[str], ScoutOutput]
 ArchitectFn = Callable[[ScoutOutput], ArchitectOutput]
 ArchitectWithFeedbackFn = Callable[[ScoutOutput, List[Any]], ArchitectOutput]
 SpecialistFn = Callable[[ArchitectOutput, ScoutOutput], List[SpecialistAnalysis]]
+SpecialistWithFeedbackFn = Callable[
+    [ArchitectOutput, ScoutOutput, List[SpecialistAnalysis], List[Any]],
+    List[SpecialistAnalysis],
+]
 SynthesizerFn = Callable[[List[SpecialistAnalysis]], DomainModel]
 VerifierFn = Callable[[Dict[str, Any]], VerifierResult]
 
@@ -224,6 +228,12 @@ class PipelineDeps:
     specialist: SpecialistFn
     synthesizer: SynthesizerFn
     verifier: VerifierFn
+    # WP-CORE-30b: optional issue-aware specialist rerun (symmetric to
+    # architect_with_feedback).  When set, the refiner's _re_run_specialist
+    # closure forwards (arch, scout, prev_output, specialist_issues_only) so
+    # the concrete LLM caller can craft a targeted re-prompt.  Defaults to
+    # None so every existing PipelineDeps construction site is unaffected.
+    specialist_with_feedback: Optional[SpecialistWithFeedbackFn] = None
 
 
 def run_pipeline(
@@ -328,6 +338,13 @@ def run_pipeline(
         # stage scope).
         def _re_run_specialist(_prev, _result) -> List[SpecialistAnalysis]:
             with _optional_stage("specialist"):
+                if deps.specialist_with_feedback is not None:
+                    specialist_issues = [
+                        i for i in _result.issues if _issue_stage(i) == "specialist"
+                    ]
+                    return deps.specialist_with_feedback(
+                        arch, scout, _prev, specialist_issues
+                    )
                 return deps.specialist(arch, scout)
 
         try:
