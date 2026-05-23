@@ -348,3 +348,15 @@ Codex review skipped — schema widen is two-class symmetric (legacy dataclass +
 
 ## 2026-05-23 16:00 D-PICK-WP-CORE-14
 F-18 (synthetic context descriptions). Two-layer fix: architect closures + merge.py fallback + schema relaxation. WP-CORE-14 shipped: RED 178f20f, GREEN 37dbc3a. Baseline 403 → 404 (+1 test). F-18 SHIPPED.
+
+## 2026-05-23 17:30 D-PICK-WP-CORE-20
+F-9 (zero structured logging). Large-scope WP — chosen as Path A continuation per user's explicit request for "comprehensive and big scoped logging system" supporting EMSE Methods section claims (cost, latency, performance, json_failed rate, fails). Spec v1 → Codex xhigh → spec v2 → RED (7 files, 55 tests) → GREEN (5 commits) → DOC. New module `core/observability/` (RunManifest Pydantic + StageEmitter + canonical_check_id + write_manifest_atomic + scripts/aggregate_runs.py). Endpoint-entry manifest creation (Codex C-3) covers pre-pipeline failures. Emitter-only LLM aggregates source (Codex C-2) eliminates TokenTracker singleton concurrency risk. Parallel-Scout contextvars (Codex C-1). Atomic write (Codex W-7). Pooled rates not mean-of-ratios (Codex W-3). Inputs not mutated, SHA-256 fingerprinted (Codex W-4). Codex xhigh: 5 CRITICAL + 8 WARN + 1 OQ; all inline. WP-CORE-20 shipped via commits: d0f96d7 (spec) → 52dd148 (RED) → 487f49e (GREEN core) → ec08153 (aggregator) → 647aaea (endpoint wiring) → 63862a7 (LLM + scout instrumentation). Baseline 404 → 459 (+55 tests). F-9 SHIPPED.
+
+## 2026-05-23 17:00 D-CODEX-REVIEW-WP-CORE-20
+Codex xhigh adversarial review on spec v1 returned 5C + 8W + 0N + 1OQ. All CRITICAL inline-fixed in spec v2:
+- C-1 ContextVar+ThreadPoolExecutor → `contextvars.copy_context()` per-worker pattern + T-EMITTER-PARALLEL-1 regression guard.
+- C-2 TokenTracker delta-snapshot under concurrency → switched to emitter-only LLM aggregates; legacy tracker untouched.
+- C-3 Pre-pipeline failures missed → manifest created at endpoint entry; new outcomes `no_input_files`/`srs_parse_failed`/`all_srs_empty`/`output_write_failed`.
+- C-4 `json_failed` not captured for chat-then-manual-parse paths → new `record_json_parse_failure` API; production callsite wiring deferred to WP-CORE-20a.
+- C-5 Verifier issue_type vs check_id mismatch → `_ISSUE_TYPE_TO_CHECK_ID` table; `canonical_check_id` resolver.
+All 8 WARN inline. OQ-1 resolved (`/validate` explicitly out of scope; WP-CORE-22 tracker).

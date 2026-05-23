@@ -19,7 +19,7 @@ Each row: `id | component | finding | severity | effort | blast | status`.
 | F-6 | document_parser.py | `_should_merge` terminator regex `[.!?;:]$` missed quote/bracket/ellipsis terminators. WP-CORE-17 expanded character class to cover ASCII quotes, Unicode curly quotes, closing parens/brackets, U+2026 ellipsis. | MINOR | S | LOCAL | **SHIPPED (26e6df2)** |
 | F-7 | document_parser_readers.py | DOCX reader has zero try/except around `docx.Document(file_path)`; `PackageNotFoundError` propagates raw (`:30-31`). | MINOR | S | LOCAL | OPEN |
 | F-8 | document_parser_readers.py | No explicit XXE / external-entity hardening on lxml XML parsing (defense-in-depth gap visible to EMSE reviewers) (`:31`). | MINOR (uncertain) | S | REPO | OPEN |
-| F-9 | document_parser.py + readers | Zero logging anywhere; PDF layout→plain downgrade invisible to WP-NEW-B run manifest. | MINOR | S | PIPELINE | OPEN |
+| F-9 | document_parser.py + readers | Zero logging anywhere; PDF layout→plain downgrade invisible to WP-NEW-B run manifest. Closed by WP-CORE-20 (EMSE-grade RunManifest + StageEmitter + scripts/aggregate_runs.py; per-stage latency p50/p95, json_failed rate, D1–D8 verifier counts, refiner cycles, architect re-runs all captured in `runs/manifests/run-*.json` and pooled across N=10 runs by the aggregator). | MINOR | L | PIPELINE | **SHIPPED (63862a7)** |
 | F-10 | document_parser.py + `main.py:366,480` | Same SRS re-parsed twice per `/generate-model` request (Architect input + RAG indexing) — duplicate I/O, no memoization. | TRIVIAL | M | LOCAL | OPEN |
 
 ### Orchestrator layer (`core/architect.py` + `core/orchestration/*.py`)
@@ -61,9 +61,10 @@ _(empty)_
 **Decision priority:** production bug fix > test-coverage critical gap > measurable perf regression > evidence-backed clarity smell > cosmetic.
 
 **Status summary (post-iteration-17):**
-- 10 ingestion findings: 7 SHIPPED (F-3, F-5, F-2, F-1, F-7, F-4, F-6), 0 MAJOR-OPEN, 2 MINOR-OPEN (F-8 XXE, F-9 logging), 1 TRIVIAL-OPEN (F-10).
+- 10 ingestion findings: 7 SHIPPED (F-3, F-5, F-2, F-1, F-7, F-4, F-6) + F-9 SHIPPED via WP-CORE-20, 0 MAJOR-OPEN, 1 MINOR-OPEN (F-8 XXE), 1 TRIVIAL-OPEN (F-10).
 - 14 orchestrator findings: 10 SHIPPED (F-13, F-14, F-21, F-22, F-23, F-24, F-18, F-19, F-17, F-12, F-20), 1 MAJOR-OPEN-DORMANT (F-11), 1 MINOR-OPEN (F-15 SHIPPED-indirectly), 1 TRIVIAL-OPEN (F-16).
-- **Total OPEN MAJOR (live): 0** + 1 DORMANT (F-11). **17-iteration session shipped 16 findings.**
-- **Remaining work:** F-8 (XXE — needs threat model; defer to dedicated security WP), F-9 (logging framework — broader scope), F-10 (TRIVIAL — accept-as-is, redundant parse is intentional Scout-vs-RAG separation), F-16 (TRIVIAL — cascades to extract_domain_sentences removal + test removal, deferred).
+- **Ingestion+orchestrator F-9 SHIPPED 2026-05-23 via WP-CORE-20** (EMSE-grade logging — RunManifest + StageEmitter + aggregator; +55 tests). Follow-up WP-CORE-20a wires architect/scout/specialist manual-parse callsites to `record_json_parse_failure`.
+- **Total OPEN MAJOR (live): 0** + 1 DORMANT (F-11). **18-iteration session shipped 17 findings.**
+- **Remaining work:** F-8 (XXE — needs threat model; defer to dedicated security WP), F-10 (TRIVIAL — accept-as-is, redundant parse is intentional Scout-vs-RAG separation), F-16 (TRIVIAL — cascades to extract_domain_sentences removal + test removal, deferred).
 
-**Last refresh:** 2026-05-23 16:30 GMT+3 (post-WP-CORE-19)
+**Last refresh:** 2026-05-23 18:10 GMT+3 (post-WP-CORE-20)
