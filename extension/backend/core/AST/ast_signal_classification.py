@@ -7,9 +7,13 @@ from core.AST.ast_signal_utils import clamp
 
 
 SERVICE_SUFFIXES = ("Service", "Manager", "Processor", "Handler", "UseCase", "Provider")
+# WP-CORE-22: Repository + Factory removed from this list. They had a -0.50
+# base-score penalty that made them impossible to detect; now they are
+# first-class candidates with dedicated scorers (`_score_repository`,
+# `_score_factory`). The remaining suffixes are genuine infrastructure
+# concerns (controllers, DTOs, exceptions, configs) that should not be
+# classified as domain building blocks.
 INFRASTRUCTURE_SUFFIXES = (
-    "Repository",
-    "Factory",
     "Controller",
     "Helper",
     "Util",
@@ -19,6 +23,11 @@ INFRASTRUCTURE_SUFFIXES = (
     "Config",
     "Settings",
 )
+REPOSITORY_SUFFIXES = ("Repository", "Repo")
+FACTORY_SUFFIXES = ("Factory", "Builder")
+REPOSITORY_METHOD_PREFIXES = ("find_by_", "get_by_", "find_one", "find_all")
+REPOSITORY_METHOD_NAMES = {"save", "delete", "add", "remove", "find", "get", "exists"}
+FACTORY_METHOD_PREFIXES = ("create_", "build_", "make_", "from_", "build")
 EVENT_SUFFIXES = (
     "Event",
     "Created",
@@ -37,19 +46,30 @@ TYPE_LABELS = {
     "value_objects": "value object",
     "services": "service",
     "aggregates": "aggregate",
+    "repositories": "repository",
+    "factories": "factory",
 }
 TYPE_RULES = {
     "entities": "AST_ENTITY",
     "value_objects": "AST_VALUE_OBJECT",
     "services": "AST_SERVICE",
     "aggregates": "AST_AGGREGATE",
+    "repositories": "AST_REPOSITORY",
+    "factories": "AST_FACTORY",
 }
 
 
 class SignalClassifier:
     def classify(self, facts: ClassFacts) -> List[CandidateSignal]:
         signals: List[CandidateSignal] = []
+        # WP-CORE-22: Repository + Factory must run BEFORE _score_service to
+        # claim *Repository / *Factory class names. Without this ordering,
+        # _score_service would not fire (Service suffix mismatch) but the
+        # legacy base_score penalty would have prevented Repository/Factory
+        # detection entirely.
         for scorer in (
+            self._score_repository,
+            self._score_factory,
             self._score_service,
             self._score_value_object,
             self._score_aggregate,
@@ -60,6 +80,70 @@ class SignalClassifier:
                 signals.append(candidate)
         signals.extend(self._score_domain_events(facts))
         return signals
+
+    def _score_repository(self, facts: ClassFacts) -> Optional[CandidateSignal]:
+        """WP-CORE-22: Repository pattern detector.
+
+        Repositories are persistence-facing classes that mediate access to an
+        Aggregate root. Naming convention is the strongest signal; method
+        shape (find_by_*, save, delete) and explicit Repository base classes
+        reinforce. Identity field on the repository itself is a strong
+        negative — that would indicate Entity, not Repository.
+        """
+        score, reasons = self._base_score(facts)
+        has_repo_suffix = any(facts.name.endswith(s) for s in REPOSITORY_SUFFIXES)
+        if has_repo_suffix:
+            score += 0.40
+            reasons.append("repository-style suffix")
+        if "Repository" in facts.bases or "AbstractRepository" in facts.bases:
+            score += 0.30
+            reasons.append("explicit Repository base class")
+        repo_methods = [
+            name for name in facts.methods
+            if name.startswith(REPOSITORY_METHOD_PREFIXES)
+            or name in REPOSITORY_METHOD_NAMES
+        ]
+        if repo_methods:
+            score += min(0.25, 0.10 + 0.05 * len(repo_methods))
+            reasons.append("CRUD/query methods")
+        if self._identity_attributes(facts):
+            # Repository itself shouldn't carry domain identity.
+            score -= 0.20
+        if facts.is_dataclass or facts.is_frozen:
+            # Repositories aren't value objects.
+            score -= 0.30
+        return self._build_candidate("repositories", facts, score, 0.60, reasons)
+
+    def _score_factory(self, facts: ClassFacts) -> Optional[CandidateSignal]:
+        """WP-CORE-22: Factory pattern detector.
+
+        Factories create domain objects. Suffix (Factory/Builder) is the
+        strongest signal; presence of create_*/build_*/make_*/from_* methods
+        reinforces. Factories are typically stateless or lightly stateful;
+        heavy DI implies an Application Service, not a Factory.
+        """
+        score, reasons = self._base_score(facts)
+        has_factory_suffix = any(facts.name.endswith(s) for s in FACTORY_SUFFIXES)
+        if has_factory_suffix:
+            score += 0.40
+            reasons.append("factory-style suffix")
+        factory_methods = [
+            name for name in facts.methods
+            if name.startswith(FACTORY_METHOD_PREFIXES)
+        ]
+        if factory_methods:
+            score += min(0.30, 0.15 + 0.05 * len(factory_methods))
+            reasons.append("creation methods")
+        if len(facts.stateful_attributes) <= 1:
+            score += 0.10
+            reasons.append("stateless or near-stateless")
+        if self._identity_attributes(facts):
+            # Factories don't carry domain identity.
+            score -= 0.30
+        # Heavy DI shifts the candidate toward Application Service.
+        if len(facts.dependency_attributes) >= 2:
+            score -= 0.15
+        return self._build_candidate("factories", facts, score, 0.62, reasons)
 
     def _score_service(self, facts: ClassFacts) -> Optional[CandidateSignal]:
         score, reasons = self._base_score(facts)

@@ -16,7 +16,16 @@ MERGE_THRESHOLD = 0.55
 AST_ONLY_MERGE_THRESHOLD = 0.62
 CONTEXT_THRESHOLD = 2.25
 CONTEXT_MARGIN = 0.75
-CANDIDATE_TYPES = ("entities", "value_objects", "services", "aggregates", "domain_events")
+# WP-CORE-22: repositories + factories added as first-class buckets.
+CANDIDATE_TYPES = (
+    "entities",
+    "value_objects",
+    "services",
+    "aggregates",
+    "domain_events",
+    "repositories",
+    "factories",
+)
 
 
 class SignalEnricher:

@@ -125,6 +125,70 @@ class DomainEvent(BaseModel):
     description: Optional[str] = Field(description="When does this event happen")
 
 
+class Repository(BaseModel):
+    """Repository candidate. WP-CORE-22: previously masked by the
+    INFRASTRUCTURE_SUFFIXES penalty in the AST classifier; now first-class.
+
+    aggregate_root is derived by stripping the Repository/Repo suffix from
+    the class name. If the AST classifier cannot derive a meaningful
+    aggregate root, the field falls back to the class name itself.
+    """
+    name: str = Field(description="Name of the repository class")
+    aggregate_root: str = Field(
+        description="Aggregate root that this repository serves"
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Brief description of the repository's responsibility",
+    )
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="AST-detection confidence in this candidate",
+    )
+    sources: List["InferenceSource"] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)",
+    )
+    evidence_sentence_indices: List[int] = Field(
+        default_factory=list,
+        description="Scout sentence indices that ground this repository (if any)",
+    )
+
+
+class Factory(BaseModel):
+    """Factory candidate. WP-CORE-22: previously masked by the
+    INFRASTRUCTURE_SUFFIXES penalty in the AST classifier; now first-class.
+
+    produces is derived by stripping the Factory/Builder suffix from the
+    class name. Used by downstream validators to enforce factory-bypass
+    detection.
+    """
+    name: str = Field(description="Name of the factory class")
+    produces: str = Field(
+        description="Domain type this factory creates (derived from name)"
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Brief description of what this factory creates",
+    )
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="AST-detection confidence in this candidate",
+    )
+    sources: List["InferenceSource"] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)",
+    )
+    evidence_sentence_indices: List[int] = Field(
+        default_factory=list,
+        description="Scout sentence indices that ground this factory (if any)",
+    )
+
+
 class UbiquitousLanguage(BaseModel):
     """Collection of domain terminology for a bounded context."""
     entities: List[Entity] = Field(description="List of entities in this context")
@@ -140,6 +204,17 @@ class UbiquitousLanguage(BaseModel):
         description="Aggregate roots in this context"
     )
     domain_events: Optional[List[str]] = Field(description="List of domain events")
+    # WP-CORE-22: Repository + Factory first-class detection. Optional
+    # with default None preserves backward compatibility for model.json
+    # documents that predate this WP.
+    repositories: Optional[List[Repository]] = Field(
+        default=None,
+        description="Repository candidates discovered for this context"
+    )
+    factories: Optional[List[Factory]] = Field(
+        default=None,
+        description="Factory candidates discovered for this context"
+    )
 
 
 # =============================================================================

@@ -79,11 +79,16 @@ class ASTModelSignalExtractor:
         self,
         signals: List[CandidateSignal],
     ) -> Dict[str, List[Dict[str, Any]]]:
+        # WP-CORE-22: repositories + factories are first-class candidates.
+        # domain_events are excluded because they use a different output
+        # shape (list of strings, not list of dicts).
         result: Dict[str, List[Dict[str, Any]]] = {
             "entities": [],
             "value_objects": [],
             "services": [],
             "aggregates": [],
+            "repositories": [],
+            "factories": [],
         }
         for signal in signals:
             if signal.candidate_type not in result:

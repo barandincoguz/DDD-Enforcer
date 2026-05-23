@@ -10,7 +10,24 @@ CandidateType = Literal[
     "services",
     "aggregates",
     "domain_events",
+    # WP-CORE-22: first-class Repository + Factory detection.
+    "repositories",
+    "factories",
 ]
+
+
+# WP-CORE-22: suffix tables used to derive the per-candidate name fields
+# (Repository.aggregate_root, Factory.produces) at to_public_dict time.
+_REPOSITORY_SUFFIXES: tuple = ("Repository", "Repo")
+_FACTORY_SUFFIXES: tuple = ("Factory", "Builder")
+
+
+def _strip_suffix(name: str, suffixes: tuple) -> str:
+    """Strip the first matching suffix; fall back to the full name."""
+    for suffix in suffixes:
+        if name.endswith(suffix) and len(name) > len(suffix):
+            return name[: -len(suffix)]
+    return name
 
 
 @dataclass
@@ -118,6 +135,12 @@ class CandidateSignal:
             payload["members"] = []
         if self.candidate_type == "value_objects":
             payload["attributes"] = list(self.attributes)
+        # WP-CORE-22: derive Repository.aggregate_root and Factory.produces
+        # from the class name by stripping the conventional suffix.
+        if self.candidate_type == "repositories":
+            payload["aggregate_root"] = _strip_suffix(self.name, _REPOSITORY_SUFFIXES)
+        if self.candidate_type == "factories":
+            payload["produces"] = _strip_suffix(self.name, _FACTORY_SUFFIXES)
         return payload
 
 
