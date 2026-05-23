@@ -1,15 +1,7 @@
 # Pipeline Audit — CURRENT pointer
 
 **Last update:** 2026-05-23 (GMT+3)
-**Last action:** Iteration 12 SHIPPED — WP-CORE-13 (F-24 srs_path in VerifierIssue) closed. Completes srs_path threading sweep.
-**Next:** Iteration 13 candidates — minor cluster work:
-  - **F-12 (MINOR)** Specialist shape-error retry token tracking gap.
-  - **F-15 (MINOR-TRIVIAL)** Refiner exhaustion observability (architect path already closed).
-  - **F-17 (MINOR)** stage_config validation deferred to first LLM call.
-  - **F-18 (MINOR)** synthetic context descriptions in intermediate JSON.
-  - **F-19 (MINOR)** exponential backoff comment off.
-  - **F-20 (MINOR)** thread-safety docs gap.
-  - **F-6 / F-8 / F-9** ingestion MINOR cluster.
-
-**Baseline:** 403 passed, 31 deselected.
-**Iteration 12 GREEN HEAD:** 29e3ab7.
+**Last action:** Iteration 13 SHIPPED — WP-CORE-14 (F-18 synthetic descriptions). Baseline 404.
+**Next:** Iteration 14 candidates: F-12 (token tracking gap), F-15 (TRIVIAL observability), F-17 (stage_config eager validation), F-19 (backoff comment), F-20 (thread-safety docs), F-6 (_should_merge), F-8 (XXE), F-9 (logging).
+**Baseline:** 404 passed, 31 deselected.
+**HEAD:** 37dbc3a (DOC + PLANNING in flight)

@@ -345,3 +345,6 @@ Codex review skipped — regex-only fix, established pattern, low complexity (T-
 F-24 (srs_path in VerifierIssue). Closes WP-CORE-6 A6-srs-path OQ-1 deferred follow-up (trigger fired at WP-CORE-7 F-22 SHIPPED).
 
 Codex review skipped — schema widen is two-class symmetric (legacy dataclass + contract Pydantic both gain Optional[str] = None field), adapter propagation is mechanical, opt-in via default preserves back-compat across 13 call sites. WP-CORE-13 shipped: RED 5675207, GREEN 29e3ab7. Baseline 397 → 403 (+6 tests). F-24 SHIPPED. Completes srs_path threading sweep across orchestration error taxonomy.
+
+## 2026-05-23 16:00 D-PICK-WP-CORE-14
+F-18 (synthetic context descriptions). Two-layer fix: architect closures + merge.py fallback + schema relaxation. WP-CORE-14 shipped: RED 178f20f, GREEN 37dbc3a. Baseline 403 → 404 (+1 test). F-18 SHIPPED.
