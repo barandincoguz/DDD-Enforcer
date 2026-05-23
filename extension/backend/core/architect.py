@@ -745,6 +745,15 @@ RESPOND WITH STRICT JSON OBJECT (no bare strings, no top-level list):
                         response_mime_type="application/json",
                     )
                     response = LLMResponseAdapter(llm_response)
+                    # WP-CORE-18 (F-12): track tokens BEFORE validation so
+                    # shape-error retries are billed in the run manifest.
+                    # Previously `track_api_call` ran only on the successful
+                    # parse + validate path; intermediate retries' tokens
+                    # were dropped from cost accounting.
+                    self.token_tracker.track_api_call(
+                        response, stage="Specialist",
+                        operation=f"per_context:{ctx_name}:attempt-{retry + 1}",
+                    )
                     if not self._check_response_completion(response, retry):
                         if retry < 4:
                             time.sleep(2)
@@ -774,9 +783,8 @@ RESPOND WITH STRICT JSON OBJECT (no bare strings, no top-level list):
                             continue
                         raise
 
-                    self.token_tracker.track_api_call(
-                        response, stage="Specialist", operation=f"per_context:{ctx_name}",
-                    )
+                    # NOTE: token tracking now happens BEFORE validation (above).
+                    # Removed the duplicate post-validation track_api_call call.
                     results.append(analysis)
                     success = True
                     break
