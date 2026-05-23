@@ -330,8 +330,13 @@ class RAGPipeline:
         
         This is STRUCTURAL parsing, not semantic understanding.
         """
-        # Pattern for numbered sections
-        section_pattern = r'^(\d+(?:\.\d+)*)\s+(.+)$'
+        # Pattern for numbered sections. WP-CORE-29b: allow an optional
+        # trailing period after the dotted-digit prefix so the parser
+        # matches the same heading forms that document_parser.heading_pattern
+        # already accepts (`1. Introduction`, `3.1. Customer Management`).
+        # Without `\.?`, those forms fell through into the Preamble fallback
+        # and the SRS chunked into one giant section.
+        section_pattern = r'^(\d+(?:\.\d+)*)\.?\s+(.+)$'
         
         lines = raw_text.split('\n')
         sections = []

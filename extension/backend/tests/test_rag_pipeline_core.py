@@ -93,6 +93,73 @@ The details.
         for n in names:
             self.assertLess(len(n), 250, f"section name too long: {n[:50]}...")
 
+    def test_t_rag_parse_5_period_space_form_accepted(self):
+        """T-RAG-PARSE-5 (WP-CORE-29b): `1. Title` (period+space) is now
+        detected as a section header.
+
+        The pre-WP-CORE-29b regex `^(\\d+(?:\\.\\d+)*)\\s+(.+)$` only
+        matched `1 Title` (space-only).  document_parser.heading_pattern
+        accepted both forms via optional `\\.?`; this WP brings the rag
+        parser into alignment so SRS documents that use the period form
+        (the more common style) chunk into sections instead of being
+        dumped into the Preamble fallback.
+        """
+        pipe = _bare_pipe()
+        text = """1. Introduction
+This is the intro paragraph.
+
+2. Requirements
+The requirements section.
+
+3.1. Customer Management
+Customer-specific rules.
+"""
+        sections = pipe._parse_sections(text)
+        names = [s["name"] for s in sections]
+        self.assertTrue(
+            any("Introduction" in n for n in names),
+            f"period-form `1. Introduction` not detected; got {names}",
+        )
+        self.assertTrue(
+            any("Requirements" in n for n in names),
+            f"period-form `2. Requirements` not detected; got {names}",
+        )
+        self.assertTrue(
+            any("Customer Management" in n for n in names),
+            f"nested period-form `3.1. Customer Management` not detected; got {names}",
+        )
+
+    def test_t_rag_parse_6_mixed_period_and_space_forms(self):
+        """T-RAG-PARSE-6: a document that mixes `1 Title` and `2. Title`
+        forms detects both."""
+        pipe = _bare_pipe()
+        text = """1 Overview
+Overview text.
+
+2. Architecture
+Architecture text.
+"""
+        sections = pipe._parse_sections(text)
+        names = [s["name"] for s in sections]
+        self.assertTrue(any("Overview" in n for n in names))
+        self.assertTrue(any("Architecture" in n for n in names))
+
+    def test_t_rag_parse_7_section_number_strips_trailing_period(self):
+        """T-RAG-PARSE-7: the captured section `number` field should be
+        the dotted-digit prefix WITHOUT the trailing period — callers
+        downstream key sources by section number and a trailing-period
+        artefact would break dictionary equality."""
+        pipe = _bare_pipe()
+        text = "3.1. Customer Management\nText body.\n"
+        sections = pipe._parse_sections(text)
+        target = next(
+            (s for s in sections if "Customer Management" in s["name"]),
+            None,
+        )
+        self.assertIsNotNone(target)
+        assert target is not None  # mypy/pyright narrowing
+        self.assertEqual(target["number"], "3.1")
+
 
 # ---------------------------------------------------------------------------
 # _split_section
