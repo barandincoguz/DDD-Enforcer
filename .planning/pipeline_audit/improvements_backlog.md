@@ -34,7 +34,7 @@ Each row: `id | component | finding | severity | effort | blast | status`.
 | F-18 | core/architect.py | Synthetic `f"{n} context"` descriptions written to intermediate JSON (`:757-759`) mismatch the LLM-enriched descriptions stored downstream by synthesizer; debugging confusion. | MINOR | S | LOCAL | OPEN |
 | F-19 | core/architect.py | Exponential backoff comment (`:171`) says "15s, 30s, 60s, 120s" but actual progression goes to 300s; comment-code mismatch. | MINOR | S | NONE | OPEN |
 | F-20 | core/architect.py + core/token_tracker.py | Token tracker thread-safety undocumented at architect call site (`:337-341`); verified safe via TokenTracker's `_lock` at `:44`+`:97`. DOWNGRADED to documentation gap. | MINOR | S | LOCAL | OPEN |
-| F-24 | core/pipeline_contracts.py + 13 callsites | Contract `VerifierIssue` (Pydantic) has no `srs_path` field. WP-CORE-6 deferred A6-srs-path OQ with concrete revisit trigger "post-F-22". F-22 now SHIPPED → trigger fires. Adding `srs_path` to `VerifierIssue` enables run-manifest issue-level provenance symmetry with WP-CORE-4's `IntermediateSaveError.srs_path` and WP-CORE-5b's `SynthesizerEmptyModelError.srs_path`. Migration: schema widen + 13 construction sites (5 in `checks_semantic_d6_d7_d8.py`, 2 in `checks_semantic.py`, 2 in `checks_deterministic.py` adapter, 4 test files) + verifier_fn closure threads srs_path. | MINOR | M | LOCAL | OPEN (NEW, WP-CORE-7 OQ-6) |
+| F-24 | core/verifier/types.py + core/pipeline_contracts.py + core/architect.py + core/verifier/checks_deterministic.py | Optional `srs_path: Optional[str] = None` added to BOTH VerifierIssue classes (legacy dataclass + contract Pydantic). `_to_contract_issue` adapter propagates. `check_d1_supporting_sentence_ids_subset` accepts optional kwarg and threads into emitted issues. D1-only opt-in for v1 per smallest-correct-change; D2-D5 + D6-D8 + S1 opt in as updated in future WPs. Default None preserves back-compat for 13 existing call sites. Completes srs_path threading sweep across orchestration error taxonomy (IntermediateSaveError + SynthesizerEmptyModelError + ArchitectGroundingError + now VerifierIssue). | MINOR | M | LOCAL | **SHIPPED (29e3ab7)** |
 
 ## Shipped
 
@@ -60,10 +60,10 @@ _(empty)_
 
 **Decision priority:** production bug fix > test-coverage critical gap > measurable perf regression > evidence-backed clarity smell > cosmetic.
 
-**Status summary (post-iteration-11):**
-- 10 ingestion findings: 6 SHIPPED (F-3, F-5, F-2, F-1, F-7, F-4), 0 MAJOR-OPEN, 3 MINOR-OPEN (F-6, F-8, F-9), 1 TRIVIAL-OPEN (F-10).
-- 14 orchestrator findings: 5 SHIPPED, 1 MAJOR-OPEN-DORMANT (F-11), 7 MINOR-OPEN, 1 TRIVIAL-OPEN.
-- **Total OPEN MAJOR (live): 0** + 1 DORMANT (F-11). **First time the entire audit has zero MAJOR-OPEN-live findings since audit began.**
-- **Iteration-12 recommendation:** Pivot to MINOR cluster. F-24 (srs_path in VerifierIssue — closes WP-CORE-6 A6-srs-path follow-up) is highest-leverage minor. Alternatives: F-12 (Specialist shape retry token gap), F-18 (synthetic context descriptions in intermediate JSON), F-6 (_should_merge quote/bracket).
+**Status summary (post-iteration-12):**
+- 10 ingestion findings: 6 SHIPPED, 0 MAJOR-OPEN, 3 MINOR-OPEN (F-6, F-8, F-9), 1 TRIVIAL-OPEN (F-10).
+- 14 orchestrator findings: 6 SHIPPED (F-13, F-14, F-21, F-22, F-23, F-24), 1 MAJOR-OPEN-DORMANT (F-11), 6 MINOR-OPEN (F-12, F-15, F-17, F-18, F-19, F-20), 1 TRIVIAL-OPEN (F-16).
+- **Total OPEN MAJOR (live): 0** + 1 DORMANT (F-11).
+- **Iteration-13 recommendation:** F-18 (synthetic context descriptions in intermediate JSON) — small scope, debugging clarity. Alternatives: F-12 (token tracking gap), F-19 (backoff comment), F-20 (thread-safety docs gap), F-6 (_should_merge), F-8 (XXE hardening), F-9 (logging).
 
-**Last refresh:** 2026-05-23 15:20 GMT+3 (post-WP-CORE-12)
+**Last refresh:** 2026-05-23 15:40 GMT+3 (post-WP-CORE-13)

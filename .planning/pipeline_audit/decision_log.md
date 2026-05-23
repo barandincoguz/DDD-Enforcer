@@ -340,3 +340,8 @@ WP-CORE-11 shipped: RED 5947a68, GREEN cb45022. Baseline 388 → 394 (+6 tests).
 F-4 (TOC heuristic). MAJOR-uncertain → verified LIVE via close-lookup: pypdf extraction_mode="layout" + _normalize_line `\s{3,}→" | "` collapse → regex `\.{4,}` matches neither layout shape. Reachability MAJOR-uncertain reframed MAJOR-LIVE.
 
 Codex review skipped — regex-only fix, established pattern, low complexity (T-TOC-3 dot-leader regression locked). WP-CORE-12 shipped: RED eef21a0, GREEN 7ec8240. Baseline 394 → 397 (+3 tests). F-4 SHIPPED. **All ingestion MAJORs now SHIPPED.**
+
+## 2026-05-23 15:35 D-PICK-WP-CORE-13
+F-24 (srs_path in VerifierIssue). Closes WP-CORE-6 A6-srs-path OQ-1 deferred follow-up (trigger fired at WP-CORE-7 F-22 SHIPPED).
+
+Codex review skipped — schema widen is two-class symmetric (legacy dataclass + contract Pydantic both gain Optional[str] = None field), adapter propagation is mechanical, opt-in via default preserves back-compat across 13 call sites. WP-CORE-13 shipped: RED 5675207, GREEN 29e3ab7. Baseline 397 → 403 (+6 tests). F-24 SHIPPED. Completes srs_path threading sweep across orchestration error taxonomy.
