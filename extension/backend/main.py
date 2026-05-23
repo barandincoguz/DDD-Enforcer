@@ -133,6 +133,16 @@ def _run_generate_pipeline(
     result: Dict[str, Any] = {"success": False}
     start_ns = _time.monotonic_ns()
 
+    # WP-CORE-24: bind emitter on the ContextVar for the WHOLE pipeline call
+    # (not just inside `with emitter.stage(...)` blocks). This lets downstream
+    # orchestrator code (`core.orchestration.pipeline._record_refiner_metrics_safely`)
+    # find the active emitter via `get_current_emitter()` even when called
+    # outside an explicit stage scope. The stage-specific path (`_stage_var`)
+    # is still required for per-stage llm_call recording, so this does NOT
+    # leak per-stage data outside stages.
+    from core.observability.emitter import _emitter_var
+    _emitter_token = _emitter_var.set(emitter)
+
     try:
         # Pre-pipeline gate (Codex C-3).
         if not file_paths:
@@ -240,6 +250,13 @@ def _run_generate_pipeline(
     finally:
         manifest.ended_at = datetime.utcnow().isoformat()
         manifest.elapsed_ms = (_time.monotonic_ns() - start_ns) / 1e6
+        # WP-CORE-24: reset emitter ContextVar before exit so subsequent
+        # FastAPI requests do not inherit this run's emitter.
+        try:
+            _emitter_var.reset(_emitter_token)
+        except Exception:
+            # Token can become invalid if the set call failed; tolerate.
+            pass
         _finalize_manifest_safely(manifest, original_exc=original_exc)
 
 

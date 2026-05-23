@@ -41,7 +41,9 @@ def refine_until_clean(
         if result.ok or result.error_count() == 0:
             return output, cycles
         if cycles >= max_cycles:
-            raise RefinementExhaustedError(issues=result.issues)
+            # WP-CORE-24: carry cycles_attempted so the run manifest can
+            # record refiner.metrics.cycles_used even on the exhausted path.
+            raise RefinementExhaustedError(issues=result.issues, cycles_attempted=cycles)
         output = stage_runner(output, result)
         cycles += 1
         result = None  # type: ignore[assignment]  # force re-verify next iter

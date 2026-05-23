@@ -64,8 +64,19 @@ class SynthesizerEmptyModelError(PipelineError):
 
 
 class RefinementExhaustedError(PipelineError):
-    def __init__(self, issues: List[Any], message: Optional[str] = None):
+    def __init__(
+        self,
+        issues: List[Any],
+        cycles_attempted: int = 0,
+        message: Optional[str] = None,
+    ):
         self.issues = issues
+        # WP-CORE-24: cycles_attempted exposes the refiner cycle count at
+        # exhaustion so the run manifest can record it (paper Methods
+        # section: "Refinement cycles needed before clean verification").
+        # Default 0 keeps backward compat for callers that built the
+        # exception by keyword name only.
+        self.cycles_attempted = cycles_attempted
         super().__init__(message or f"Refiner exhausted retries with {len(issues)} unresolved issues")
 
 
