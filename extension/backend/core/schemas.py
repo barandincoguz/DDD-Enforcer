@@ -78,6 +78,19 @@ class ValueObject(BaseModel):
         default_factory=list,
         description="Traceable evidence list (file/line/rule)"
     )
+    # WP-CORE-27 (D9): AST-derived signal — True iff the class backing
+    # this VO has mutation methods or non-frozen state. Mismatch with
+    # the LLM's value-object claim triggers a D9 ERROR. Default False
+    # preserves backward compatibility for callers that do not yet
+    # populate this field; AST cross-reference wiring is a follow-up
+    # WP-CORE-27a.
+    is_mutable_in_code: bool = Field(
+        default=False,
+        description=(
+            "True iff the underlying class has mutation methods; "
+            "claimed-VO mismatch (LLM-claimed VO + mutable code) triggers D9."
+        ),
+    )
 
 
 class Service(BaseModel):

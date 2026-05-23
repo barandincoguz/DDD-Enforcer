@@ -25,6 +25,11 @@ _ISSUE_TYPE_TO_CHECK_ID = {
     "D6": "D6",
     "D7": "D7",
     "D8": "D8",
+    # WP-CORE-27: D9 value-object mutability, S3 empty aggregate, D11
+    # dependency cycle. See core/verifier/checks_deterministic.py.
+    "value_object_mutable": "D9",
+    "empty_aggregate": "S3",
+    "dependency_cycle": "D11",
 }
 
 
@@ -44,7 +49,12 @@ def canonical_check_id(issue: Any) -> str:
 
 
 # Canonical bucket order for stable manifest output.
-CANONICAL_CHECK_IDS = ("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "S1")
+CANONICAL_CHECK_IDS = (
+    "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8",
+    # WP-CORE-27 additions.
+    "D9", "D11",
+    "S1", "S3",
+)
 
 
 def empty_issue_counts() -> dict[str, int]:

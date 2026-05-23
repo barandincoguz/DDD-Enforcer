@@ -1,4 +1,4 @@
-"""Deterministic D1-D5 checks. Pure functions over stage output dicts."""
+"""Deterministic D1-D5 + D9 + S3 + D11 checks. Pure functions over stage output dicts."""
 
 from typing import Dict, List, Optional, Set
 from core.verifier.types import IssueSeverity, VerifierIssue
@@ -158,4 +158,158 @@ def check_d5_allowed_dependencies_reference_existing_contexts(
                     ),
                     suggestion=f"Drop {dep!r} or add a corresponding bounded context",
                 ))
+    return issues
+
+
+def check_d9_value_object_mutability_consistency(
+    context_name: str,
+    value_objects: List[Dict],
+) -> List[VerifierIssue]:
+    """D9 (WP-CORE-27): claimed Value Object whose backing class has
+    mutation methods → ERROR (claim mismatch).
+
+    The `is_mutable_in_code` field is set by AST cross-reference when the
+    class corresponding to the VO has mutation methods or non-frozen
+    state. v1 ships the deterministic check; the AST→VO field
+    population is a follow-up wiring task (WP-CORE-27a).
+
+    A True flag here means: LLM said "this is a Value Object" but
+    AST shows the class is mutable — semantic contradiction.
+    """
+    issues: List[VerifierIssue] = []
+    for idx, vo in enumerate(value_objects):
+        if vo.get("is_mutable_in_code", False):
+            name = vo.get("name", "<unknown>")
+            issues.append(VerifierIssue(
+                stage="specialist",
+                location=f"specialist:{context_name}.value_objects[{idx}]({name})",
+                issue_type="value_object_mutable",
+                severity=IssueSeverity.ERROR,
+                message=(
+                    f"Value Object {name!r} claimed in {context_name!r} "
+                    f"but AST evidence shows the backing class has "
+                    f"mutation methods (D9 mismatch)"
+                ),
+                suggestion=(
+                    "Either reclassify the concept as an Entity, or remove "
+                    "the mutation methods from the backing class to make it "
+                    "a true Value Object"
+                ),
+            ))
+    return issues
+
+
+def check_s3_aggregate_members_nonempty(
+    context_name: str,
+    aggregates: List[Dict],
+) -> List[VerifierIssue]:
+    """S3 (WP-CORE-27): Aggregate with empty `members` list → WARN.
+
+    Companion to D4 (which checks members exist in the context). D4
+    passes vacuously for an aggregate with members=[] (empty loop). S3
+    closes that gap with a WARN (not ERROR — empty aggregates may be
+    valid for nascent designs in early iterations).
+    """
+    issues: List[VerifierIssue] = []
+    for idx, agg in enumerate(aggregates):
+        members = agg.get("members") or []
+        if not members:
+            name = agg.get("name", "<unknown>")
+            issues.append(VerifierIssue(
+                stage="specialist",
+                location=f"specialist:{context_name}.aggregates[{idx}]({name})",
+                issue_type="empty_aggregate",
+                severity=IssueSeverity.WARN,
+                message=(
+                    f"Aggregate {name!r} in {context_name!r} has no members; "
+                    f"D4 passes vacuously"
+                ),
+                suggestion=(
+                    "List the entities that belong inside this aggregate's "
+                    "consistency boundary"
+                ),
+            ))
+    return issues
+
+
+def check_d11_dependency_cycle_free(
+    contexts: List[Dict],
+) -> List[VerifierIssue]:
+    """D11 (WP-CORE-27): no cycle in BoundedContext.allowed_dependencies graph.
+
+    DFS with WHITE/GRAY/BLACK coloring detects back-edges. Self-loops
+    (A→A) and multi-node cycles (A→B→…→A) both ERROR. Unknown
+    dependencies (referenced but not in the context list) are silently
+    ignored — D5 reports those separately.
+
+    Each cycle is reported at most once via canonical (sorted-tuple)
+    deduplication so a multi-rooted DFS does not emit the same cycle
+    twice.
+    """
+    graph: Dict[str, List[str]] = {}
+    for ctx in contexts:
+        name = ctx.get("name")
+        if not isinstance(name, str):
+            continue
+        deps = ctx.get("allowed_dependencies") or []
+        graph[name] = [d for d in deps if isinstance(d, str)]
+
+    if not graph:
+        return []
+
+    issues: List[VerifierIssue] = []
+    seen_cycles: Set[tuple] = set()
+
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color: Dict[str, int] = {node: WHITE for node in graph}
+
+    def _emit_cycle(path: List[str], back_to: str) -> None:
+        try:
+            start = path.index(back_to)
+        except ValueError:
+            return
+        cycle = path[start:] + [back_to]
+        # Canonical form for dedup: rotate to the lex-smallest start.
+        body = cycle[:-1]
+        if not body:
+            return
+        min_idx = body.index(min(body))
+        rotated = tuple(body[min_idx:] + body[:min_idx])
+        if rotated in seen_cycles:
+            return
+        seen_cycles.add(rotated)
+        issues.append(VerifierIssue(
+            stage="synthesizer",
+            location="synthesizer:contexts.allowed_dependencies",
+            issue_type="dependency_cycle",
+            severity=IssueSeverity.ERROR,
+            message=(
+                f"Dependency cycle detected in allowed_dependencies: "
+                f"{' → '.join(cycle)}"
+            ),
+            suggestion=(
+                "Break the cycle by removing one allowed_dependency edge "
+                "or introducing an anti-corruption layer between the two "
+                "contexts"
+            ),
+        ))
+
+    def _dfs(node: str, path: List[str]) -> None:
+        color[node] = GRAY
+        path.append(node)
+        for nbr in graph.get(node, []):
+            if nbr not in color:
+                continue  # unknown context → D5 catches it
+            if color[nbr] == GRAY:
+                _emit_cycle(path, nbr)
+                continue
+            if color[nbr] == WHITE:
+                _dfs(nbr, path)
+        path.pop()
+        color[node] = BLACK
+
+    for node in list(graph.keys()):
+        if color[node] == WHITE:
+            _dfs(node, [])
+
     return issues
