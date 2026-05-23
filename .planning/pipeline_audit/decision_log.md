@@ -321,3 +321,9 @@ Codex xhigh adversarial review verdict: **1 CRITICAL + 8 WARN + 4 NIT + 1 OQ.** 
 | OQ (A6-3) | MisLabeledFileError public import path. | import surface | RESOLVED with re-export from core.document_parser via __all__. |
 
 **Outcome:** 1 CRITICAL + 8 WARN all ADOPTED; 4 NIT inlined; 1 OQ resolved. WP-CORE-9 shipped: RED `45d9cdf`, GREEN `ff28324`, DOC commit pending (this one), PLANNING pending. Baseline 365 → 373 (+8 tests; zero regression). Iteration-9 target: F-1 (read_pdf defensive handling) — symmetric to WP-CORE-9 for PDF.
+
+## 2026-05-23 14:00 D-PICK-WP-CORE-10
+F-1 (read_pdf defensive handling) per WP-CORE-9 handoff. Continues ingestion-layer momentum; symmetric pattern to WP-CORE-9 magic-byte detection.
+
+## 2026-05-23 14:25 D-CODEX-REVIEW-WP-CORE-10
+Codex xhigh: 2 CRITICAL + 6 WARN + 1 NIT + 1 OQ. All inline. Key: C-1 lazy-error coverage + C-2 EmptyPDFError behavior tests + W-3 header-only I/O + W-1 __cause__ chain + W-5 byte-0 strict policy + W-6 flat ValueError taxonomy. WP-CORE-10 shipped: RED 12a984a, GREEN 5df3df6. Baseline 373 → 388 (+15 tests). Iteration-10: F-7 recommended.
