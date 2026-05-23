@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Set, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -159,7 +159,19 @@ def compute_metrics(
     - For each JudgeMissedExpectation → FN for its violation_type.
 
     Division-by-zero is coerced to 0.0; no NaN, no exception.
+
+    Empty input behavior: if both `manifest.violations` and
+    `verdict.missed` are empty, the result is a single-element list
+    containing only the `__aggregate__` scoreline with all counts zero.
+    Downstream consumers that filter out the aggregate must distinguish
+    this case ("no input") from "all-zero data for a real violation type".
     """
+    if verdict.run_id != manifest.run_id:
+        raise ValueError(
+            f"verdict.run_id={verdict.run_id!r} does not match "
+            f"manifest.run_id={manifest.run_id!r}"
+        )
+
     # Build lookup: (violation_type, location) -> JudgeVerdictEntry
     entry_index: Dict[Tuple[str, str], JudgeVerdictEntry] = {}
     for entry in verdict.entries:
@@ -178,8 +190,13 @@ def compute_metrics(
             fn_counts[vtype] = 0
 
     # Process predicted violations
+    consumed: Set[Tuple[str, str]] = set()
     for violation in manifest.violations:
         key = (violation.violation_type, violation.location)
+        if key in consumed:
+            raise ValueError(
+                f"duplicate prediction (violation_type, location) in manifest: {key!r}"
+            )
         entry = entry_index.get(key)
         if entry is None:
             raise ValueError(
@@ -187,6 +204,7 @@ def compute_metrics(
                 f"violation_type={violation.violation_type!r}, "
                 f"location={violation.location!r}"
             )
+        consumed.add(key)
         vtype = violation.violation_type
         _ensure(vtype)
         if entry.label == "true_positive":

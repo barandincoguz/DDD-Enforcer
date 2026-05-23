@@ -597,3 +597,50 @@ class TestAggregateScourelineIdempotency:
         assert second.true_positives == first.true_positives
         assert second.false_positives == first.false_positives
         assert second.false_negatives == first.false_negatives
+
+
+# ---------------------------------------------------------------------------
+# T-01b-B-13: Duplicate prediction raises ValueError
+# ---------------------------------------------------------------------------
+
+
+class TestDuplicatePrediction:
+    """T-01b-B-13: two manifest violations with the same (violation_type, location) raise ValueError."""
+
+    def test_T01b_B13_duplicate_prediction_raises(self) -> None:
+        vtype = "V1"
+        location = "f.py::A"
+        violations = [
+            _violation(violation_type=vtype, location=location),
+            _violation(violation_type=vtype, location=location),  # duplicate
+        ]
+        manifest = _manifest(violations=violations)
+        verdict = JudgeVerdict(
+            run_id="test-run-001",
+            judge_model_id="x",
+            judge_provider="human",
+            entries=[
+                JudgeVerdictEntry(violation_type=vtype, location=location, label="true_positive"),
+            ],
+        )
+        with pytest.raises(ValueError, match=r"duplicate prediction"):
+            compute_metrics(manifest, verdict)
+
+
+# ---------------------------------------------------------------------------
+# T-01b-B-14: run_id mismatch raises ValueError
+# ---------------------------------------------------------------------------
+
+
+class TestRunIdMismatch:
+    """T-01b-B-14: verdict.run_id != manifest.run_id raises ValueError."""
+
+    def test_T01b_B14_run_id_mismatch_raises(self) -> None:
+        manifest = _manifest()  # run_id="test-run-001"
+        verdict = JudgeVerdict(
+            run_id="run_B",  # intentionally different
+            judge_model_id="x",
+            judge_provider="human",
+        )
+        with pytest.raises(ValueError, match=r"does not match"):
+            compute_metrics(manifest, verdict)
