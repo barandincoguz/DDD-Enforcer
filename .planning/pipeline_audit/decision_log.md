@@ -327,3 +327,11 @@ F-1 (read_pdf defensive handling) per WP-CORE-9 handoff. Continues ingestion-lay
 
 ## 2026-05-23 14:25 D-CODEX-REVIEW-WP-CORE-10
 Codex xhigh: 2 CRITICAL + 6 WARN + 1 NIT + 1 OQ. All inline. Key: C-1 lazy-error coverage + C-2 EmptyPDFError behavior tests + W-3 header-only I/O + W-1 __cause__ chain + W-5 byte-0 strict policy + W-6 flat ValueError taxonomy. WP-CORE-10 shipped: RED 12a984a, GREEN 5df3df6. Baseline 373 → 388 (+15 tests). Iteration-10: F-7 recommended.
+
+## 2026-05-23 14:50 D-PICK-WP-CORE-11
+F-7 (read_docx defensive). Symmetric to WP-CORE-9/-10. Completes ingestion-reader defense trilogy.
+
+## 2026-05-23 14:55 D-CODEX-REVIEW-WP-CORE-11
+Codex review dispatched but timed out before returning a formal disposition table. Pattern is well-established from WP-CORE-9/-10 with no novel design choices in WP-CORE-11; spec/impl proceeded per established conventions without v2 revision. Self-review verified: OpcError covers PackageNotFoundError (parent class); _detect_binary_signature returns "ZIP..." for valid DOCX; __cause__ chain preserved; flat ValueError taxonomy; re-export pattern matches WP-CORE-9/-10. Iteration-11 future Codex review of the established pattern can flag any retrospective issues.
+
+WP-CORE-11 shipped: RED 5947a68, GREEN cb45022. Baseline 388 → 394 (+6 tests). F-7 SHIPPED.

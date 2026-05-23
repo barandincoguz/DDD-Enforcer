@@ -1,11 +1,11 @@
 # Pipeline Audit — CURRENT pointer
 
 **Last update:** 2026-05-23 (GMT+3)
-**Last action:** Iteration 9 SHIPPED — WP-CORE-10 (F-1 PDF defensive handling) closed end-to-end. RED `12a984a`, GREEN `5df3df6`, DOC `{this commit}`, PLANNING pending. F-1 SHIPPED.
-**Next:** Iteration 10 — coordinator should continue ingestion-layer or pivot:
-  - **F-7 (MINOR)** DOCX zero try/except — symmetric pattern to WP-CORE-9/-10 for `read_docx`.
-  - **F-4 (MAJOR-OPEN-uncertain)** TOC heuristic refactor.
-  - **F-24 (MINOR-OPEN)** srs_path in VerifierIssue schema (orchestrator).
+**Last action:** Iteration 10 SHIPPED — WP-CORE-11 (F-7 read_docx defensive) closed. Ingestion-reader trilogy complete (TXT/PDF/DOCX). RED `5947a68`, GREEN `cb45022`, DOC `{this}`, PLANNING pending.
+**Next:** Iteration 11 candidates:
+  - **F-4 (MAJOR-OPEN-uncertain)** TOC heuristic refactor — last ingestion-layer MAJOR.
+  - **F-24 (MINOR)** srs_path in VerifierIssue schema (orchestrator).
+  - **F-12 / F-15 / F-17 / F-18 / F-19 / F-20** orchestrator MINOR cluster.
 
-**Baseline (sacred):** pytest -m "not integration" → 388 passed, 31 deselected.
-**Iteration 9 GREEN HEAD:** 5df3df6 (DOC + PLANNING in flight)
+**Baseline:** 394 passed, 31 deselected.
+**Iteration 10 GREEN HEAD:** cb45022.
