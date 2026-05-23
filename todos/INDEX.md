@@ -1,14 +1,14 @@
 # DDD-Enforcer EMSE Submission — Work Package Index
 
-> **Bu dosya status board'dur. Detaylı içerik için**: `todos/MASTER_PLAN.md` (canonical roadmap), `todos/AGENT_QUICKSTART.md` (entry point), `todos/WP_DAGILIM_BARAN_ALI.md` (ownership).
+> **Bu dosya status board'dur. Detaylı içerik için**: `todos/MASTER_PLAN.md` (canonical roadmap), `todos/AGENT_QUICKSTART.md` (entry point), `todos/WP_DAGILIM_BARAN_ALI.md` (historical allocation + risk matrisi; ownership artık enforced değil).
 >
-> **Last updated**: 2026-05-21 v3 (WP-01a + WP-NEW-B Stage 1 + WP-CORE-1 shipped)
+> **Last updated**: 2026-05-23 (ownership disestablished — any agent may pick up any WP)
 
 ---
 
 ## 0. Snapshot
 
-- **Yazarlar**: Baran Dincoguz + Ali Kendir + Prof. Dr. Murat Karakaya (supervisor, no WP ownership)
+- **Yazarlar**: Baran Dincoguz + Ali Kendir + Prof. Dr. Murat Karakaya (supervisor). **Ownership constraint kaldırıldı (2026-05-23) — her yazar / ajan her WP'ye dokunabilir.**
 - **Hedef**: Springer EMSE regular track, Ağustos-Eylül 2026 submission
 - **Toplam aktif WP**: **23** (was 22; +3 new, -2 dropped) + **WP-CORE-1** unplanned (typed pipeline hardening, shipped)
 - **Faz 0**: ✅ DONE (4 commit on main: 4a893c8, 2609001, 696188d, 56919da)
@@ -173,7 +173,7 @@ gantt
 3. WP-17 N pilot gate (Hafta 4) — RQ batch'leri yanlış N ile koşmasın
 4. RQ5 silinme cleanup — eski WP referansları temizlendi ✅
 
-**Risk register**: Detay `WP_DAGILIM_BARAN_ALI.md` Risk Matrisi'nde.
+**Risk register**: Detay `WP_DAGILIM_BARAN_ALI.md` Risk Matrisi'nde (allocation kısmı artık tarihsel; risk matrisi aktif).
 
 ---
 

@@ -397,7 +397,7 @@ Her commit yeşil-CI + ara state rollback'e izin verir.
 |------|-------|
 | Hızlı entry point | `todos/AGENT_QUICKSTART.md` |
 | Status board | `todos/INDEX.md` |
-| WP allocation | `todos/WP_DAGILIM_BARAN_ALI.md` |
+| WP allocation (historical) | `todos/WP_DAGILIM_BARAN_ALI.md` — ownership disestablished 2026-05-23; allocation kısmı tarihsel, risk matrisi + sync points hâlâ aktif |
 | Hocaya götürülecekler | `todos/HOCA_GUNDEM.md` |
 | Per-WP detayları | `todos/WP-XX-*.md` |
 | Paper draft | `LaTeX_DL_468198_240419/paper.tex` |

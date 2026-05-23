@@ -1,8 +1,10 @@
 # Work-Package Dağılımı — Baran ↔ Ali
 
-> **Amaç**: Communication overhead'i minimize ederek, birbirini etkileyen WP'leri tek elde toplamak. Read-only data handoff'ları (CSV, manifest) sync point'lerde gerçekleşir.
+> ⚠️ **OWNERSHIP DEPRECATED — 2026-05-23**: Bu dosyanın "X kişi WP-NN'in sahibi, diğerleri dokunmasın" kısmı **artık geçerli değil**. Herhangi bir yazar / ajan herhangi bir WP'ye dokunabilir. Allocation tablosu **tarihsel referans** olarak korunuyor (kim hangi WP'yi *önceden* planlamıştı bilgisi için). **Hâlâ aktif olan kısımlar**: Risk Matrisi, Sync Points, Cohesion Clusters (paralel iş planlaması için yararlı). Engelleme kuralı yok, koordinasyon yeterli.
 >
-> **Toplam aktif WP**: 23 (Baran 11 + Ali 10 + Joint 2)
+> **Amaç (tarihsel)**: Communication overhead'i minimize ederek, birbirini etkileyen WP'leri tek elde toplamak. Read-only data handoff'ları (CSV, manifest) sync point'lerde gerçekleşir.
+>
+> **Toplam aktif WP**: 23 (eski allocation: Baran 11 + Ali 10 + Joint 2 — artık tarihsel)
 >
 > **3. Yazar**: Murat Karakaya (supervisor) — yazar, ama WP execution'a katılmıyor; review gates'inde.
 

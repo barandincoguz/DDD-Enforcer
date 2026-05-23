@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DDD-Enforcer is a VS Code extension + Python FastAPI backend that detects **Domain-Driven Design (DDD)** violations in Python code. Workflow: a multi-agent LLM pipeline reads an SRS document, extracts a domain model (`domain/model.json`), then validates Python files against it on save with AST + LLM analysis. Violations surface as VS Code diagnostics with traceable references back to the SRS via RAG.
 
-**Active research context — read this before any non-trivial change:** This repo is being prepared for submission to **Springer Empirical Software Engineering** (EMSE). Authors: Baran Dincoguz, Ali Kendir, Prof. Dr. Murat Karakaya. The locked roadmap, locked decisions (D1–D7), and per-WP specs are in `todos/`. Start with **`todos/AGENT_QUICKSTART.md`** for orientation, then **`todos/MASTER_PLAN.md`** for canonical roadmap, then **`todos/WP_DAGILIM_BARAN_ALI.md`** for ownership boundaries. **Do not touch WPs you don't own** (see allocation file). Communication language is Turkish; code/comments stay English.
+**Active research context — read this before any non-trivial change:** This repo is being prepared for submission to **Springer Empirical Software Engineering** (EMSE). Authors: Baran Dincoguz, Ali Kendir, Prof. Dr. Murat Karakaya. The locked roadmap, locked decisions (D1–D7), and per-WP specs are in `todos/`. Start with **`todos/AGENT_QUICKSTART.md`** for orientation, then **`todos/MASTER_PLAN.md`** for canonical roadmap. **WP ownership has been disestablished (2026-05-23) — any agent may pick up any WP.** The historical allocation file `todos/WP_DAGILIM_BARAN_ALI.md` is retained for sync-point and risk-matrix context only and is no longer authoritative for who-touches-what. Communication language is Turkish; code/comments stay English.
 
 **Persistent development memory — also read before non-trivial work:** `development_docs/` is the manual cross-session memory layer for paper-revision context and Claude-session context recovery. Start with **`development_docs/INDEX.md`** to see which WPs have full docs and which have pointer placeholders. When a WP ships, write a doc there following the convention in the INDEX (one doc per WP; sections: TL;DR, motivation, architectural decisions with rationale, file-level changes, methodology, empirical results, limitations + follow-ups, cross-references). Git history says what changed; these docs say *why*.
 
@@ -210,7 +210,7 @@ The repo's `main` branch carries 7 commits since 2026-05-07 establishing the EMS
 
 - **`todos/AGENT_QUICKSTART.md`** — read this first; project orientation
 - **`todos/MASTER_PLAN.md`** — canonical 6-phase roadmap; D1–D7 locked decisions; 23 active WPs; verification checklist
-- **`todos/WP_DAGILIM_BARAN_ALI.md`** — ownership; cohesion clusters; 7 sync-point handoffs (read-only)
+- **`todos/WP_DAGILIM_BARAN_ALI.md`** — historical allocation + risk matrix + sync-point handoffs (informational only; ownership is no longer enforced as of 2026-05-23)
 - **`todos/INDEX.md`** — status board with TODO/IN-PROGRESS/DONE flags
 - **`todos/HOCA_GUNDEM.md`** — items to discuss with advisor (Murat Karakaya)
 - **`todos/WP-XX-*.md`** — per-WP specs with acceptance criteria, implementation steps, risks
@@ -225,9 +225,8 @@ The repo's `main` branch carries 7 commits since 2026-05-07 establishing the EMS
 - **D4 — N=10 baseline** with a Hafta 4 pilot variance gate; orchestrator must support resume (idempotent worker, run-spec YAMLs in `runs/specs/`, outputs in `runs/outputs/`).
 - **D6 — RQ5 is silently dropped.** Do not reference RQ5 in `paper.tex` or in any new docs/code. Reviewer-facing material is RQ1–RQ4 only.
 
-### Files NOT to touch unless you are the owner
+### Files NOT to touch (independent of WP ownership)
 
-- WPs are owner-tagged; cross-touching them creates merge friction. See `WP_DAGILIM_BARAN_ALI.md`.
 - `LaTeX_DL_468198_240419/paper.tex` is shared writing space — coordinate before editing.
 - `extension/backend/core/intermediate/*.json` and `validation_metrics_report.json` are runtime artifacts; refresh in dedicated `chore(artifacts):` commits, not mixed with code changes.
 - `extension/backend/.env` is never committed. Confirmed via `.gitignore`; never re-add.
@@ -269,7 +268,6 @@ A separate folder from `todos/` (which is roadmap + spec for *upcoming* work). `
 | Debug a pipeline run | `core/intermediate/{timestamp}_{stage}.json` files |
 | Run on a new SRS | Drop in `extension/backend/inputs/` (or workspace `inputs/`) and trigger "DDD Enforcer: Initialize Domain Model" |
 | Run schema conformance probe | `cd extension/backend && python -m core.llm.schema_probe --trials 5` (writes `runs/probe-{ts}.json` + manifest) |
-| Find what's next to build | `todos/INDEX.md` (status) → owner's `todos/WP-XX-*.md` (spec) |
+| Find what's next to build | `todos/INDEX.md` (status) → `todos/WP-XX-*.md` (spec) |
 | Look up *why* a past WP made a decision | `development_docs/INDEX.md` → relevant WP doc |
-| Check ownership before editing | `todos/WP_DAGILIM_BARAN_ALI.md` |
 | Talk to the advisor | `todos/HOCA_GUNDEM.md` (current open topics) |

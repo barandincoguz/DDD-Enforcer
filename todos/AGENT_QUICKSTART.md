@@ -2,7 +2,9 @@
 
 > **Bu dosya, projeye yeni katılan bir kod ajanının (Claude Code, Cursor, vs.) tek geçişte projeyi anlaması için yazılmıştır. Sırayla oku.**
 >
-> **Last updated**: 2026-05-08 (post D1-D7 lock + audit restructure)
+> **Last updated**: 2026-05-23 (ownership disestablished — herhangi bir ajan herhangi bir WP'yi alabilir)
+>
+> ⚠️ **OWNERSHIP DEPRECATED (2026-05-23)**: WP_DAGILIM_BARAN_ALI.md historical/risk dosyası olarak duruyor ama "owner-only edit" kuralı kaldırıldı. Her ajan / yazar her WP'ye dokunabilir. Sahibine-göre yönlendirmeler aşağıda informational olarak kaldı.
 
 ---
 
@@ -20,10 +22,10 @@ Bu repo bir **konferans paper'ının (UBMK 2025) genişletilmiş dergi versiyonu
 |-------|--------------|---------------|
 | **`todos/AGENT_QUICKSTART.md`** (bu dosya) | 1 | Proje overview + entry points |
 | **`todos/MASTER_PLAN.md`** | 2 | Locked decisions (D1-D7), 6-phase roadmap, 23 active WP, kritik path |
-| **`todos/WP_DAGILIM_BARAN_ALI.md`** | 3 | Hangi WP kimde + sync points |
+| **`todos/WP_DAGILIM_BARAN_ALI.md`** | 3 | Historical allocation + risk matrisi + sync points (informational; ownership artık enforce değil) |
 | **`todos/HOCA_GUNDEM.md`** | 4 | Hocaya götürülecek konular (validator, RQ5 drop, RQ1 pipeline count) |
 | **`todos/INDEX.md`** | 5 | Hızlı status board (TODO/IN-PROGRESS/DONE) |
-| **WP-XX-*.md dosyaları** | 6 | Sadece kendi sahip olduğun WP'leri detaylı oku |
+| **WP-XX-*.md dosyaları** | 6 | Üzerinde çalışacağın WP'leri detaylı oku |
 
 **Senin kim olduğuna göre okuma yolu**:
 - **Baran** → Master plan + WP-01a/01b/01c/01d/03/04/05/06/07/12/13/NEW-B
@@ -101,9 +103,10 @@ Phase 7 — Buffer (W15-16)
 ### Branch
 - `main` her zaman yeşil; feature work `wp-XX-*` veya `feature/wp-XX-*` branch'inde
 
-### File Ownership
-- WP_DAGILIM_BARAN_ALI.md'ye bak, sahibin olduğu WP'ler dışındaki dosyalara dokunma
-- Ortak alan: `paper.tex`, `LaTeX_DL_*/`, `extension/backend/configs/` — koordineli edit, PR review zorunlu
+### File Coordination (ownership artık enforced değil)
+- Her ajan / yazar her WP'ye dokunabilir (2026-05-23 itibariyle)
+- Hassas alanlar: `paper.tex`, `LaTeX_DL_*/`, `extension/backend/configs/` — koordineli edit, PR review hâlâ zorunlu
+- `extension/backend/.env`, `extension/backend/core/intermediate/*.json`, `validation_metrics_report.json` runtime artifact'lar — `chore(artifacts):` commit'lerle ayır
 
 ### Sync Points (W4, W5, W7, W9, W10-11, W11, W13)
 - `todos/HANDOFF_S{1..7}.md` template'leriyle teslim edersin (gelecekte oluşturulur)
@@ -113,13 +116,13 @@ Phase 7 — Buffer (W15-16)
 
 ## 6. Sıradaki Concrete Action
 
-**Sahibine göre**:
+**Bu bölümün eski "sahibine göre" yönlendirmeleri ownership disestablished sonrası tarihsel hâle geldi — bilgi amaçlı. Güncel sıradaki iş için `todos/INDEX.md` status board'una ve `.planning/pipeline_audit/CURRENT.md`'ye bakın.**
 
-### Baran ise
-1. **WP-01a TDD Commit-1**: `core/llm/base.py` + `core/llm/errors.py` + `tests/test_llm/test_base.py` + `tests/test_llm/test_errors.py`. ~8 test, hepsi yeşil. Detay: `todos/WP-01a-provider-abstraction.md`.
+### Tarihsel referans — Baran'a önerilmişti
+1. **WP-01a TDD Commit-1**: `core/llm/base.py` + `core/llm/errors.py` + `tests/test_llm/test_base.py` + `tests/test_llm/test_errors.py`. ~8 test, hepsi yeşil. Detay: `todos/WP-01a-provider-abstraction.md`. (✅ Shipped 2026-05-19)
 2. Sonrası: 9-commit sequence (base → registry → retry → ollama → gemini → architect-migration → main-migration → delete-old → schema-probe).
 
-### Ali ise
+### Tarihsel referans — Ali'ye önerilmişti
 1. **WP-NEW-A**: AST Drift Injector smoke prototype. `scripts/inject_drift.py`. Pure Python AST manipülasyon, LLM gerek yok. Detay: `todos/WP-NEW-A-ast-drift-injector.md`.
 2. **Paralel olarak WP-02a**: D2 (banking) public SRS sourcing — GitHub `software-requirements-specification` topic'inde aday tara, license check.
 3. Hafta 4'e kadar D1 publish + `subjects/D1/code-clean/` Gemini Pro ile generate.
@@ -174,7 +177,7 @@ pytest -m "not integration"  # ~5 saniye, 105 test geçer
 ## 9. Sorularım Olursa
 
 - **Dokuman çelişkisi**: MASTER_PLAN.md (woolly-hopping-moonbeam.md ile aynı) **canonical**'dır. WP-XX dosyaları onunla çelişirse MASTER_PLAN kazanır
-- **WP'm kapsam dışında bir şey gerektiriyor**: WP_DAGILIM'da kontrol et, başkasının alanına giriyorsa sahibine yaz
+- **WP'm kapsam dışında bir şey gerektiriyor**: Önce `MASTER_PLAN.md` ve `INDEX.md`'ye bak; çakışan başka aktif WP varsa diğer yazara haber ver (engelleme kuralı yok, koordinasyon yeterli)
 - **Mimari kararı değiştirmek istiyorum**: HOCA_GUNDEM'e yeni konu ekle veya master plan'a "değişiklik teklifi" diff'i öner
 - **Sync point öncesi handoff hazırlamak**: `todos/HANDOFF_S{N}.md` template (gelecekte örnekler eklenecek)
 
