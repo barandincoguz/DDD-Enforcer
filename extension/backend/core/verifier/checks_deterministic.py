@@ -1,12 +1,13 @@
 """Deterministic D1-D5 checks. Pure functions over stage output dicts."""
 
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 from core.verifier.types import IssueSeverity, VerifierIssue
 
 
 def check_d1_supporting_sentence_ids_subset(
     contexts: List[Dict],
     scout_sentence_indices: Set[int],
+    srs_path: Optional[str] = None,
 ) -> List[VerifierIssue]:
     """D1: every BC.supporting_sentence_ids is (a) non-empty AND (b) ⊆ Scout-emitted indices.
 
@@ -15,6 +16,9 @@ def check_d1_supporting_sentence_ids_subset(
     subset check passed trivially (empty list ⊆ any set) for every project
     run. The non-empty clause is an honest-signal defense; full pipeline-level
     enforcement requires F-22 (Refiner stage-aware re-runs).
+
+    WP-CORE-13 (F-24): optional `srs_path` threaded into emitted VerifierIssue
+    instances so issue-level run-manifest provenance is preserved.
     """
     issues: List[VerifierIssue] = []
     for ctx in contexts:
@@ -30,6 +34,7 @@ def check_d1_supporting_sentence_ids_subset(
                     f"— cannot verify SRS grounding"
                 ),
                 suggestion="Architect must cite ≥1 Scout-emitted sentence index per context",
+                srs_path=srs_path,
             ))
             continue
         bad = [i for i in ids if i not in scout_sentence_indices]
@@ -44,6 +49,7 @@ def check_d1_supporting_sentence_ids_subset(
                     f"that Scout did not emit"
                 ),
                 suggestion=f"Drop sentence ids {bad} or revise the context",
+                srs_path=srs_path,
             ))
     return issues
 

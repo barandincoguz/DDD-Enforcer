@@ -18,6 +18,12 @@ class VerifierIssue:
     severity: IssueSeverity
     message: str
     suggestion: Optional[str] = None
+    # WP-CORE-13 (F-24): srs_path is optional with default None for back-
+    # compat. Closes WP-CORE-6 A6-srs-path OQ-1 deferred follow-up. Callers
+    # that thread srs_path enable run-manifest issue-level provenance
+    # symmetric with IntermediateSaveError + SynthesizerEmptyModelError +
+    # ArchitectGroundingError.
+    srs_path: Optional[str] = None
 
 
 @dataclass

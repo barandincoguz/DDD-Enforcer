@@ -878,7 +878,11 @@ Do not invent data not present in the sentences."""
 
         def _to_contract_issue(old_issue) -> ContractVerifierIssue:
             """Adapt core.verifier.types.VerifierIssue (dataclass) to
-            core.pipeline_contracts.VerifierIssue (Pydantic)."""
+            core.pipeline_contracts.VerifierIssue (Pydantic).
+
+            WP-CORE-13 (F-24): propagate srs_path from legacy to contract
+            so issue-level provenance survives the adapter boundary.
+            """
             sev = old_issue.severity
             # IssueSeverity enum values are "error"/"warn"; contract expects "ERROR"/"WARN"
             sev_str = sev.value.upper() if hasattr(sev, "value") else str(sev).upper()
@@ -887,6 +891,7 @@ Do not invent data not present in the sentences."""
                 check_id=getattr(old_issue, "issue_type", "unknown"),
                 target=getattr(old_issue, "location", ""),
                 message=old_issue.message,
+                srs_path=getattr(old_issue, "srs_path", None),
             )
 
         def scout_fn(srs_text: str) -> ScoutOutput:

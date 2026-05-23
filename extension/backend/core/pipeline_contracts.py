@@ -156,11 +156,18 @@ class VerifierIssue(BaseModel):
     new check identifiers are added as the Verifier grows; downstream
     aggregators must defensive-default on unknown ids rather than
     assume the set is closed.
+
+    WP-CORE-13 (F-24): srs_path is optional with default None for back-
+    compat. Closes WP-CORE-6 A6-srs-path OQ-1 deferred follow-up. When
+    threaded by callers, enables run-manifest issue-level provenance
+    symmetric with IntermediateSaveError + SynthesizerEmptyModelError +
+    ArchitectGroundingError.
     """
     severity: Literal["ERROR", "WARN"]
     check_id: str  # "D1" | "D2" | ... | "S1" | "D6" | "D7" | "D8"
     target: str
     message: str
+    srs_path: Optional[str] = None
 
 
 class VerifierResult(BaseModel):
