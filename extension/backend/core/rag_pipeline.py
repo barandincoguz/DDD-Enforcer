@@ -14,6 +14,7 @@ It only knows how to:
 3. Retrieve relevant chunks based on queries
 """
 
+import logging
 import re
 import json
 from pathlib import Path
@@ -21,6 +22,9 @@ from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.config import Settings
 from config import RAGConfig
+
+
+logger = logging.getLogger(__name__)
 
 
 class RAGPipeline:
@@ -144,23 +148,47 @@ class RAGPipeline:
             include=["documents", "metadatas", "distances"]
         )
         
-        # Format results
-        sources = []
-        if results["documents"] and results["documents"][0]:
-            for i, doc_text in enumerate(results["documents"][0]):
-                metadata = results["metadatas"][0][i]
-                distance = results["distances"][0][i]
-                
-                sources.append({
-                    "document": metadata.get("doc_name", "unknown"),
-                    "section": metadata.get("section_name", "unknown"),
-                    "page": metadata.get("page_number", 0),
-                    "summary": self._generate_summary(doc_text),
-                    "file_path": metadata.get("file_path", ""),
-                    "relevance_score": round(1 - distance, 3),
-                    "full_text": doc_text
-                })
-        
+        # WP-CORE-25: filter via MIN_RELEVANCE_SCORE before formatting.
+        return self._filter_and_format_sources(results)
+
+    def _filter_and_format_sources(
+        self,
+        results: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """WP-CORE-25: distance-threshold filter + source-dict formatting.
+
+        Drops results whose cosine relevance (1 - distance) falls below
+        RAGConfig.MIN_RELEVANCE_SCORE. The constant was previously declared
+        in config.py but never enforced — every retrieved chunk passed
+        through regardless of how irrelevant it was, polluting violation
+        source attribution.
+
+        Pure helper: takes raw ChromaDB query results, returns list of
+        source dicts. No state mutation; trivially testable without a
+        live ChromaDB instance.
+        """
+        sources: List[Dict[str, Any]] = []
+        documents = results.get("documents") or []
+        if not documents or not documents[0]:
+            return sources
+        metadatas = (results.get("metadatas") or [[]])[0]
+        distances = (results.get("distances") or [[]])[0]
+        for i, doc_text in enumerate(documents[0]):
+            metadata = metadatas[i] if i < len(metadatas) else {}
+            distance = distances[i] if i < len(distances) else 1.0
+            relevance = round(1 - distance, 3)
+            if relevance < RAGConfig.MIN_RELEVANCE_SCORE:
+                # WP-CORE-25: drop low-relevance results.
+                continue
+            sources.append({
+                "document": metadata.get("doc_name", "unknown"),
+                "section": metadata.get("section_name", "unknown"),
+                "page": metadata.get("page_number", 0),
+                "summary": self._generate_summary(doc_text),
+                "file_path": metadata.get("file_path", ""),
+                "relevance_score": relevance,
+                "full_text": doc_text,
+            })
         return sources
     
     def search(
@@ -193,19 +221,28 @@ class RAGPipeline:
             query_params["where"] = filter_metadata
         
         results = self.collection.query(**query_params)
-        
-        if not results["documents"] or not results["documents"][0]:
+
+        documents = results.get("documents") or []
+        if not documents or not documents[0]:
             return []
-        
-        return [
-            {
-                "text": results["documents"][0][i],
-                "metadata": results["metadatas"][0][i],
-                "distance": results["distances"][0][i],
-                "relevance": round(1 - results["distances"][0][i], 3)
-            }
-            for i in range(len(results["documents"][0]))
-        ]
+
+        metadatas = (results.get("metadatas") or [[]])[0]
+        distances = (results.get("distances") or [[]])[0]
+        # WP-CORE-25: same MIN_RELEVANCE_SCORE filter as retrieve_source so
+        # the debug `search` interface mirrors production retrieval policy.
+        out: List[Dict[str, Any]] = []
+        for i in range(len(documents[0])):
+            distance = distances[i] if i < len(distances) else 1.0
+            relevance = round(1 - distance, 3)
+            if relevance < RAGConfig.MIN_RELEVANCE_SCORE:
+                continue
+            out.append({
+                "text": documents[0][i],
+                "metadata": metadatas[i] if i < len(metadatas) else {},
+                "distance": distance,
+                "relevance": relevance,
+            })
+        return out
     
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about the indexed data."""
@@ -499,7 +536,13 @@ class RAGPipeline:
     # =========================================================================
     
     def _delete_document(self, doc_id: str):
-        """Delete all chunks for a document (for re-indexing)."""
+        """Delete all chunks for a document (for re-indexing).
+
+        WP-CORE-25: previously a bare `except Exception: pass` swallowed
+        all failures silently. Re-indexing a document could fail to delete
+        old chunks without any signal, leaving stale duplicates. Now logs
+        a typed warning so re-index failures are observable in stderr.
+        """
         try:
             existing = self.collection.get(
                 where={"doc_id": doc_id},
@@ -507,5 +550,8 @@ class RAGPipeline:
             )
             if existing["ids"]:
                 self.collection.delete(ids=existing["ids"])
-        except Exception:
-            pass 
+        except Exception as exc:
+            logger.warning(
+                "_delete_document failed for doc_id=%s: %s: %s",
+                doc_id, type(exc).__name__, exc,
+            )

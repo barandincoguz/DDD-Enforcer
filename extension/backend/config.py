@@ -41,8 +41,13 @@ class RAGConfig:
     COLLECTION_NAME: str = "srs_documents"
     DISTANCE_METRIC: str = "cosine"
 
-    # Chunking
-    CHUNK_SIZE: int = 250
+    # Chunking — WP-CORE-25: raised from 250 → 600 chars. A 250-char
+    # window is ~3 average sentences, which splits multi-clause domain
+    # rules (e.g. "Customer must place at least one Order before payment
+    # is accepted") across chunks and weakens semantic retrieval. 600 chars
+    # is ~7-8 sentences — enough to keep a single requirement-with-context
+    # in one chunk while preserving precision for narrow queries.
+    CHUNK_SIZE: int = 600
     CHUNK_OVERLAP: int = 30
     CHUNKS_PER_PAGE: int = 4
 
