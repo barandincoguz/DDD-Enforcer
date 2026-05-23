@@ -28,7 +28,7 @@ from core.refiner.loop import refine_until_clean
 
 
 @contextmanager
-def _optional_stage(name: str) -> Iterator[Any]:
+def _optional_stage(name: str, *, extend: bool = False) -> Iterator[Any]:
     """WP-CORE-20b: wrap a stage call in `emitter.stage(name)` when an
     active emitter is present; no-op otherwise.
 
@@ -40,24 +40,28 @@ def _optional_stage(name: str) -> Iterator[Any]:
 
     Behaviour:
     * Active emitter (`get_current_emitter()` non-None): enters
-      `emitter.stage(name)` so `_stage_var` is set to `name`,
-      `manifest.stages[name]` is registered, elapsed_ms is recorded on
-      exit, and exceptions are logged into `manifest.errors`.
+      `emitter.stage(name, extend=extend)` so `_stage_var` is set to
+      `name`, `manifest.stages[name]` is registered, elapsed_ms is
+      recorded on exit, and exceptions are logged into
+      `manifest.errors`.
     * No active emitter (most unit tests, CLI tools, schema_probe):
       yields without side effects so existing emitter-less call sites
       keep working unchanged.
 
-    Note: rerun-style calls (architect_with_feedback) re-enter the
-    "architect" scope and overwrite the prior `StageRecord`.  Preserving
-    rerun-1's `llm_calls` across the overwrite is a documented follow-up
-    (paper-data fidelity is dominated by the final successful attempt).
+    WP-CORE-20c: `extend=True` reuses an existing `manifest.stages[name]`
+    record across multiple invocations so the WP-CORE-7 architect
+    feedback rerun preserves the first attempt's llm_calls /
+    json_parse_failures.  Per-attempt bounds + status land in
+    `record.metrics["attempts"]`.  Callers MUST pass `extend=True` only
+    on the rerun (second+ enter); the first enter stays `extend=False`
+    (default) so a fresh record is created.
     """
     from core.observability.emitter import get_current_emitter
     emitter = get_current_emitter()
     if emitter is None:
         yield None
         return
-    with emitter.stage(name) as record:
+    with emitter.stage(name, extend=extend) as record:
         yield record
 
 
@@ -265,7 +269,14 @@ def run_pipeline(
 
     while True:
         # Stage 2 (with optional issue-aware feedback on rerun).
-        with _optional_stage("architect"):
+        # WP-CORE-20c: rerun (architect_feedback is not None) extends the
+        # prior "architect" StageRecord so the first attempt's llm_calls
+        # and json_parse_failures survive the re-enter (paper-data
+        # fidelity).  First attempt stays extend=False so a fresh record
+        # is created.
+        with _optional_stage(
+            "architect", extend=(architect_feedback is not None)
+        ):
             if architect_feedback is None:
                 arch: ArchitectOutput = deps.architect(scout)
             else:

@@ -103,26 +103,67 @@ class StageEmitter:
         self._lock = threading.Lock()
 
     @contextmanager
-    def stage(self, name: str) -> Iterator[StageRecord]:
+    def stage(self, name: str, *, extend: bool = False) -> Iterator[StageRecord]:
         """Context manager that opens/closes a stage record.
 
         On normal exit: status stays at whatever the caller set (default
         'success'). On exception: status='fail' and the exception is appended
         to manifest.errors[] (with srs_path + safe context). The exception
         is always re-raised.
+
+        WP-CORE-20c: `extend=True` REUSES an existing
+        `manifest.stages[name]` record across multiple `with` blocks so
+        the WP-CORE-7 architect feedback rerun (and any future rerun-
+        style stage call) does not overwrite the prior attempt's
+        llm_calls / json_parse_failures / metrics. Per-attempt summaries
+        are appended to `record.metrics["attempts"]` as dicts of
+        `{started_at, ended_at, elapsed_ms, status, llm_calls_added,
+        json_parse_failures_added}`. `started_at` is preserved from the
+        FIRST attempt; `ended_at` reflects the LAST; `elapsed_ms` is the
+        cumulative wall-clock across attempts; `status` reflects the
+        FINAL attempt's outcome. `p50_latency_ms` / `p95_latency_ms` are
+        recomputed over the UNION of llm_calls.
+
+        With `extend=True` but no prior record under `name`, behavior
+        matches `extend=False` for the per-record fields and additionally
+        seeds `record.metrics["attempts"]` with the single-attempt
+        summary so downstream consumers see a uniform shape regardless
+        of whether a rerun occurred.
         """
-        record = StageRecord(started_at=_now_iso(), status="success")
-        # Register upfront so concurrent record_llm_call / record_json_parse_failure
-        # mutate the SAME record object (not a setdefault-created stand-in that
-        # we then overwrite in finally — that bug lost all per-call records).
+        prior_llm_call_count = 0
+        prior_json_parse_failure_count = 0
+        prior_started_at: Optional[str] = None
+        prior_elapsed_ms = 0.0
         with self._lock:
-            self.manifest.stages[name] = record
+            existing = self.manifest.stages.get(name)
+            if extend and existing is not None:
+                record = existing
+                prior_llm_call_count = len(record.llm_calls)
+                prior_json_parse_failure_count = len(record.json_parse_failures)
+                prior_started_at = record.started_at
+                prior_elapsed_ms = record.elapsed_ms
+                # Reset transient fields for the new attempt; preserve
+                # accumulators (llm_calls, json_parse_failures, metrics).
+                record.status = "success"
+                record.ended_at = None
+            else:
+                record = StageRecord(started_at=_now_iso(), status="success")
+                self.manifest.stages[name] = record
+        attempt_started_at = _now_iso()
+        if extend and prior_started_at is not None:
+            # extend reusing: do not overwrite started_at; refresh it for the
+            # current attempt's wall-clock measurement only.
+            record.started_at = prior_started_at
+        else:
+            record.started_at = attempt_started_at
         start_ns = time.monotonic_ns()
         token_emitter = _emitter_var.set(self)
         token_stage = _stage_var.set(name)
+        attempt_status: str = "success"
         try:
             yield record
         except Exception as exc:
+            attempt_status = "fail"
             record.status = "fail"
             with self._lock:
                 self.manifest.errors.append({
@@ -135,12 +176,62 @@ class StageEmitter:
                 })
             raise
         finally:
-            record.ended_at = _now_iso()
-            record.elapsed_ms = (time.monotonic_ns() - start_ns) / 1e6
-            latencies = [c.latency_ms for c in record.llm_calls]
-            record.p50_latency_ms, record.p95_latency_ms = _percentiles(latencies)
-            _stage_var.reset(token_stage)
-            _emitter_var.reset(token_emitter)
+            try:
+                attempt_ended_at = _now_iso()
+                attempt_elapsed_ms = (time.monotonic_ns() - start_ns) / 1e6
+                record.ended_at = attempt_ended_at
+                record.elapsed_ms = prior_elapsed_ms + attempt_elapsed_ms
+                latencies = [c.latency_ms for c in record.llm_calls]
+                record.p50_latency_ms, record.p95_latency_ms = _percentiles(
+                    latencies
+                )
+                # WP-CORE-20c: only seed/append the per-attempt list when
+                # extend mode is in effect.  Default mode leaves
+                # `record.metrics` untouched so callers that stash other
+                # values under arbitrary keys (including "attempts" as a
+                # plain count) keep working.
+                if extend:
+                    with self._lock:
+                        existing_attempts = record.metrics.get("attempts")
+                        if not isinstance(existing_attempts, list):
+                            existing_attempts = []
+                            record.metrics["attempts"] = existing_attempts
+                        # Back-fill a synthetic first-attempt summary when the
+                        # prior record exists but pre-dates extend-mode (e.g.
+                        # the pipeline's first architect attempt ran with
+                        # extend=False).  Without this, attempts[0] would be
+                        # the rerun and the first attempt's metadata would be
+                        # invisible to manifest consumers.
+                        if (
+                            not existing_attempts
+                            and prior_started_at is not None
+                        ):
+                            existing_attempts.append({
+                                "started_at": prior_started_at,
+                                "ended_at": None,
+                                "elapsed_ms": prior_elapsed_ms,
+                                "status": "success",
+                                "llm_calls_added": prior_llm_call_count,
+                                "json_parse_failures_added": (
+                                    prior_json_parse_failure_count
+                                ),
+                            })
+                        existing_attempts.append({
+                            "started_at": attempt_started_at,
+                            "ended_at": attempt_ended_at,
+                            "elapsed_ms": attempt_elapsed_ms,
+                            "status": attempt_status,
+                            "llm_calls_added": (
+                                len(record.llm_calls) - prior_llm_call_count
+                            ),
+                            "json_parse_failures_added": (
+                                len(record.json_parse_failures)
+                                - prior_json_parse_failure_count
+                            ),
+                        })
+            finally:
+                _stage_var.reset(token_stage)
+                _emitter_var.reset(token_emitter)
 
     def record_llm_call(self, response: "LLMResponse", operation: str) -> None:
         """Append a per-call record + bump global llm aggregates."""
