@@ -33,6 +33,15 @@ from core.run_manifest import PaperRunManifest
 
 
 # ---------------------------------------------------------------------------
+# Module-level constants
+# ---------------------------------------------------------------------------
+
+DEFAULT_BOOTSTRAP_SEED = 42
+DEFAULT_BOOTSTRAP_RESAMPLES = 1000
+SCHEMA_VERSION = "1.0"
+
+
+# ---------------------------------------------------------------------------
 # Pydantic schemas
 # ---------------------------------------------------------------------------
 
@@ -76,9 +85,9 @@ class AggregatedConfiguration(BaseModel):
     n_runs: int
     run_ids: List[str]
     scorelines: List[AggregatedScoreline]
-    bootstrap_seed: int = 42
-    bootstrap_resamples: int = 1000
-    schema_version: str = "1.0"
+    bootstrap_seed: int = DEFAULT_BOOTSTRAP_SEED
+    bootstrap_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES
+    schema_version: str = SCHEMA_VERSION
 
 
 # ---------------------------------------------------------------------------
@@ -90,8 +99,8 @@ def summarize_metric(
     values: List[float],
     metric_name: Literal["precision", "recall", "f1"],
     *,
-    bootstrap_resamples: int = 1000,
-    seed: int = 42,
+    bootstrap_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
 ) -> StatisticalSummary:
     """Compute mean, std, IQR, and bootstrap 95% CI for a single metric across N samples.
 
@@ -161,8 +170,8 @@ def summarize_metric(
 def aggregate_scorelines(
     per_run_scorelines: List[List[PrecisionRecallF1]],
     *,
-    bootstrap_resamples: int = 1000,
-    seed: int = 42,
+    bootstrap_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
 ) -> List[AggregatedScoreline]:
     """Group N runs' per-type scorelines by violation_type and produce one
     AggregatedScoreline per type (including __aggregate__).
@@ -206,6 +215,9 @@ def aggregate_scorelines(
 
     result: List[AggregatedScoreline] = []
     for vtype in sorted(canonical_types):
+        # Use seed offsets +0/+1/+2 per metric so precision/recall/f1 bootstrap
+        # draws use independent RNG streams.  Deterministic replay is preserved:
+        # the outer seed still determines all derived seeds.
         result.append(
             AggregatedScoreline(
                 violation_type=vtype,
@@ -220,13 +232,13 @@ def aggregate_scorelines(
                     recall_by_type[vtype],
                     "recall",
                     bootstrap_resamples=bootstrap_resamples,
-                    seed=seed,
+                    seed=seed + 1,
                 ),
                 f1_summary=summarize_metric(
                     f1_by_type[vtype],
                     "f1",
                     bootstrap_resamples=bootstrap_resamples,
-                    seed=seed,
+                    seed=seed + 2,
                 ),
             )
         )
@@ -259,7 +271,12 @@ def discover_run_pairs(runs_root: Path) -> List[Tuple[Path, Path]]:
         if not judge_files:
             continue  # silently skip — not yet labeled
 
-        judge_path = judge_files[0]  # take first if multiple (should be exactly one)
+        if len(judge_files) > 1:
+            raise ValueError(
+                f"ambiguous judge files in {run_dir}: {sorted(judge_files)}"
+            )
+
+        judge_path = judge_files[0]
         pairs.append((manifest_path, judge_path))
 
     return pairs
@@ -306,8 +323,8 @@ def group_by_configuration(
 def aggregate_configuration(
     pairs: List[Tuple[Path, Path]],
     *,
-    bootstrap_resamples: int = 1000,
-    seed: int = 42,
+    bootstrap_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
 ) -> AggregatedConfiguration:
     """For one configuration's run pairs, load each PaperRunManifest +
     JudgeVerdict, compute_metrics per run, then aggregate via

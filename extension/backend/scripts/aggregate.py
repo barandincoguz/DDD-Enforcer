@@ -22,6 +22,11 @@ import argparse
 import sys
 from pathlib import Path
 
+# Import constants here so CLI defaults stay in sync with core defaults.
+# Deferred inside main() for the heavy imports (numpy / pydantic); these two
+# are lightweight string/int constants so they are safe at module level.
+from core.aggregate import DEFAULT_BOOTSTRAP_RESAMPLES, DEFAULT_BOOTSTRAP_SEED
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -39,14 +44,14 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--seed",
         type=int,
-        default=42,
-        help="RNG seed for bootstrap CI (default: 42).",
+        default=DEFAULT_BOOTSTRAP_SEED,
+        help=f"RNG seed for bootstrap CI (default: {DEFAULT_BOOTSTRAP_SEED}).",
     )
     parser.add_argument(
         "--resamples",
         type=int,
-        default=1000,
-        help="Number of bootstrap resamples (default: 1000).",
+        default=DEFAULT_BOOTSTRAP_RESAMPLES,
+        help=f"Number of bootstrap resamples (default: {DEFAULT_BOOTSTRAP_RESAMPLES}).",
     )
     return parser
 
@@ -58,6 +63,9 @@ def main(argv: list[str] | None = None) -> int:
     runs_root: Path = args.runs_root.resolve()
     if not runs_root.exists():
         print(f"[ERROR] runs-root does not exist: {runs_root}", file=sys.stderr)
+        return 1
+    if not runs_root.is_dir():
+        print(f"[ERROR] --runs-root must be a directory: {runs_root}", file=sys.stderr)
         return 1
 
     from core.aggregate import (

@@ -23,7 +23,7 @@ from core.metrics import (
     JudgeVerdictEntry,
     PrecisionRecallF1,
 )
-from core.run_manifest import EMPTY_TREE_SHA256, PaperRunManifest
+from core.run_manifest import PaperRunManifest
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +240,7 @@ def test_c7_discover_run_pairs(tmp_path):
 
 
 def test_c8_group_by_configuration(tmp_path):
-    from core.aggregate import group_by_configuration
+    from core.aggregate import discover_run_pairs, group_by_configuration
     from core.run_manifest import write_paper_run_manifest
 
     # Config 1: P1 / model-A / SRS_D1.docx  → 2 runs
@@ -269,13 +269,6 @@ def test_c8_group_by_configuration(tmp_path):
     srs_labels = {k[2] for k in config_keys}
     assert "SRS_D1" in srs_labels
     assert "SRS_D2" in srs_labels
-
-
-# ---------------------------------------------------------------------------
-# Helper import needed for test_c8
-# ---------------------------------------------------------------------------
-
-from core.aggregate import discover_run_pairs  # noqa: E402  (needed after write)
 
 
 # ---------------------------------------------------------------------------
@@ -479,3 +472,23 @@ def test_c14_aggregate_rollup_preserved():
     agg = agg_scorelines[0]
     assert agg.n_runs == 3
     assert agg.precision_summary.n_samples == 3
+
+
+# ---------------------------------------------------------------------------
+# T-01b-C-15: discover_run_pairs raises ValueError on ambiguous judge files
+# ---------------------------------------------------------------------------
+
+
+class TestAmbiguousJudgeFiles:
+    def test_T01b_C15_multiple_judge_files_raises(self, tmp_path):
+        from core.aggregate import discover_run_pairs
+
+        # Build a run dir with a manifest and TWO *.judge.json files
+        run_dir = tmp_path / "run_ambiguous"
+        run_dir.mkdir()
+        (run_dir / "manifest.json").write_text("{}", encoding="utf-8")
+        (run_dir / "rater1.judge.json").write_text("{}", encoding="utf-8")
+        (run_dir / "rater2.judge.json").write_text("{}", encoding="utf-8")
+
+        with pytest.raises(ValueError, match=r"ambiguous"):
+            discover_run_pairs(tmp_path)
