@@ -14,6 +14,7 @@ from core.AST.ast_signal_classification import SignalClassifier
 from core.AST.ast_signal_discovery import DEFAULT_SKIP_DIRS, extract_class_facts, find_python_files
 from core.AST.ast_signal_enrichment import SignalEnricher
 from core.AST.ast_signal_types import CandidateSignal
+from core.AST.import_graph import apply_import_topology_to_model
 from core.schemas import DomainModel
 
 
@@ -60,7 +61,41 @@ class ASTModelSignalExtractor:
         signals = enricher.deduplicate_signals(signals)
         enricher.apply_grounding(signals, srs_docs)
         model_data = enricher.enrich_model(model_data, signals, srs_docs=srs_docs)
+        # WP-CORE-31b: auto-populate BoundedContext.allowed_dependencies
+        # from the AST-derived import topology + record cross-check diff.
+        # Runs after the main enrichment pass so any contexts the
+        # enricher may have introduced (default CoreDomain seeding) are
+        # also considered.
+        self._apply_import_topology(
+            model_data,
+            python_files=python_files,
+            workspace_root=workspace_path,
+            enricher=enricher,
+        )
         return DomainModel(**model_data)
+
+    def _apply_import_topology(
+        self,
+        model_data: Dict[str, Any],
+        python_files: List[str],
+        workspace_root: str,
+        enricher: SignalEnricher,
+    ) -> None:
+        """WP-CORE-31b: thin wrapper around `apply_import_topology_to_model`
+        that stashes the diagnostics block on the supplied enricher so it
+        ends up serialised next to the other AST diagnostics.
+
+        Defensive: any error in graph construction (parse errors,
+        permission issues) is propagated only via the helper's own
+        silent-skip behaviour; the enrichment pipeline never crashes on
+        an import-topology hiccup.
+        """
+        topology_diags = apply_import_topology_to_model(
+            model_data,
+            python_files=python_files,
+            workspace_root=workspace_root,
+        )
+        enricher.diagnostics["import_topology"] = topology_diags
 
     def _collect_signals(self, python_files: List[str]) -> List[CandidateSignal]:
         signals: List[CandidateSignal] = []

@@ -25,7 +25,7 @@ from __future__ import annotations
 import ast
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Optional, Set
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set
 
 
 def _normalize(token: str) -> str:
@@ -127,6 +127,79 @@ def map_modules_to_contexts(
                 break
         mapping[module] = ctx
     return mapping
+
+
+def apply_import_topology_to_model(
+    model_data: Dict[str, Any],
+    python_files: List[str],
+    workspace_root: Optional[str] = None,
+) -> Dict[str, Any]:
+    """WP-CORE-31b: pipeline-integration helper.
+
+    Compose `build_module_import_graph` -> `map_modules_to_contexts` ->
+    `derive_context_dependencies` on the workspace's Python files and
+    push the resulting context-level dependency graph into the supplied
+    `model_data` dict (mutating in place):
+
+    * If a `BoundedContext.allowed_dependencies` is `None` or `[]` AND
+      the AST-derived graph found cross-context import edges originating
+      at that context, set `allowed_dependencies` to the sorted derived
+      list and record the context name under `auto_populated`.
+    * If the LLM already declared `allowed_dependencies` AND the derived
+      graph is non-empty for the same context, do NOT overwrite — instead
+      record the sym-diff under `cross_check_diff` so reviewers see drift.
+    * Unmapped contexts (those whose name appears nowhere in any module
+      path) are skipped — auto-populating an unmapped context with `[]`
+      would be misleading.
+
+    Returns a JSON-safe diagnostics dict carrying:
+        {
+            "derived":           {ctx -> sorted([dep, ...])},
+            "auto_populated":    [ctx, ...]  (sorted),
+            "cross_check_diff":  {ctx -> {"extra_in_llm": [...], "extra_in_derived": [...]}},
+        }
+    """
+    contexts = model_data.get("bounded_contexts", []) or []
+    if not contexts:
+        return {"derived": {}, "auto_populated": [], "cross_check_diff": {}}
+
+    context_names = [str(c.get("context_name", "")) for c in contexts]
+    graph = build_module_import_graph(python_files, workspace_root=workspace_root)
+    # Collect every module that participates in the graph (sources + targets)
+    # so unmapped imports (stdlib, third-party) don't accidentally bleed into
+    # a context bucket via a partial mapping.
+    all_modules: Set[str] = set(graph.keys())
+    for imports in graph.values():
+        all_modules |= imports
+    mapping = map_modules_to_contexts(all_modules, context_names)
+    derived = derive_context_dependencies(graph, mapping)
+
+    auto_populated: List[str] = []
+    cross_check_diff: Dict[str, Dict[str, List[str]]] = {}
+    for context in contexts:
+        ctx_name = str(context.get("context_name", ""))
+        derived_set: Set[str] = set(derived.get(ctx_name, set()))
+        if not derived_set:
+            continue
+        existing = context.get("allowed_dependencies")
+        if not existing:
+            context["allowed_dependencies"] = sorted(derived_set)
+            auto_populated.append(ctx_name)
+            continue
+        existing_set = {str(item) for item in existing if item is not None}
+        extra_llm = sorted(existing_set - derived_set)
+        extra_derived = sorted(derived_set - existing_set)
+        if extra_llm or extra_derived:
+            cross_check_diff[ctx_name] = {
+                "extra_in_llm": extra_llm,
+                "extra_in_derived": extra_derived,
+            }
+
+    return {
+        "derived": {ctx: sorted(deps) for ctx, deps in derived.items()},
+        "auto_populated": sorted(auto_populated),
+        "cross_check_diff": cross_check_diff,
+    }
 
 
 def derive_context_dependencies(
