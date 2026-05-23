@@ -56,8 +56,18 @@ class SRSDocumentParser:
             r"^(?:table of contents|contents|i[cç]indekiler)\s*$",
             re.IGNORECASE,
         )
+        # WP-CORE-12 (F-4): TOC leader alternation covers (a) legacy dot
+        # leader \.{4,}, (b) post-_normalize_line table-pipe separator
+        # `\s+\|\s+` (most common in layout-mode PDFs), (c) raw multi-space
+        # fallback `\s{3,}`. Cluster<2 + 120-line window guards still
+        # protect against false-positives on legitimate "X | N" lines.
         self.toc_line_pattern = re.compile(
-            r"^(?:#{1,6}\s*)?(?:\d+(?:\.\d+)*\.?\s+)?[A-Za-z0-9ÇĞİÖŞÜçğıöşü].*\.{4,}\s*\d+\s*$",
+            r"^(?:#{1,6}\s*)?"
+            r"(?:\d+(?:\.\d+)*\.?\s+)?"
+            r"[A-Za-z0-9ÇĞİÖŞÜçğıöşü]"
+            r".*?"
+            r"(?:\.{4,}\s*|\s+\|\s+|\s{3,})"
+            r"\d+\s*$",
             re.IGNORECASE,
         )
         self.header_footer_pattern = re.compile(
