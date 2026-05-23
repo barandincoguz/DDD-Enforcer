@@ -37,7 +37,7 @@ def estimate_single_call_cost(
 
 def estimate_run_cost(
     model_id: str, prompt_tokens: int, completion_tokens: int, runs: int
-) -> Dict[str, float]:
+) -> Dict[str, Any]:
     """Compute total cost for N identical runs of a single model.
 
     Returns a dict with keys: 'per_call' (float), 'total' (float), 'runs' (int).

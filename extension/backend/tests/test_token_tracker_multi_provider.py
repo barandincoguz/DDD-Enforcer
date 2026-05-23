@@ -21,6 +21,21 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 # ---------------------------------------------------------------------------
+# Autouse fixture — singleton reset BEFORE and AFTER every test in this module
+# ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def _reset_token_tracker_singleton():
+    """Ensure TokenTracker singleton is reset both BEFORE and AFTER every
+    test in this module, so any new test added later inherits a clean
+    state without needing to remember the reset call."""
+    from core.token_tracker import TokenTracker
+
+    TokenTracker.reset()
+    yield
+    TokenTracker.reset()
+
+
+# ---------------------------------------------------------------------------
 # Helpers — build a minimal LLMResponse without importing live clients
 # ---------------------------------------------------------------------------
 def _make_llm_response(
@@ -60,7 +75,6 @@ class TestT01c1GeminiTracking:
         from core.llm._response_adapter import LLMResponseAdapter
         from core.token_tracker import TokenTracker
 
-        TokenTracker.reset()
         tracker = TokenTracker.get_instance()
 
         response = _make_llm_response(
@@ -79,15 +93,20 @@ class TestT01c1GeminiTracking:
 
 
 # ---------------------------------------------------------------------------
-# T-01c-2: Ollama provider shape — cost must be 0.0 (flat subscription)
+# T-01c-2: Ollama provider shape normalises correctly via adapter
 # ---------------------------------------------------------------------------
 class TestT01c2OllamaTracking:
-    def test_ollama_response_tracked_zero_cost(self):
-        """Ollama LLMResponse via LLMResponseAdapter records correctly; cost is 0.0."""
+    def test_ollama_response_shape_normalises_via_adapter(self):
+        """Ollama response goes through LLMResponseAdapter and is tracked correctly.
+
+        The recorded cost reflects the stage's configured model pricing (currently
+        the Gemini stage model), not the Ollama response's own model_id. Per
+        WP-01c design, the stage→model mapping in configs/models.py determines
+        billing, not the response provenance.
+        """
         from core.llm._response_adapter import LLMResponseAdapter
         from core.token_tracker import TokenTracker
 
-        TokenTracker.reset()
         tracker = TokenTracker.get_instance()
 
         # gpt-oss:120b-cloud is D1 O1 (Ollama flat subscription)
@@ -120,7 +139,6 @@ class TestT01c3CachedTokenDiscount:
         from core.llm._response_adapter import LLMResponseAdapter
         from core.token_tracker import TokenTracker
 
-        TokenTracker.reset()
         tracker = TokenTracker.get_instance()
 
         response = _make_llm_response(
