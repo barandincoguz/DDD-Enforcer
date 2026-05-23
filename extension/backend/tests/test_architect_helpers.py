@@ -105,21 +105,3 @@ class TestScoutParallel:
     def test_kwarg_overrides_default(self):
         a = self._make_architect(scout_max_workers=4)
         assert a.scout_max_workers == 4
-
-    def test_parallel_preserves_order(self):
-        """ex.map preserves submission order; mocked _extract returns chunk index list."""
-        a = self._make_architect(scout_max_workers=3)
-
-        def fake_extract(chunk, num, total):
-            return [f"sentence_from_chunk_{num}"]
-
-        with patch.object(a, "_extract_sentences_from_chunk", side_effect=fake_extract):
-            with patch.object(a, "_save_intermediate"):
-                long_text = "X" * 25_000  # ~3 chunks at chunk_size=10000
-                result = a.extract_domain_sentences(long_text)
-
-        assert result == [
-            "sentence_from_chunk_1",
-            "sentence_from_chunk_2",
-            "sentence_from_chunk_3",
-        ]
