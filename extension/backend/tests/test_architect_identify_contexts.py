@@ -118,3 +118,53 @@ class TestIdentifyContextsPromptNumbering:
         prompt = arch.client.chat.call_args.kwargs["messages"][0]["content"]
         assert "[0] sent zero text" in prompt
         assert "[1] sent one text" in prompt
+
+
+# =============================================================================
+# WP-CORE-7 — Architect feedback re-prompt (F-22 mode C hybrid)
+# =============================================================================
+
+
+class TestIdentifyContextsFeedbackBlock:
+    """T-FEEDBACK-1: identify_contexts accepts feedback_issues kwarg and
+    prepends a structured feedback block to the LLM prompt."""
+
+    def test_identify_contexts_prepends_feedback_block_when_issues_provided(self):
+        """T-FEEDBACK-1 (Codex W-3): the feedback block contains exactly:
+        (a) "PREVIOUS ATTEMPT FAILED VERIFICATION:" header,
+        (b) the issue.target field value,
+        (c) the issue.message text.
+
+        Feedback is built ONCE per outer architect attempt (Codex N-1) and
+        reused across all 5 internal JSON-parse retries.
+        """
+        from core.pipeline_contracts import VerifierIssue as ContractVerifierIssue
+
+        arch = _make_architect()
+        payload = {"contexts": [
+            {"name": "OrderMgmt", "supporting_sentence_ids": [0]},
+        ]}
+        arch.client = MagicMock()
+        arch.client.chat = MagicMock(return_value=_llm_response_json(payload))
+
+        feedback_issue = ContractVerifierIssue(
+            severity="ERROR",
+            check_id="D1",
+            target="architect:contexts[Inventory].supporting_sentence_ids",
+            message="Context 'Inventory' has no supporting_sentence_ids",
+        )
+
+        arch.identify_contexts(
+            ["sent zero text", "sent one text"],
+            feedback_issues=[feedback_issue],
+        )
+
+        prompt = arch.client.chat.call_args.kwargs["messages"][0]["content"]
+        assert "PREVIOUS ATTEMPT FAILED VERIFICATION:" in prompt
+        assert "architect:contexts[Inventory].supporting_sentence_ids" in prompt
+        assert "Context 'Inventory' has no supporting_sentence_ids" in prompt
+        # Sanity: feedback appears BEFORE the main instruction block.
+        feedback_pos = prompt.find("PREVIOUS ATTEMPT FAILED VERIFICATION:")
+        main_pos = prompt.find("Identify distinct Bounded Contexts")
+        assert feedback_pos >= 0 and main_pos >= 0
+        assert feedback_pos < main_pos, "feedback block must come before main instructions"

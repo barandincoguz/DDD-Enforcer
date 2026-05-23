@@ -275,16 +275,81 @@ def test_pipeline_post_call_check_catches_injected_synthesizer_returning_empty_m
 
 
 # =============================================================================
-# WP-CORE-6 — Degrade-log includes full issues list (Codex C-4)
+# WP-CORE-6 / WP-CORE-7 — Degrade-log + architect-stage hard-fail
 # =============================================================================
 
 
-def test_refiner_exhaustion_log_includes_issues_list(capsys):
-    """T-DEGRADE-LOG-1 (Codex C-4): when Refiner exhausts on persistent
-    verifier issues, the degrade-log must include each issue's stage,
-    location, and message — not just type(exc).__name__."""
-    deps = _make_typed_deps()
-    # Verifier always returns the same D1 issue → Refiner exhausts max_cycles=2
+def _make_deps_with_feedback_arch(architect_fn, architect_with_feedback_fn,
+                                  specialist_fn=None, verifier_fn=None,
+                                  synthesizer_fn=None, scout_fn=None):
+    """Build a PipelineDeps including the WP-CORE-7 architect_with_feedback callable.
+
+    Pre-GREEN this will TypeError on construction; the GREEN commit adds the
+    field to PipelineDeps. Used by every WP-CORE-7 dispatcher test.
+    """
+    from core.synthesizer import synthesize_domain_model
+
+    def _default_scout(srs_text: str) -> ScoutOutput:
+        return ScoutOutput(
+            sentences=[SectionedSentence(index=0, text="An order is placed.")],
+            chunk_metadata=ChunkMetadata(chunk_count=1, total_chars=20),
+        )
+
+    def _default_specialist(arch, scout):
+        return [
+            SpecialistAnalysis(
+                context=arch.contexts[0],
+                entities=[Entity(
+                    name="Order",
+                    description="An order placed.",
+                    confidence=0.9,
+                    justification="cited",
+                    evidence_sentence_indices=[0],
+                )],
+            )
+        ]
+
+    def _default_synth(analyses):
+        return synthesize_domain_model(
+            analyses, llm_client=MagicMock(), project_name="Test", skip_enrich=True,
+        )
+
+    return PipelineDeps(
+        scout=scout_fn or _default_scout,
+        architect=architect_fn,
+        architect_with_feedback=architect_with_feedback_fn,
+        specialist=specialist_fn or _default_specialist,
+        synthesizer=synthesizer_fn or _default_synth,
+        verifier=verifier_fn or (lambda snapshot: _ok()),
+    )
+
+
+def test_refiner_exhaustion_on_architect_stage_raises_grounding_error(capsys):
+    """T-DEGRADE-LOG-1 (WP-CORE-7 update, Codex C-1+C-2): architect-stage
+    issues no longer degrade silently. After 1 architect re-run with persistent
+    issues, pipeline raises ArchitectGroundingError. Log still includes issue
+    location + message (preserves WP-CORE-6 C-4 visibility contract on the
+    hard-fail path).
+
+    Replaces the WP-CORE-6 T-DEGRADE-LOG-1 which expected best-effort degrade.
+    """
+    from core.orchestration.errors import ArchitectGroundingError
+
+    architect_calls = [0]
+    architect_with_feedback_calls = [0]
+
+    def architect_fn(scout):
+        architect_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="OrderMgmt", description="x"),
+        ])
+
+    def architect_with_feedback_fn(scout, issues):
+        architect_with_feedback_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="OrderMgmt", description="x"),
+        ])
+
     bad_issue = VerifierIssue(
         stage="architect",
         location="architect:contexts[OrderMgmt].supporting_sentence_ids",
@@ -292,16 +357,377 @@ def test_refiner_exhaustion_log_includes_issues_list(capsys):
         severity=IssueSeverity.ERROR,
         message="Context 'OrderMgmt' has no supporting_sentence_ids — cannot verify SRS grounding",
     )
-    deps.verifier = lambda snapshot: VerifierResult(ok=False, issues=[bad_issue])
 
-    # Run; expect best-effort degrade (no exception); capture stdout
-    model = run_pipeline(srs_text="x", deps=deps)
-    assert model is not None  # degrades gracefully
+    deps = _make_deps_with_feedback_arch(
+        architect_fn=architect_fn,
+        architect_with_feedback_fn=architect_with_feedback_fn,
+        verifier_fn=lambda snapshot: VerifierResult(ok=False, issues=[bad_issue]),
+    )
+
+    with pytest.raises(ArchitectGroundingError) as exc_info:
+        run_pipeline(srs_text="x", deps=deps)
+
+    assert exc_info.value.cycles_attempted == 1
+    assert len(exc_info.value.issues) == 1
+    assert len(exc_info.value.residual_issues) == 0
+    assert architect_calls[0] == 1
+    assert architect_with_feedback_calls[0] == 1
 
     captured = capsys.readouterr().out
     assert "architect:contexts[OrderMgmt].supporting_sentence_ids" in captured, (
-        "Degrade-log must include the failing issue's location"
+        "Hard-fail log must include the failing issue's location"
     )
     assert "no supporting_sentence_ids" in captured, (
-        "Degrade-log must include the failing issue's message"
+        "Hard-fail log must include the failing issue's message"
     )
+
+
+# =============================================================================
+# WP-CORE-7 — Refiner stage-aware dispatch (F-22 mode C hybrid)
+# =============================================================================
+
+
+def test_pipeline_re_runs_architect_on_initial_architect_stage_issue():
+    """T-DISPATCH-1: verifier returns 1 architect-stage issue on first call,
+    ok on second; architect_with_feedback invoked exactly once;
+    plain architect_fn invoked once."""
+    architect_calls = [0]
+    architect_with_feedback_calls = [0]
+    verifier_calls = [0]
+
+    def architect_fn(scout):
+        architect_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="OrderMgmt", description="x"),
+        ])
+
+    def architect_with_feedback_fn(scout, issues):
+        architect_with_feedback_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(
+                context_name="OrderMgmt", description="x",
+                supporting_sentence_ids=[0],
+            ),
+        ])
+
+    def verifier_fn(snapshot):
+        verifier_calls[0] += 1
+        if verifier_calls[0] == 1:
+            return VerifierResult(ok=False, issues=[VerifierIssue(
+                stage="architect",
+                location="architect:contexts[OrderMgmt].supporting_sentence_ids",
+                issue_type="ungrounded_context",
+                severity=IssueSeverity.ERROR,
+                message="missing IDs",
+            )])
+        return VerifierResult(ok=True, issues=[])
+
+    deps = _make_deps_with_feedback_arch(
+        architect_fn=architect_fn,
+        architect_with_feedback_fn=architect_with_feedback_fn,
+        verifier_fn=verifier_fn,
+    )
+
+    model = run_pipeline(srs_text="x", deps=deps)
+
+    assert model is not None
+    assert architect_calls[0] == 1
+    assert architect_with_feedback_calls[0] == 1
+
+
+def test_pipeline_raises_grounding_error_after_architect_rerun_exhaustion():
+    """T-DISPATCH-2: verifier always returns architect-stage issue;
+    ArchitectGroundingError raised; cycles_attempted=1, issues len 1."""
+    from core.orchestration.errors import ArchitectGroundingError
+
+    def architect_fn(scout):
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    def architect_with_feedback_fn(scout, issues):
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    persistent_issue = VerifierIssue(
+        stage="architect",
+        location="architect:contexts[X].supporting_sentence_ids",
+        issue_type="ungrounded_context",
+        severity=IssueSeverity.ERROR,
+        message="missing IDs",
+    )
+
+    deps = _make_deps_with_feedback_arch(
+        architect_fn=architect_fn,
+        architect_with_feedback_fn=architect_with_feedback_fn,
+        verifier_fn=lambda s: VerifierResult(ok=False, issues=[persistent_issue]),
+    )
+
+    with pytest.raises(ArchitectGroundingError) as exc_info:
+        run_pipeline(srs_text="x", deps=deps)
+
+    assert exc_info.value.cycles_attempted == 1
+    assert len(exc_info.value.issues) == 1
+    assert len(exc_info.value.residual_issues) == 0
+    assert exc_info.value.srs_path == "<unknown>"
+
+
+def test_pipeline_specialist_stage_issue_does_not_re_run_architect():
+    """T-DISPATCH-3: specialist-stage issue twice then ok; specialist called twice;
+    architect_with_feedback never invoked. Regression contract for specialist path."""
+    architect_calls = [0]
+    architect_with_feedback_calls = [0]
+    specialist_calls = [0]
+    verifier_calls = [0]
+
+    def architect_fn(scout):
+        architect_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    def architect_with_feedback_fn(scout, issues):
+        architect_with_feedback_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    def specialist_fn(arch, scout):
+        specialist_calls[0] += 1
+        return [SpecialistAnalysis(
+            context=arch.contexts[0],
+            entities=[Entity(
+                name="Order", description="An order.", confidence=0.9,
+                justification="cited", evidence_sentence_indices=[0],
+            )],
+        )]
+
+    def verifier_fn(snapshot):
+        verifier_calls[0] += 1
+        if verifier_calls[0] == 1:
+            return VerifierResult(ok=False, issues=[VerifierIssue(
+                stage="specialist",
+                location="specialist:X.entities[0]",
+                issue_type="missing_evidence",
+                severity=IssueSeverity.ERROR,
+                message="m",
+            )])
+        return VerifierResult(ok=True, issues=[])
+
+    deps = _make_deps_with_feedback_arch(
+        architect_fn=architect_fn,
+        architect_with_feedback_fn=architect_with_feedback_fn,
+        specialist_fn=specialist_fn,
+        verifier_fn=verifier_fn,
+    )
+
+    model = run_pipeline(srs_text="x", deps=deps)
+
+    assert model is not None
+    assert architect_calls[0] == 1
+    assert architect_with_feedback_calls[0] == 0
+    assert specialist_calls[0] == 2  # initial + 1 specialist refine rerun
+
+
+def test_pipeline_mixed_stage_issues_persistent_architect_raises_with_residuals():
+    """T-DISPATCH-4: persistent architect + specialist issues every verify;
+    ArchitectGroundingError raised; exc.issues has 1 architect issue,
+    exc.residual_issues has 1 specialist issue."""
+    from core.orchestration.errors import ArchitectGroundingError
+
+    def architect_fn(scout):
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    def architect_with_feedback_fn(scout, issues):
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    arch_issue = VerifierIssue(
+        stage="architect",
+        location="architect:contexts[X].supporting_sentence_ids",
+        issue_type="ungrounded_context",
+        severity=IssueSeverity.ERROR,
+        message="arch missing IDs",
+    )
+    spec_issue = VerifierIssue(
+        stage="specialist",
+        location="specialist:X.entities[0]",
+        issue_type="missing_evidence",
+        severity=IssueSeverity.ERROR,
+        message="spec missing evidence",
+    )
+
+    deps = _make_deps_with_feedback_arch(
+        architect_fn=architect_fn,
+        architect_with_feedback_fn=architect_with_feedback_fn,
+        verifier_fn=lambda s: VerifierResult(ok=False, issues=[arch_issue, spec_issue]),
+    )
+
+    with pytest.raises(ArchitectGroundingError) as exc_info:
+        run_pipeline(srs_text="x", deps=deps)
+
+    assert exc_info.value.cycles_attempted == 1
+    assert len(exc_info.value.issues) == 1
+    assert len(exc_info.value.residual_issues) == 1
+    # Architect-stage issue is in .issues; specialist-stage in .residual_issues.
+    arch_targets = [
+        getattr(i, "target", None) or getattr(i, "location", "")
+        for i in exc_info.value.issues
+    ]
+    resid_targets = [
+        getattr(i, "target", None) or getattr(i, "location", "")
+        for i in exc_info.value.residual_issues
+    ]
+    assert any(t.startswith("architect:") for t in arch_targets)
+    assert any(t.startswith("specialist:") for t in resid_targets)
+
+
+def test_pipeline_architect_rerun_succeeds_then_specialist_refine_runs():
+    """T-DISPATCH-5 (Codex W-1): architect issue first; after architect rerun,
+    specialist issue surfaces; specialist refine loop runs once; final ok.
+
+    Verifies that a successful architect feedback rerun unblocks the specialist
+    path — pipeline does NOT raise ArchitectGroundingError when feedback fixes
+    the architect issue."""
+    architect_calls = [0]
+    architect_with_feedback_calls = [0]
+    specialist_calls = [0]
+    verifier_calls = [0]
+
+    def architect_fn(scout):
+        architect_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    def architect_with_feedback_fn(scout, issues):
+        architect_with_feedback_calls[0] += 1
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(
+                context_name="X", description="x",
+                supporting_sentence_ids=[0],
+            ),
+        ])
+
+    def specialist_fn(arch, scout):
+        specialist_calls[0] += 1
+        return [SpecialistAnalysis(
+            context=arch.contexts[0],
+            entities=[Entity(
+                name="Order", description="An order.", confidence=0.9,
+                justification="cited", evidence_sentence_indices=[0],
+            )],
+        )]
+
+    def verifier_fn(snapshot):
+        verifier_calls[0] += 1
+        if verifier_calls[0] == 1:
+            return VerifierResult(ok=False, issues=[VerifierIssue(
+                stage="architect",
+                location="architect:contexts[X].supporting_sentence_ids",
+                issue_type="ungrounded_context",
+                severity=IssueSeverity.ERROR,
+                message="arch missing IDs",
+            )])
+        if verifier_calls[0] == 2:
+            return VerifierResult(ok=False, issues=[VerifierIssue(
+                stage="specialist",
+                location="specialist:X.entities[0]",
+                issue_type="missing_evidence",
+                severity=IssueSeverity.ERROR,
+                message="spec missing evidence",
+            )])
+        return VerifierResult(ok=True, issues=[])
+
+    deps = _make_deps_with_feedback_arch(
+        architect_fn=architect_fn,
+        architect_with_feedback_fn=architect_with_feedback_fn,
+        specialist_fn=specialist_fn,
+        verifier_fn=verifier_fn,
+    )
+
+    model = run_pipeline(srs_text="x", deps=deps)
+
+    assert model is not None
+    assert architect_calls[0] == 1
+    assert architect_with_feedback_calls[0] == 1
+    # specialist called: 1 initial (with fresh arch via architect_fn) +
+    # 1 after architect rerun + 1 specialist-refine rerun.
+    # Implementations may differ slightly on the second arch invocation's
+    # specialist call: GREEN spec D-5 re-invokes deps.specialist after architect
+    # feedback rerun → so total = 2 (post-rerun-architect specialist call + 1
+    # refine-loop rerun). The first architect_fn produced 1 specialist call
+    # but its output was discarded when architect_with_feedback fired.
+    assert specialist_calls[0] >= 2
+
+
+def test_pipeline_architect_fail_log_includes_full_issue_list(capsys):
+    """T-LOG-1: ArchitectGroundingError raise path still emits stdout line
+    containing each issue's target + message (WP-CORE-6 C-4 contract on
+    hard-fail path).
+
+    Distinct from T-DEGRADE-LOG-1: this tests the architect HARD-FAIL log
+    independent of stage attribution detail."""
+    from core.orchestration.errors import ArchitectGroundingError
+
+    def architect_fn(scout):
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    def architect_with_feedback_fn(scout, issues):
+        return ArchitectOutput(contexts=[
+            ContextHypothesis(context_name="X", description="x"),
+        ])
+
+    issue = VerifierIssue(
+        stage="architect",
+        location="architect:contexts[OrderMgmt].supporting_sentence_ids",
+        issue_type="ungrounded_context",
+        severity=IssueSeverity.ERROR,
+        message="UNIQUE_LOG_MARKER_xyz",
+    )
+
+    deps = _make_deps_with_feedback_arch(
+        architect_fn=architect_fn,
+        architect_with_feedback_fn=architect_with_feedback_fn,
+        verifier_fn=lambda s: VerifierResult(ok=False, issues=[issue]),
+    )
+
+    with pytest.raises(ArchitectGroundingError):
+        run_pipeline(srs_text="x", deps=deps)
+
+    captured = capsys.readouterr().out
+    assert "architect:contexts[OrderMgmt].supporting_sentence_ids" in captured
+    assert "UNIQUE_LOG_MARKER_xyz" in captured
+
+
+def test_pipeline_specialist_degrade_log_still_includes_issues_list(capsys):
+    """T-LOG-2: Specialist-only exhaustion still degrades (preserves WP-CORE-6
+    C-4 contract on the degrade path). Regression guard — passes from start;
+    GREEN must preserve this behavior.
+
+    Constructs deps WITHOUT architect_with_feedback (uses existing fixture)
+    so it can run pre-GREEN as a sanity check that the specialist path is
+    unchanged."""
+    deps = _make_typed_deps()
+
+    specialist_issue = VerifierIssue(
+        stage="specialist",
+        location="specialist:OrderMgmt.entities[0]",
+        issue_type="missing_evidence",
+        severity=IssueSeverity.ERROR,
+        message="SPEC_LOG_MARKER_xyz",
+    )
+    deps.verifier = lambda snapshot: VerifierResult(ok=False, issues=[specialist_issue])
+
+    model = run_pipeline(srs_text="x", deps=deps)
+    assert model is not None  # degrades gracefully on specialist-only path
+
+    captured = capsys.readouterr().out
+    assert "specialist:OrderMgmt.entities[0]" in captured
+    assert "SPEC_LOG_MARKER_xyz" in captured
