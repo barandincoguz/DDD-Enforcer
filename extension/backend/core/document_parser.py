@@ -3,6 +3,9 @@ import re
 from typing import List
 
 from core.document_parser_readers import (
+    CorruptedPDFError,
+    EmptyPDFError,
+    EncryptedPDFError,
     MisLabeledFileError,
     read_docx,
     read_pdf,
@@ -10,12 +13,15 @@ from core.document_parser_readers import (
 )
 
 
-# WP-CORE-9 (F-2): re-export MisLabeledFileError so consumers can import via
-# the parser entrypoint (mirrors EmptySRSDocumentError below). Avoids forcing
-# callers to know the reader-module internals.
+# WP-CORE-9 + WP-CORE-10 (F-2 + F-1): re-export ingestion-layer typed errors
+# so consumers import via the parser entrypoint (mirrors EmptySRSDocumentError
+# below). Avoids forcing callers to know reader-module internals.
 __all__ = [
     "EmptySRSDocumentError",
     "MisLabeledFileError",
+    "EncryptedPDFError",
+    "CorruptedPDFError",
+    "EmptyPDFError",
     "SRSDocumentParser",
 ]
 

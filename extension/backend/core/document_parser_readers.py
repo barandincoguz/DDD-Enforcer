@@ -9,6 +9,7 @@ from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 LIST_ITEM_PATTERN = re.compile(r"^(?:[-*•]\s+|\d+[.)]\s+|[A-Za-z][.)]\s+)")
 
@@ -79,6 +80,10 @@ def _detect_binary_signature(data: bytes) -> Optional[str]:
     Used BEFORE the encoding-decode loop in `read_txt` so a renamed
     binary file is rejected with a typed `MisLabeledFileError` instead
     of being silently decoded via single-byte fallback encodings.
+
+    Also used by WP-CORE-10 `read_pdf` for symmetric magic-byte detection
+    at the PDF-reader boundary (rejects non-PDF byte-0 content with format
+    label).
     """
     for prefix, label in _BINARY_MAGIC_SIGNATURES:
         if data.startswith(prefix):
@@ -86,10 +91,132 @@ def _detect_binary_signature(data: bytes) -> Optional[str]:
     return None
 
 
+# WP-CORE-10 W-3 (Codex): max bytes needed for magic-byte detection. Used
+# by `read_pdf` to read only the file header (not the full file).
+_MAGIC_HEADER_BYTES = max(len(prefix) for prefix, _ in _BINARY_MAGIC_SIGNATURES)
+
+
+# =============================================================================
+# WP-CORE-10 — PDF defensive handling (F-1)
+# =============================================================================
+
+
+class EncryptedPDFError(ValueError):
+    """Raised when a PDF is encrypted/password-protected.
+
+    The pipeline does NOT attempt password discovery. Pypdf may perform an
+    internal empty-password verification during `PdfReader.__init__`, but
+    `reader.is_encrypted` remains True even on successful internal decrypt;
+    WP-CORE-10 raises EncryptedPDFError whenever `is_encrypted` is True
+    (Codex OQ-1 disposition).
+    """
+
+    def __init__(self, file_path: str, message: Optional[str] = None):
+        self.file_path = file_path
+        super().__init__(
+            message
+            or f"PDF {file_path!r} is encrypted; decrypt before ingesting."
+        )
+
+
+class CorruptedPDFError(ValueError):
+    """Raised when pypdf cannot parse the PDF structure (constructor or
+    lazy page/extract failures).
+
+    Codex C-1 + W-1: covers both `PdfReader.__init__` raises AND
+    `len(reader.pages)` / `page.extract_text` raises during downstream
+    iteration. `.cause` (custom payload) AND `__cause__` (Python exception
+    chain via `raise ... from`) both preserve the original pypdf error.
+    """
+
+    def __init__(
+        self,
+        file_path: str,
+        cause: Exception,
+        message: Optional[str] = None,
+    ):
+        self.file_path = file_path
+        self.cause = cause
+        super().__init__(
+            message
+            or (
+                f"PDF {file_path!r} is corrupted or malformed: "
+                f"{type(cause).__name__}: {cause}"
+            )
+        )
+
+
+class EmptyPDFError(ValueError):
+    """Raised when a PDF parses successfully but yields no text content.
+
+    Distinct from `EmptySRSDocumentError`: surfaces at the reader level
+    so callers know the failure is PDF-specific (likely image-only scan
+    requiring OCR, or zero-page PDF) rather than a general empty-input
+    contract violation.
+
+    Codex W-6 disposition: flat `ValueError` taxonomy (not
+    `EmptySRSDocumentError` subclass) — callers needing PDF-specific
+    handling catch `EmptyPDFError` directly; generic catch handlers
+    still match via `ValueError`.
+    """
+
+    def __init__(
+        self,
+        file_path: str,
+        reason: str,
+        message: Optional[str] = None,
+    ):
+        self.file_path = file_path
+        self.reason = reason
+        super().__init__(
+            message
+            or (
+                f"PDF {file_path!r} has no extractable text ({reason}). "
+                f"If this is a scanned PDF, OCR is required."
+            )
+        )
+
+
 def read_pdf(file_path: str) -> str:
-    reader = PdfReader(file_path)
-    pages = [_extract_pdf_page_text(page) for page in reader.pages]
-    return "\n\n".join(page for page in pages if page.strip())
+    # WP-CORE-10 (F-1) W-3 + W-4: header-only read for magic-byte check
+    # (avoids reading multi-GB PDFs twice); single-pass classification via
+    # _detect_binary_signature. WP-CORE-9 helper labels the format; if it's
+    # not "PDF", raise MisLabeledFileError with the actual format.
+    with open(file_path, "rb") as f:
+        header = f.read(_MAGIC_HEADER_BYTES)
+    detected = _detect_binary_signature(header)
+    if detected != "PDF":
+        raise MisLabeledFileError(
+            file_path=file_path,
+            detected_format=detected or "non-PDF (no %PDF- header at byte 0)",
+        )
+
+    # WP-CORE-10 C-1: wrap constructor AND lazy page/extract failures in
+    # one PdfReadError block. PdfStreamError is a PdfReadError subclass
+    # (T-PDF-INHERIT) so a single except covers both.
+    try:
+        reader = PdfReader(file_path)
+
+        if reader.is_encrypted:
+            raise EncryptedPDFError(file_path=file_path)
+
+        page_count = len(reader.pages)
+        if page_count == 0:
+            raise EmptyPDFError(file_path=file_path, reason="zero pages")
+
+        pages = [_extract_pdf_page_text(page) for page in reader.pages]
+    except PdfReadError as exc:
+        raise CorruptedPDFError(file_path=file_path, cause=exc) from exc
+
+    joined = "\n\n".join(page for page in pages if page.strip())
+
+    if not joined.strip():
+        raise EmptyPDFError(
+            file_path=file_path,
+            reason="no extractable text (likely image-only / scanned PDF)",
+        )
+
+    return joined
 
 
 def _extract_pdf_page_text(page) -> str:
