@@ -20,11 +20,13 @@
 **Test gap:** yes — no encrypted PDF, no image-only PDF, no truncated PDF, no zero-page PDF test exists.
 **AGENTS/CLAUDE rule cited:** AGENTS.md "Error handling: explicit failure. No silent degradation, no permissive fallbacks during development." (CLAUDE.md "Conventions" §error handling)
 
-### F-2 — `read_txt` silently emits binary garbage when `_looks_like_text` heuristic passes a near-binary file — MAJOR
+### F-2 — `read_txt` silently emits binary garbage when `_looks_like_text` heuristic passes a near-binary file — MAJOR — SHIPPED (WP-CORE-9 `ff28324`)
 
 **Component:** document_parser_readers.py
 **Evidence:** `extension/backend/core/document_parser_readers.py:92-109` and `_looks_like_text` at `:120-126`
 **Observation:** The `_looks_like_text` predicate accepts any decoded string whose printable+whitespace ratio is ≥ 0.95, and an empty decoded result returns `True` (line 122). cp1254/cp1252 are single-byte encodings — virtually any byte stream decodes successfully under them, so a malformed `.txt` (e.g. a renamed `.docx` or a binary blob) will be accepted under cp1254 if it happens to contain ≥ 95 % printable characters in that codepage. The function silently returns the gibberish string instead of surfacing the encoding mismatch. The 0.95 threshold is also unconfigurable and undocumented. NUL-byte rejection (line 123-124) is the only structural check; everything else relies on a magic ratio.
+
+**Status update (2026-05-23 14:00 GMT+3) — SHIPPED in WP-CORE-9 at `ff28324`.** Codex xhigh review (1 CRITICAL + 8 WARN + 4 NIT + 1 OQ; all CRITICAL+WARN inline). Reframed dual benefit per Codex W-6: rare silent-accept fix + common-case diagnostic improvement. Magic-byte detection runs BEFORE encoding loop; on match raises typed `MisLabeledFileError(ValueError)` named with detected format. Re-exported from `core.document_parser` for clean import. Scope `.txt`-only per Codex W-8; F-1 + F-7 cover read_pdf / read_docx symmetric defenses. Test delta 365 → 373 (+8 tests). See `decision_log.md` D-CODEX-REVIEW-WP-CORE-9 + `development_docs/WP-CORE-9-mislabeled-file-detection.md`.
 **Blast radius:** PIPELINE — gibberish text reaches Scout, wastes Gemini calls, may pollute the domain model silently.
 **Test gap:** yes — no test asserts that mis-encoded or binary-renamed .txt files surface a clear error; `test_parse_txt_supports_utf16_input` is the only encoding test.
 **AGENTS/CLAUDE rule cited:** AGENTS.md "Silent fallbacks / permissive defaults"; CLAUDE.md "Things to Know" §error handling policy.

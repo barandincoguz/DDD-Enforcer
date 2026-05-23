@@ -291,3 +291,33 @@ Codex xhigh adversarial review verdict: **0 CRITICAL + 4 WARN + 3 NIT + 1 OQ.** 
 | N-3 (F-8) | `helper-over-inline-x2`: helper avoids JSON-shape drift between HTTP and SSE paths. | confirmation | **ACCEPT-AS-IS.** |
 
 **Outcome:** 0 CRITICAL (clean architecture); 4 WARN all ADOPTED inline (3 spec/test changes + 1 documentation reframe); 3 NIT confirmed; 1 OQ recorded as explicit out-of-scope deferral with concrete revisit trigger. WP-CORE-8 shipped: RED `72898af`, GREEN `a2bca34`, DOC commit pending (this one), PLANNING pending. Baseline 358 → 365 (+7 tests; zero regression). Iteration-8 target: ingestion-layer pivot (F-1 or F-2) per backlog state-summary recommendation.
+
+## 2026-05-23 13:00 D-PICK-WP-CORE-9
+Selected **F-2** (read_txt cp1254 silent garbage) for iteration 8 per WP-CORE-8 handoff §"Recommended next iteration" (ingestion-layer pivot after 5 consecutive orchestrator iterations):
+- Severity: MAJOR. LIVE per VSCode UI dispatch path; user can rename .docx/.pdf to .txt and ingest silently or with opaque UnicodeDecodeError.
+- Effort: M. New typed exception + magic-byte signature table + helper + 1-block insertion in read_txt.
+- Why over F-1/F-4: smallest correct change among ingestion MAJORs; deterministic detection vs heuristic threshold tuning.
+- Codex consult: spec adversarial review at step 7.
+
+**Outcome:** spec v1 drafted at `docs/superpowers/specs/2026-05-23-wp-core-9-mislabeled-file-detection-design.md` → Codex xhigh review.
+
+## 2026-05-23 13:20 D-CODEX-REVIEW-WP-CORE-9
+Codex xhigh adversarial review verdict: **1 CRITICAL + 8 WARN + 4 NIT + 1 OQ.** All CRITICAL+WARN handled inline; 4 NIT inlined; OQ resolved via re-export pattern.
+
+| # | finding | category | disposition |
+|---|---|---|---|
+| C-1 | T-MFE-5 misclassified as RED; current path already accepts legitimate text. | test plan accuracy | ADOPTED. Reclassified GREEN-from-start. RED math: 4 RED-by-design + 2 GREEN-from-start regression guards + ImportError on additional fixtures = 6 fail / 2 pass in RED commit. |
+| W-1 | ZIP signature coverage missed PK\x05\x06 + PK\x07\x08. | scope gap | ADOPTED. Signature table extended. |
+| W-2 | Fixtures may not prove silent-gibberish path (NUL bytes cause _looks_like_text rejection on real ZIPs). | test rigor | ADOPTED. Fixtures use long no-NUL printable payloads + a NUL-bearing realistic-ZIP variant in T-MFE-6 proves diagnostic improvement. |
+| W-3 | BOM + later-literal magic bytes untested. | test gap | ADOPTED. T-MFE-7 NEW. |
+| W-4 | Near-miss signature tests missing. | test gap | ADOPTED. T-MFE-8 NEW at helper level. |
+| W-5 | Reachability evidence weak. | motivation rigor | ADOPTED. VSCode UI → backend dispatch path cited explicitly. |
+| W-6 | "Silent gibberish" overstated; common case raises UnicodeDecodeError. | accuracy | ADOPTED. §Motivation reframed dual benefit (rare silent + common diagnostic). |
+| W-7 | Downstream-impact wrong; endpoints route through _parse_srs_batch. | accuracy | ADOPTED. §Downstream-impact corrected. |
+| W-8 | OQ-3 should cite F-1 + F-7; add explicit .txt-only non-goal. | scope precision | ADOPTED. Spec §Non-Goals added; OQ-3 cites both. |
+| N-1 | OOXML inner-marker unnecessary. | confirmation | ACCEPT-AS-IS. |
+| N-2 | Use immutable tuple constant. | confirmation | ADOPTED via tuple[tuple[bytes, str], ...]. |
+| N-3 | Ordering comment inaccurate. | precision | ADOPTED reworded. |
+| OQ (A6-3) | MisLabeledFileError public import path. | import surface | RESOLVED with re-export from core.document_parser via __all__. |
+
+**Outcome:** 1 CRITICAL + 8 WARN all ADOPTED; 4 NIT inlined; 1 OQ resolved. WP-CORE-9 shipped: RED `45d9cdf`, GREEN `ff28324`, DOC commit pending (this one), PLANNING pending. Baseline 365 → 373 (+8 tests; zero regression). Iteration-9 target: F-1 (read_pdf defensive handling) — symmetric to WP-CORE-9 for PDF.
