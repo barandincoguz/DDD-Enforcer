@@ -26,7 +26,7 @@ from core.schemas import Entity, ValueObject, Aggregate, DomainEvent
 
 _DUMP_PATH = (
     pathlib.Path(__file__).parent.parent
-    / "core"
+    / "legacy_pre_emse"
     / "intermediate"
     / "20260313_221928_3_specialist.json"
 )
