@@ -139,7 +139,13 @@ def test_t_emitter_7_contextvar_set_and_reset():
 
 def test_t_emitter_parallel_1_thread_pool_executor_contextvar_propagation():
     """T-EMITTER-PARALLEL-1: parallel-Scout style ThreadPoolExecutor must propagate emitter
-    via contextvars.copy_context().run(...). Codex C-1 regression guard."""
+    via contextvars.copy_context().run(...). Codex C-1 regression guard.
+
+    Key pattern: copy_context() MUST be called from the parent thread (where the
+    ContextVar is set), and the resulting fresh Context object is passed to
+    `executor.submit(snapshot.run, fn, ...)`. Calling copy_context() from inside
+    the worker thread copies the worker's empty context, not the parent's.
+    """
     from core.observability import RunManifest, StageEmitter
     from core.observability.emitter import get_current_emitter
 
@@ -149,29 +155,23 @@ def test_t_emitter_parallel_1_thread_pool_executor_contextvar_propagation():
     results = []
 
     def worker(i):
-        # The worker should see the same emitter when the parent uses copy_context.
         e = get_current_emitter()
         if e is not None:
-            with e._lock if False else _noop():
-                pass
             e.record_llm_call(_make_llm_response(latency_ms=10.0 + i), operation=f"chunk_{i}")
         results.append(e is em)
         return i
 
-    def _noop():
-        from contextlib import nullcontext
-        return nullcontext()
-
     with em.stage("scout"):
         with ThreadPoolExecutor(max_workers=2) as ex:
-            def run_in_ctx(i):
-                ctx = contextvars.copy_context()
-                return ctx.run(worker, i)
-            list(ex.map(run_in_ctx, [0, 1, 2, 3]))
+            futures = []
+            for i in [0, 1, 2, 3]:
+                # Fresh copy of MAIN-thread ctx per worker (Context.run is single-use).
+                snapshot = contextvars.copy_context()
+                futures.append(ex.submit(snapshot.run, worker, i))
+            for f in futures:
+                f.result()
 
-    # All workers saw the same emitter instance.
     assert all(results), f"expected all True, got {results}"
-    # All 4 calls were recorded under stage=scout.
     assert len(m.stages["scout"].llm_calls) == 4
     assert m.llm.total_calls == 4
     assert m.llm.by_stage["scout"]["calls"] == 4
