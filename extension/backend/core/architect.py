@@ -288,12 +288,23 @@ class DomainArchitect:
                 f"Processing {len(chunks)} chunks in parallel ({self.scout_max_workers} workers)",
                 50,
             )
+            # WP-CORE-20 (Codex C-1): ContextVars do not auto-propagate into
+            # ThreadPoolExecutor worker threads. Capture a fresh copy of the
+            # main-thread context (which holds the active StageEmitter for the
+            # current `with emitter.stage("scout")` block) per submitted task,
+            # and run the worker inside that context. Without this wrap, the
+            # parallel branch loses emitter visibility and llm_calls are not
+            # recorded against the run manifest.
+            import contextvars as _cv
             args = [(chunk, i + 1, len(chunks)) for i, chunk in enumerate(chunks)]
             with ThreadPoolExecutor(max_workers=self.scout_max_workers) as ex:
-                chunk_results = list(ex.map(
-                    lambda a: self._extract_sentences_from_chunk(*a),
-                    args,
-                ))
+                _futures = []
+                for _arg in args:
+                    _snapshot = _cv.copy_context()
+                    _futures.append(
+                        ex.submit(_snapshot.run, self._extract_sentences_from_chunk, *_arg)
+                    )
+                chunk_results = [_f.result() for _f in _futures]
             for r in chunk_results:
                 all_sentences.extend(r)
 

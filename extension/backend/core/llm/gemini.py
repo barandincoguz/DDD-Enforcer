@@ -40,6 +40,23 @@ from core.llm.retry import with_retry_and_rotation
 _RUNTIME_FALLBACKS: Dict[str, str] = {}
 
 
+def _record_to_emitter_if_active(response: "LLMResponse", operation: str) -> None:
+    """WP-CORE-20 (F-9): record this call onto the active StageEmitter if any.
+
+    Instrumentation lives at the LLMResponse construction boundary (Codex W-1)
+    so json_failed/latency_ms/usage are the authoritative source. If no emitter
+    is in context (CLI run, init path, schema_probe), this is a no-op.
+    """
+    try:
+        from core.observability.emitter import get_current_emitter
+        emitter = get_current_emitter()
+        if emitter is not None:
+            emitter.record_llm_call(response, operation=operation)
+    except Exception:
+        # Never let observability bring down the LLM client.
+        pass
+
+
 def _translate_genai_exception(exc: BaseException, provider_label: str) -> BaseException:
     """Map google-genai SDK exceptions to core.llm.errors.
 
@@ -132,7 +149,7 @@ class GeminiClient(LLMClient):
 
         content = self._safe_response_text(response)
         usage = self._extract_usage(response)
-        return LLMResponse(
+        llm_response = LLMResponse(
             content=content,
             parsed=None,
             usage=usage,
@@ -143,6 +160,8 @@ class GeminiClient(LLMClient):
             latency_ms=latency_ms,
             raw_response={},
         )
+        _record_to_emitter_if_active(llm_response, kwargs.get("operation", "chat"))
+        return llm_response
 
     def structured_output(
         self,
@@ -204,7 +223,7 @@ class GeminiClient(LLMClient):
                 json_failed = True
                 json_fail_reason = f"schema_mismatch: {e}"
 
-        return LLMResponse(
+        llm_response = LLMResponse(
             content=content,
             parsed=parsed,
             usage=usage,
@@ -215,6 +234,10 @@ class GeminiClient(LLMClient):
             latency_ms=latency_ms,
             raw_response={},
         )
+        _record_to_emitter_if_active(
+            llm_response, kwargs.get("operation", "structured_output")
+        )
+        return llm_response
 
     def count_tokens(self, text: str, model: str) -> int:
         """Return Gemini's token count for the given text under the

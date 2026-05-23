@@ -31,6 +31,23 @@ from core.llm.retry import with_retry_and_rotation
 OLLAMA_BASE_URL = "https://ollama.com/v1"
 
 
+def _record_to_emitter_if_active(response: LLMResponse, operation: str) -> None:
+    """WP-CORE-20 (F-9): record this call onto the active StageEmitter if any.
+
+    Same contract as GeminiClient's helper — instrumentation lives at the
+    LLMResponse construction boundary (Codex W-1). No-op if no emitter in
+    context (CLI / init / schema_probe).
+    """
+    try:
+        from core.observability.emitter import get_current_emitter
+        emitter = get_current_emitter()
+        if emitter is not None:
+            emitter.record_llm_call(response, operation=operation)
+    except Exception:
+        # Never let observability bring down the LLM client.
+        pass
+
+
 def _translate_openai_exception(exc: BaseException, provider_label: str) -> BaseException:
     """Map openai SDK exceptions to core.llm.errors so the retry
     decorator can act on them. 403 is retryable per spec; 401 is not.
@@ -121,7 +138,7 @@ class OllamaClient(LLMClient):
 
         content = response.choices[0].message.content or ""
         usage = self._extract_usage(response)
-        return LLMResponse(
+        llm_response = LLMResponse(
             content=content,
             parsed=None,
             usage=usage,
@@ -132,6 +149,8 @@ class OllamaClient(LLMClient):
             latency_ms=latency_ms,
             raw_response=response.model_dump() if hasattr(response, "model_dump") else {},
         )
+        _record_to_emitter_if_active(llm_response, kwargs.get("operation", "chat"))
+        return llm_response
 
     def structured_output(
         self,
@@ -183,7 +202,7 @@ class OllamaClient(LLMClient):
             json_failed = True
             json_fail_reason = f"schema_mismatch: {e}"
 
-        return LLMResponse(
+        llm_response = LLMResponse(
             content=content,
             parsed=parsed,
             usage=usage,
@@ -194,6 +213,10 @@ class OllamaClient(LLMClient):
             latency_ms=latency_ms,
             raw_response=response.model_dump() if hasattr(response, "model_dump") else {},
         )
+        _record_to_emitter_if_active(
+            llm_response, kwargs.get("operation", "structured_output")
+        )
+        return llm_response
 
     @staticmethod
     def _extract_usage(response: Any) -> TokenUsage:
