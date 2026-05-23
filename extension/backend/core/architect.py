@@ -224,7 +224,9 @@ class DomainArchitect:
         if retry_match:
             wait_time = max(float(retry_match.group(1)), 10)
         else:
-            # Exponential backoff: 15s, 30s, 60s, 120s
+            # Exponential backoff: 15s, 30s, 60s, 120s, 240s — capped at 300s.
+            # WP-CORE-15 (F-19): comment now matches code; prior wording stopped
+            # at 120s and omitted the 300s cap.
             wait_time = min(15 * (2 ** retry_count), 300)
 
         print(f"  ⚠️  QUOTA EXCEEDED - Backing off {wait_time:.1f}s...")
