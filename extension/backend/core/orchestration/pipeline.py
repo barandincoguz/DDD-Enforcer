@@ -101,14 +101,49 @@ def _log_specialist_degrade(other_issues: List[Any]) -> None:
     )
 
 
+def _flapping_signature(issues: List[Any]) -> tuple:
+    """WP-CORE-30: canonical signature of an issue set for flap detection.
+
+    Two cycles flap when their issue sets are identical (same set of
+    (location, issue_type) tuples regardless of order). Sorting the
+    tuple keeps the signature stable across reorderings.
+    """
+    sig = []
+    for issue in issues:
+        loc = getattr(issue, "location", "") or getattr(issue, "target", "")
+        itype = (
+            getattr(issue, "issue_type", None)
+            or getattr(issue, "check_id", None)
+            or ""
+        )
+        sig.append((str(loc), str(itype)))
+    return tuple(sorted(sig))
+
+
+def _detect_flapping(cycle_history: List[List[Any]]) -> bool:
+    """WP-CORE-30: True iff the last two cycles emitted the same issue set.
+
+    Empty / 1-cycle history → False (cannot flap with fewer than 2
+    cycles). When `cycle_history >= 2`, compare last two signatures.
+    """
+    if len(cycle_history) < 2:
+        return False
+    return _flapping_signature(cycle_history[-1]) == _flapping_signature(
+        cycle_history[-2]
+    )
+
+
 def _record_refiner_metrics_safely(
     *,
     cycles_used: int,
     exhausted: bool,
     residual_count: int,
     max_cycles: int = 2,
+    flapped: bool = False,
+    cycle_history_len: int = 0,
 ) -> None:
-    """WP-CORE-24: append refiner stats to the active StageEmitter manifest.
+    """WP-CORE-24 + WP-CORE-30: append refiner stats to the active StageEmitter
+    manifest.
 
     No-op when no emitter is in context (CLI runs, schema_probe, tests
     without a manifest). The active emitter is sourced via
@@ -117,6 +152,8 @@ def _record_refiner_metrics_safely(
 
     Wrapped in a defensive try/except so observability bugs never bring
     down the orchestrator — refiner stats are best-effort.
+
+    WP-CORE-30 fields: `flapped` (bool) + `cycle_history_len` (int).
     """
     try:
         from core.observability.emitter import get_current_emitter
@@ -131,6 +168,8 @@ def _record_refiner_metrics_safely(
         record.metrics["exhausted"] = exhausted
         record.metrics["exhausted_residual_count"] = residual_count
         record.metrics["max_cycles"] = max_cycles
+        record.metrics["flapped"] = flapped
+        record.metrics["cycle_history_len"] = cycle_history_len
         with emitter._lock:
             emitter.manifest.stages["refiner"] = record
     except Exception:
@@ -243,11 +282,14 @@ def run_pipeline(
                 initial_result=initial_result,
             )
             # WP-CORE-24: refiner cleared. Record cycles_used for manifest.
+            # WP-CORE-30: clean path has no exhaustion → no flapping.
             _record_refiner_metrics_safely(
                 cycles_used=_cycles,
                 exhausted=False,
                 residual_count=0,
                 max_cycles=2,
+                flapped=False,
+                cycle_history_len=_cycles,
             )
         except RefinementExhaustedError as exc:
             # Architect issues can surface AFTER specialist re-runs too
@@ -277,12 +319,16 @@ def run_pipeline(
             # (preserves WP-CORE-6 C-4 contract).
             _log_specialist_degrade(exc.issues)
             refined_specialist = specialist_output
-            # WP-CORE-24: refiner exhausted. Record cycles_used + residual.
+            # WP-CORE-24 + WP-CORE-30: refiner exhausted. Record
+            # cycles_used + residual + flapping signal + history length.
+            exc_history = getattr(exc, "cycle_history", []) or []
             _record_refiner_metrics_safely(
                 cycles_used=getattr(exc, "cycles_attempted", 2),
                 exhausted=True,
                 residual_count=len(exc.issues),
                 max_cycles=2,
+                flapped=_detect_flapping(exc_history),
+                cycle_history_len=len(exc_history),
             )
 
         # WP-CORE-7 W-5 (Codex): the bare `except Exception` block from the

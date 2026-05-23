@@ -68,15 +68,20 @@ class RefinementExhaustedError(PipelineError):
         self,
         issues: List[Any],
         cycles_attempted: int = 0,
+        cycle_history: Optional[List[List[Any]]] = None,
         message: Optional[str] = None,
     ):
         self.issues = issues
         # WP-CORE-24: cycles_attempted exposes the refiner cycle count at
         # exhaustion so the run manifest can record it (paper Methods
         # section: "Refinement cycles needed before clean verification").
-        # Default 0 keeps backward compat for callers that built the
-        # exception by keyword name only.
         self.cycles_attempted = cycles_attempted
+        # WP-CORE-30: cycle_history is a per-cycle snapshot of the
+        # VerifierResult.issues list. Lets observers detect flapping
+        # (same issue set recurring across cycles) without re-running
+        # the verifier. Default empty list for backward compat with
+        # callers that only pass `issues=`.
+        self.cycle_history: List[List[Any]] = cycle_history or []
         super().__init__(message or f"Refiner exhausted retries with {len(issues)} unresolved issues")
 
 

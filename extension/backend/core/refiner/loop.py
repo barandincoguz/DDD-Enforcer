@@ -39,15 +39,31 @@ def refine_until_clean(
     output = initial_output
     cycles = 0
     result: Optional[VerifierResult] = initial_result
+    # WP-CORE-30: snapshot issues per cycle so observers can detect
+    # flapping (same issue set recurring) and downstream tooling can
+    # diff cycle outputs for paper-quality post-mortems.
+    cycle_history: list = []
     while True:
         if result is None:
             result = verifier(output)
         if result.ok or result.error_count() == 0:
             return output, cycles
         if cycles >= max_cycles:
-            # WP-CORE-24: carry cycles_attempted so the run manifest can
-            # record refiner.metrics.cycles_used even on the exhausted path.
-            raise RefinementExhaustedError(issues=result.issues, cycles_attempted=cycles)
+            # WP-CORE-24: cycles_attempted on the exception.
+            # WP-CORE-30: cycle_history captures every cycle's issue
+            # set as it was presented to stage_runner. The FINAL verify
+            # (the one that triggers exhaustion) is NOT added — its
+            # issues live in `exc.issues` separately to avoid duplicate
+            # storage and to keep history semantically aligned with
+            # "what the runner was asked to fix".
+            raise RefinementExhaustedError(
+                issues=result.issues,
+                cycles_attempted=cycles,
+                cycle_history=cycle_history,
+            )
+        # Record issues observed at the START of this cycle (what the
+        # stage_runner is about to be asked to fix).
+        cycle_history.append(list(result.issues))
         output = stage_runner(output, result)
         cycles += 1
         result = None  # force re-verify next iter
