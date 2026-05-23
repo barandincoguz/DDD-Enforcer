@@ -32,6 +32,7 @@ from core.architect import DomainArchitect
 from core.code_parser import has_advanced_validation_signals
 from core.document_parser import EmptySRSDocumentError, SRSDocumentParser
 from core.llm.validator import LLMClient
+from core.orchestration.errors import PipelineError
 from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel
@@ -327,6 +328,74 @@ def _rag_cache_key(violation: Dict[str, Any]) -> str:
     return f"{v_type}:{focus}"
 
 
+# =============================================================================
+# WP-CORE-8 — Typed PipelineError response serialization (F-23)
+# =============================================================================
+
+
+def _issue_to_dict(issue: Any) -> Dict[str, Any]:
+    """Convert a VerifierIssue (legacy dataclass or contract Pydantic) into
+    a JSON-serializable dict. Codex W-4 disposition: must NOT use the
+    `{"repr": ...}` fallback path for known issue shapes — that would
+    silently erase typed taxonomy.
+    """
+    if hasattr(issue, "model_dump"):
+        return issue.model_dump()
+    if isinstance(issue, dict):
+        return {k: _scalarize(v) for k, v in issue.items()}
+    if hasattr(issue, "__dict__"):
+        return {k: _scalarize(v) for k, v in issue.__dict__.items()}
+    return {"repr": str(issue)}
+
+
+def _scalarize(value: Any) -> Any:
+    """Coerce a value to a JSON-safe scalar/list/dict."""
+    if isinstance(value, (str, int, float, bool, type(None))):
+        return value
+    if hasattr(value, "value") and not isinstance(value, type):
+        # Enum (e.g., IssueSeverity)
+        return value.value
+    if isinstance(value, (list, tuple)):
+        return [_scalarize(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): _scalarize(v) for k, v in value.items()}
+    return str(value)
+
+
+def _build_pipeline_error_response(exc: PipelineError) -> Dict[str, Any]:
+    """Build a structured response dict from a PipelineError.
+
+    Always includes: success=False, error=str(exc), error_type=type(exc).__name__.
+    Conditionally includes typed payload attributes (srs_path, input_summary,
+    stage, filepath, cycles_attempted, issues, residual_issues,
+    validation_errors, raw_excerpt, etc.) when the exception carries them.
+
+    Codex W-1 (F-1): SpecialistShapeError's `validation_errors` and
+    `raw_excerpt` are preserved.
+    Codex W-4 (F-4): list elements are serialized via `_issue_to_dict` so
+    legacy + contract VerifierIssue both round-trip through json.dumps with
+    severity normalized to string.
+    """
+    payload: Dict[str, Any] = {
+        "success": False,
+        "error": str(exc),
+        "error_type": type(exc).__name__,
+    }
+    # Scalar attributes preserved if JSON-safe (str/int/float/bool).
+    for attr in ("srs_path", "input_summary", "stage", "filepath",
+                 "cycles_attempted", "context_name", "chunk_id",
+                 "attempts", "entity_name", "raw_excerpt"):
+        val = getattr(exc, attr, None)
+        if val is not None and isinstance(val, (str, int, float, bool)):
+            payload[attr] = val
+    # List attributes — serialize each element via _issue_to_dict.
+    for attr in ("issues", "residual_issues", "validation_errors"):
+        val = getattr(exc, attr, None)
+        if isinstance(val, list):
+            payload[attr] = [_issue_to_dict(i) for i in val]
+    return payload
+
+
 @app.post("/generate-model")
 def generate_model_endpoint(request: GenerateModelRequest):
     """
@@ -424,6 +493,13 @@ def generate_model_endpoint(request: GenerateModelRequest):
             "bounded_contexts_count": len(final_model.bounded_contexts),
         }
         
+    except PipelineError as exc:
+        # WP-CORE-8: typed PipelineError → structured response with
+        # error_type + payload attributes for client-side branching.
+        print(f"  ❌ PIPELINE ERROR ({type(exc).__name__}): {exc}")
+        import traceback
+        traceback.print_exc()
+        return _build_pipeline_error_response(exc)
     except Exception as e:
         print(f"  ❌ ERROR: {e}")
         import traceback
@@ -530,6 +606,16 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
                 "metrics": metrics
             }
             
+        except PipelineError as exc:
+            # WP-CORE-8: typed PipelineError → structured dict payload.
+            # event_generator below dict-spreads this into the SSE event so
+            # the `error` string field stays compatible with VSCode extension
+            # at extension.ts:683 while typed siblings (error_type, srs_path,
+            # issues, etc.) ride along as additive fields.
+            print(f"[STREAM] Pipeline error ({type(exc).__name__}): {exc}")
+            import traceback
+            traceback.print_exc()
+            result_holder["error"] = _build_pipeline_error_response(exc)
         except Exception as e:
             print(f"[STREAM] Domain model pipeline error: {type(e).__name__}: {e}")
             import traceback
@@ -559,7 +645,16 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
         
         # Send final result
         if result_holder["error"]:
-            yield f"data: {json.dumps({'type': 'error', 'error': result_holder['error']})}\n\n"
+            err = result_holder["error"]
+            if isinstance(err, dict):
+                # WP-CORE-8 typed PipelineError path: dict-spread keeps
+                # `error` string at top level (VSCode extension compat at
+                # extension.ts:683) while typed siblings (error_type,
+                # srs_path, issues, ...) ride along as additive fields.
+                yield f"data: {json.dumps({'type': 'error', **err})}\n\n"
+            else:
+                # Legacy generic-Exception path: string-only payload.
+                yield f"data: {json.dumps({'type': 'error', 'error': err})}\n\n"
         elif result_holder["result"]:
             yield f"data: {json.dumps({'type': 'complete', 'data': result_holder['result']})}\n\n"
     
