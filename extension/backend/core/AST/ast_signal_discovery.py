@@ -227,10 +227,17 @@ def _looks_like_collection_name(attr: str) -> bool:
 
 
 def _event_name_from_arg(arg: ast.AST) -> Optional[str]:
+    """Extract an event-name token from a `publish(...)` style call argument.
+
+    WP-CORE-23: `ast.Name` (a variable reference) is intentionally rejected.
+    Previously the variable's identifier was treated as the event name, so
+    `self.bus.publish(template_name)` recorded the variable spelling
+    "template_name" as a domain event. Only string literals (`ast.Constant`)
+    and attribute accesses (`ast.Attribute` — e.g. `Events.OrderPlaced`)
+    survive as event-name evidence.
+    """
     if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
         return arg.value
-    if isinstance(arg, ast.Name):
-        return arg.id
     if isinstance(arg, ast.Attribute):
         return arg.attr
     return None
