@@ -22,21 +22,38 @@ def test_t_obs_e2e_1_success_path_writes_full_manifest(tmp_path, monkeypatch):
     srs.write_text("An order is placed by a customer. Order contains items.")
 
     # Patch DomainArchitect.analyze_document to short-circuit the LLM pipeline.
-    from core.schemas import BoundedContext, DomainModel, Entity
+    from core.schemas import (
+        BoundedContext,
+        DomainModel,
+        Entity,
+        ProjectMetadata,
+        UbiquitousLanguage,
+    )
     fake_model = DomainModel(
+        project_name="Test",
+        project_metadata=ProjectMetadata(version="1.0.0", generated_at="2026-05-23T00:00:00Z"),
         bounded_contexts=[
             BoundedContext(
-                name="Ordering",
-                description="",
-                entities=[Entity(name="Order", description="", evidence=[], supporting_sentence_ids=[0])],
-                value_objects=[],
-                services=[],
-                aggregates=[],
-                domain_events=[],
-                allowed_dependencies=[],
+                context_name="Ordering",
+                description="An ordering context.",
+                ubiquitous_language=UbiquitousLanguage(
+                    entities=[
+                        Entity(
+                            name="Order",
+                            description="An order.",
+                            confidence=0.9,
+                            justification="Test fixture.",
+                            evidence_sentence_indices=[0],
+                        )
+                    ],
+                    value_objects=None,
+                    services=None,
+                    aggregates=None,
+                    domain_events=None,
+                ),
             )
         ],
-        global_rules={},
+        global_rules=None,
     )
 
     with patch("core.architect.DomainArchitect.analyze_document", return_value=fake_model):

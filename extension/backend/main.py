@@ -32,7 +32,14 @@ from core.architect import DomainArchitect
 from core.code_parser import has_advanced_validation_signals
 from core.document_parser import EmptySRSDocumentError, SRSDocumentParser
 from core.llm.validator import LLMClient
-from core.orchestration.errors import PipelineError
+from core.observability import RunManifest, StageEmitter
+from core.observability.emitter import _finalize_manifest_safely
+from core.orchestration.errors import (
+    ArchitectGroundingError,
+    PipelineError,
+    RefinementExhaustedError,
+    SynthesizerEmptyModelError,
+)
 from core.parser import CodeParser
 from core.rag_pipeline import RAGPipeline
 from core.schemas import DomainModel
@@ -96,6 +103,144 @@ def _parse_srs_batch(
             {"success": False, "error": "All documents were empty after parsing"},
         )
     return combined_text, srs_docs, None
+
+
+# WP-CORE-20 (F-9): EMSE-grade per-run manifest. Endpoint-entry creation
+# captures pre-pipeline failures (no_input_files / srs_parse_failed /
+# all_srs_empty) that an architect-internal hook would miss (Codex C-3).
+def _run_generate_pipeline(
+    file_paths: List[str],
+    srs_dir_resolved: str,
+    progress_callback: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """Build a RunManifest, run ingestion + architect under the emitter, finalize.
+
+    Returns a result dict with `success`, `error` (optional), and `_model_obj`
+    (a DomainModel for the caller to continue with for AST/RAG/save). The
+    manifest is always written to disk in a try/finally, even on exception
+    (Codex W-2 — write failure swallowed; original PipelineError still raised).
+    """
+    import time as _time
+
+    manifest = RunManifest()
+    manifest.environment["workspace_path"] = os.getenv("WORKSPACE_PATH", "")
+    manifest.request["file_paths"] = list(file_paths)
+    manifest.request["srs_dir_resolved"] = srs_dir_resolved
+
+    emitter = StageEmitter(manifest)
+    original_exc: Optional[BaseException] = None
+    final_model: Optional[DomainModel] = None
+    result: Dict[str, Any] = {"success": False}
+    start_ns = _time.monotonic_ns()
+
+    try:
+        # Pre-pipeline gate (Codex C-3).
+        if not file_paths:
+            manifest.outcome = "no_input_files"
+            result = {"success": False, "error": "No input files provided"}
+            return result
+
+        try:
+            with emitter.stage("ingestion") as ing:
+                doc_parser = SRSDocumentParser()
+                combined_text, srs_docs, error = _parse_srs_batch(
+                    doc_parser, file_paths
+                )
+                if error is not None:
+                    if "empty after parsing" in str(error.get("error", "")):
+                        manifest.outcome = "all_srs_empty"
+                    else:
+                        manifest.outcome = "srs_parse_failed"
+                    # Synthesize a typed error record without raising — preserves
+                    # the existing batch-error JSON shape returned to clients.
+                    manifest.errors.append({
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "type": "SRSBatchParseFailed",
+                        "stage": "ingestion",
+                        "message": str(error.get("error", "")),
+                        "srs_path": None,
+                        "context": {"file_paths": list(file_paths)},
+                    })
+                    ing.status = "fail"
+                    result = error
+                    return result
+
+                ing.metrics["documents_parsed"] = len(srs_docs)
+                ing.metrics["total_chars"] = len(combined_text)
+
+            manifest.request["srs_text_length_chars"] = len(combined_text)
+            manifest.request["document_count"] = len(srs_docs)
+        except Exception as parse_exc:
+            # Any other exception during ingestion → srs_parse_failed. emitter.stage()
+            # already recorded the error and set ing.status='fail' via its except path.
+            manifest.outcome = "srs_parse_failed"
+            result = {
+                "success": False,
+                "error": f"Failed to parse: {parse_exc}",
+            }
+            original_exc = parse_exc
+            return result
+
+        try:
+            architect = DomainArchitect(progress_callback=progress_callback)
+            final_model = architect.analyze_document(
+                text=combined_text,
+                srs_path="; ".join(str(p) for p in file_paths),
+            )
+        except ArchitectGroundingError as exc:
+            manifest.outcome = "architect_grounding_error"
+            original_exc = exc
+            raise
+        except RefinementExhaustedError as exc:
+            manifest.outcome = "refinement_exhausted"
+            original_exc = exc
+            raise
+        except SynthesizerEmptyModelError as exc:
+            manifest.outcome = "synthesizer_empty_model"
+            original_exc = exc
+            raise
+        except PipelineError as exc:
+            manifest.outcome = "pipeline_error"
+            original_exc = exc
+            raise
+
+        # Success path: populate domain_model_summary for the manifest.
+        # Entities/VOs/Aggregates live inside BoundedContext.ubiquitous_language.
+        manifest.outcome = "success"
+        bcs = final_model.bounded_contexts if final_model else []
+        bc_count = len(bcs)
+        entity_count = 0
+        vo_count = 0
+        agg_count = 0
+        for bc in bcs:
+            ul = getattr(bc, "ubiquitous_language", None)
+            if ul is None:
+                continue
+            entity_count += len(getattr(ul, "entities", []) or [])
+            vo_count += len(getattr(ul, "value_objects", []) or [])
+            agg_count += len(getattr(ul, "aggregates", []) or [])
+        manifest.domain_model_summary = {
+            "bounded_context_count": bc_count,
+            "entity_count": entity_count,
+            "value_object_count": vo_count,
+            "aggregate_count": agg_count,
+        }
+        result = {
+            "success": True,
+            "_model_obj": final_model,
+            "_srs_docs": srs_docs,
+            "_combined_text": combined_text,
+        }
+        return result
+    except Exception as exc:
+        if manifest.outcome == "in_progress":
+            manifest.outcome = "unexpected_error"
+        original_exc = exc
+        raise
+    finally:
+        manifest.ended_at = datetime.utcnow().isoformat()
+        manifest.elapsed_ms = (_time.monotonic_ns() - start_ns) / 1e6
+        _finalize_manifest_safely(manifest, original_exc=original_exc)
 
 
 def generate_domain_model(srs_path: str) -> Dict[str, Any]:
