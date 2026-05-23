@@ -9,8 +9,9 @@ new `architect_with_feedback` dep; on persistent failure the pipeline raises
 ArchitectGroundingError. Specialist-stage refine loop is unchanged.
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional
 from core.schemas import DomainModel
 from core.pipeline_contracts import (
     ScoutOutput,
@@ -24,6 +25,40 @@ from core.orchestration.errors import (
     SynthesizerEmptyModelError,
 )
 from core.refiner.loop import refine_until_clean
+
+
+@contextmanager
+def _optional_stage(name: str) -> Iterator[Any]:
+    """WP-CORE-20b: wrap a stage call in `emitter.stage(name)` when an
+    active emitter is present; no-op otherwise.
+
+    Pipeline calls (Scout / Architect / Specialist / Synthesizer)
+    previously executed OUTSIDE any emitter scope, so
+    `StageEmitter.record_llm_call` silently dropped per-call records
+    (`_stage_var.get()` returned None).  This helper closes that gap
+    without touching StageEmitter itself.
+
+    Behaviour:
+    * Active emitter (`get_current_emitter()` non-None): enters
+      `emitter.stage(name)` so `_stage_var` is set to `name`,
+      `manifest.stages[name]` is registered, elapsed_ms is recorded on
+      exit, and exceptions are logged into `manifest.errors`.
+    * No active emitter (most unit tests, CLI tools, schema_probe):
+      yields without side effects so existing emitter-less call sites
+      keep working unchanged.
+
+    Note: rerun-style calls (architect_with_feedback) re-enter the
+    "architect" scope and overwrite the prior `StageRecord`.  Preserving
+    rerun-1's `llm_calls` across the overwrite is a documented follow-up
+    (paper-data fidelity is dominated by the final successful attempt).
+    """
+    from core.observability.emitter import get_current_emitter
+    emitter = get_current_emitter()
+    if emitter is None:
+        yield None
+        return
+    with emitter.stage(name) as record:
+        yield record
 
 
 ScoutFn = Callable[[str], ScoutOutput]
@@ -216,7 +251,12 @@ def run_pipeline(
            (existing WP-CORE-1..6 behavior).
         4. Post-loop: pre-call guard, synthesizer, post-call check (unchanged).
     """
-    scout: ScoutOutput = deps.scout(srs_text)
+    # WP-CORE-20b: wrap each stage call in `_optional_stage(...)` so
+    # `_stage_var` is set during invocation; downstream
+    # `record_llm_call` / `record_json_parse_failure` now resolve to the
+    # correct manifest bucket instead of silently dropping.
+    with _optional_stage("scout"):
+        scout: ScoutOutput = deps.scout(srs_text)
 
     architect_attempts = 0
     architect_max_cycles = 1
@@ -225,13 +265,15 @@ def run_pipeline(
 
     while True:
         # Stage 2 (with optional issue-aware feedback on rerun).
-        if architect_feedback is None:
-            arch: ArchitectOutput = deps.architect(scout)
-        else:
-            arch = deps.architect_with_feedback(scout, architect_feedback)
+        with _optional_stage("architect"):
+            if architect_feedback is None:
+                arch: ArchitectOutput = deps.architect(scout)
+            else:
+                arch = deps.architect_with_feedback(scout, architect_feedback)
 
         # Stage 3
-        specialist_output: List[SpecialistAnalysis] = deps.specialist(arch, scout)
+        with _optional_stage("specialist"):
+            specialist_output: List[SpecialistAnalysis] = deps.specialist(arch, scout)
 
         snapshot: Dict[str, Any] = {
             "scout": scout,
@@ -269,8 +311,13 @@ def run_pipeline(
         # No architect-stage issues → enter specialist refine loop, threading
         # the already-evaluated initial_result so we don't re-verify
         # immediately.
+        # WP-CORE-20b: the refiner's stage_runner invocation is ALSO a
+        # specialist call; wrap it so its LLM records land in the
+        # "specialist" bucket (rather than dropping silently outside any
+        # stage scope).
         def _re_run_specialist(_prev, _result) -> List[SpecialistAnalysis]:
-            return deps.specialist(arch, scout)
+            with _optional_stage("specialist"):
+                return deps.specialist(arch, scout)
 
         try:
             refined_specialist, _cycles = refine_until_clean(
@@ -349,7 +396,12 @@ def run_pipeline(
             srs_path=srs_path or "<unknown>",
         )
 
-    model: DomainModel = deps.synthesizer(refined_specialist)
+    # WP-CORE-20b: wrap synthesizer call too. Post-check (empty-model
+    # guard) stays OUTSIDE the wrap so an empty-bounded-contexts model
+    # produces a SynthesizerEmptyModelError rather than a stage-fail
+    # log + a different exception type.
+    with _optional_stage("synthesizer"):
+        model: DomainModel = deps.synthesizer(refined_specialist)
 
     # Post-call boundary check (belt-and-suspenders): retained per Codex W-3
     # of WP-CORE-5b because PipelineDeps.synthesizer is an injectable
