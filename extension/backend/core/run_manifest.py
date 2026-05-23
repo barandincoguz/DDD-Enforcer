@@ -133,7 +133,7 @@ def compose_run_id(
     """
 
     def _sanitize(s: str) -> str:
-        return re.sub(r"[./\s]", "_", s)
+        return re.sub(r"[./\s:]", "_", s)
 
     parts = [pipeline, model_id, srs, timestamp_utc, seed]
     return "_".join(_sanitize(p) for p in parts)

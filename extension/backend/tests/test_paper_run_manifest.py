@@ -59,7 +59,12 @@ def test_T01b_A1_instantiation_defaults():
 
 
 def test_T01b_A2_compose_run_id_path_safe():
-    """compose_run_id returns a string with no '/', '.', or ' ' characters."""
+    """compose_run_id returns a string with no '/', '.', ' ', or ':' characters.
+
+    The ISO-8601 timestamp ``"2026-05-23T18:30:00Z"`` contains colons; they
+    must be sanitised because colons are illegal in Windows directory names and
+    ``run_id`` is used as a directory name under ``runs/``.
+    """
     result = compose_run_id(
         "P1",
         "gemini-3.1-pro-preview",
@@ -70,6 +75,7 @@ def test_T01b_A2_compose_run_id_path_safe():
     assert "/" not in result, f"'/' found in run_id: {result!r}"
     assert "." not in result, f"'.' found in run_id: {result!r}"
     assert " " not in result, f"space found in run_id: {result!r}"
+    assert ":" not in result, f"':' found in run_id: {result!r}"
 
 
 # ---------------------------------------------------------------------------
