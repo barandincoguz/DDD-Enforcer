@@ -266,3 +266,28 @@ Codex xhigh adversarial review verdict: **2 CRITICAL + 6 WARN + 2 NIT + 1 OQ.** 
 | OQ-1 | `a6-srs-path-unlocked`: WP-CORE-6's A6-srs-path deferred OQ trigger "post-F-22" now fires. | scope hygiene | **ADOPTED as F-24 backlog (NEW), out-of-scope.** Adding `srs_path` to `VerifierIssue` requires schema widening + 13-callsite threading. Kept blast radius narrow for WP-CORE-7. |
 
 **Outcome:** 2 CRITICAL + 6 WARN all ADOPTED inline; 2 NIT inlined; 1 OQ → F-24 follow-up. No items deferred without trigger. WP-CORE-7 shipped: RED `aea15e4`, GREEN `ce56d99`, DOC commit pending (this one), PLANNING pending. Baseline 348 → 358 (+10 tests; zero regression). Iteration-7 target: F-23 (small scope; completes WP-CORE-7 enforcement story at FastAPI response boundary) or pivot to ingestion-layer MAJOR.
+
+## 2026-05-23 12:45 D-PICK-WP-CORE-8
+Selected **F-23** (typed PipelineError handler in main.py) for iteration 7 per WP-CORE-7 handoff §"Recommended next iteration" + Codex W-6 lineage:
+- Severity: MAJOR. Production-LIVE: every PipelineError raised through `/generate-model` or `/generate-model-stream` collapses to `{success: false, error: str(e)}` — typed taxonomy lost at response boundary.
+- Effort: S. Two endpoints; one helper. No subclass migration. Smallest correct change.
+- Why over F-1/F-2 (ingestion pivot): WP-CORE-7 explicitly opened F-23 as the follow-up; momentum-cache + same code area.
+- Codex consult: spec adversarial review at step 7 (mandatory per loop ritual + production-reachability subsection per iteration-4 lesson).
+
+**Outcome:** spec v1 drafted at `docs/superpowers/specs/2026-05-23-wp-core-8-typed-pipeline-error-handler-design.md` → Codex xhigh review (next entry).
+
+## 2026-05-23 13:15 D-CODEX-REVIEW-WP-CORE-8
+Codex xhigh adversarial review verdict: **0 CRITICAL + 4 WARN + 3 NIT + 1 OQ.** All WARN handled inline in spec v2; 3 NIT confirmed; 1 OQ recorded as explicit out-of-scope deferral with revisit trigger.
+
+| # | finding | category | disposition |
+|---|---|---|---|
+| W-1 (F-1) | `specialist-shape-error-attrs-dropped`: `SpecialistShapeError` (`errors.py:78-95`) carries `validation_errors` + `raw_excerpt`; v1 helper attr list omitted both. | scope gap | **ADOPTED.** Spec v2 §D-3 adds `raw_excerpt` to scalar attrs and `validation_errors` to list attrs. T-HELPER-5 added. |
+| W-2 (F-2) | `missing-sse-wire-format-test`: D-6 changes observable SSE shape but no test parses emitted SSE JSON. | test gap | **ADOPTED.** T-SSE-1 (NEW): drains `body_iterator`, parses final `data:` line, asserts `event.error` is string + typed siblings present. |
+| W-3 (F-3) | `ts-wire-compat-claim-overstated`: VSCode extension `extension.ts:680-687` wraps SSE error throw in parse-warning catch; currently swallows error events. | documentation accuracy | **ADOPTED with reframe (no TS change).** Spec v2 §Downstream-impact reworded: payload is correct, TS handler fix is future work. No backlog entry yet. |
+| W-4 (F-4) | `t-helper-4-too-weak`: v1 "json.dumps()-able" wording would let `{"repr": ...}` fallback pass silently. | test correctness | **ADOPTED.** T-HELPER-4 strengthened: `json.loads(json.dumps(payload))` round-trip; assert severity string normalization; assert no repr fallback. |
+| OQ-1 (F-5) | `lifespan-path-also-erases`: `main.py:173` lifespan calls `generate_domain_model`; exception at `:180-185` is generic `Exception`. Lifespan has no HTTP response body. | scope hygiene | **ADOPTED as out-of-scope OQ-5.** Lifespan typed logging is out of F-23 response-boundary scope. Concrete revisit trigger: open future WP only if startup auto-generation becomes EMSE run evidence. |
+| N-1 (F-6) | `t-endpoint-1-direct-call-safe`: matches existing `test_main_wiring.py:177-182` pattern. | confirmation | **ACCEPT-AS-IS.** |
+| N-2 (F-7) | `r-3-oq-1-defensible`: bare-Exception fallback retention + `/validate` exclusion both correctly scoped. | confirmation | **ACCEPT-AS-IS.** OQ-1 line citations added. |
+| N-3 (F-8) | `helper-over-inline-x2`: helper avoids JSON-shape drift between HTTP and SSE paths. | confirmation | **ACCEPT-AS-IS.** |
+
+**Outcome:** 0 CRITICAL (clean architecture); 4 WARN all ADOPTED inline (3 spec/test changes + 1 documentation reframe); 3 NIT confirmed; 1 OQ recorded as explicit out-of-scope deferral with concrete revisit trigger. WP-CORE-8 shipped: RED `72898af`, GREEN `a2bca34`, DOC commit pending (this one), PLANNING pending. Baseline 358 → 365 (+7 tests; zero regression). Iteration-8 target: ingestion-layer pivot (F-1 or F-2) per backlog state-summary recommendation.
