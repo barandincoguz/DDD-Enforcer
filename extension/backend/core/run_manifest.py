@@ -23,12 +23,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # ---------------------------------------------------------------------------
-# Sentinel: SHA-256 of zero bytes (hashlib.sha256(b"").hexdigest())
+# Sentinel: SHA-256 of zero bytes (hashlib.sha256(b"").hexdigest()).
+# Exported (no leading underscore) so tests can import the canonical value
+# rather than duplicating the hex literal.
 # ---------------------------------------------------------------------------
-_EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+EMPTY_TREE_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 # ---------------------------------------------------------------------------
 # Read chunk size for streaming SHA-256 computation (64 KiB)
@@ -84,11 +86,11 @@ def sha256_of_code_tree(root: Path) -> str:
     of zero bytes (the "empty" sentinel) without raising.
     """
     if not root.exists():
-        return _EMPTY_SHA256
+        return EMPTY_TREE_SHA256
 
     py_files = sorted(root.rglob("*.py"), key=lambda p: str(p.relative_to(root)))
     if not py_files:
-        return _EMPTY_SHA256
+        return EMPTY_TREE_SHA256
 
     h = hashlib.sha256()
     for filepath in py_files:
@@ -117,9 +119,10 @@ def compose_run_id(
 ) -> str:
     """Build a filesystem-safe composite run identifier.
 
-    Sanitizes each component by replacing ``.``, ``/``, and `` `` with ``_``,
-    then joins with ``_``. The result contains only alphanumerics, ``_``, and
-    ``-``.
+    Sanitizes each component by replacing the following characters with ``_``:
+    ``/``, ``.``, whitespace, ``:``, ``<``, ``>``, ``"``, ``|``, ``?``, ``*``,
+    ``\\``.  The resulting ``run_id`` is safe for both POSIX and Windows path
+    semantics (the latter forbids the last seven characters in directory names).
 
     Args:
         pipeline:      Pipeline tag, e.g. ``"P1"``.
@@ -129,11 +132,12 @@ def compose_run_id(
         seed:          Seed tag, e.g. ``"seed-42"``.
 
     Returns:
-        A path-safe string with no ``/``, ``.``, or space characters.
+        A path-safe string with no ``/``, ``.``, whitespace, ``:``, ``<``,
+        ``>``, ``"``, ``|``, ``?``, ``*``, or ``\\`` characters.
     """
 
     def _sanitize(s: str) -> str:
-        return re.sub(r"[./\s:]", "_", s)
+        return re.sub(r'[./\s:<>"|?*\\]', "_", s)
 
     parts = [pipeline, model_id, srs, timestamp_utc, seed]
     return "_".join(_sanitize(p) for p in parts)
@@ -212,14 +216,17 @@ class PaperRunManifest(BaseModel):
     srs_path: str
     """Absolute or workspace-relative path to the SRS source file."""
 
-    srs_sha256: str
+    srs_sha256: str = Field(..., pattern=r"^[0-9a-f]{64}$")
     """64-hex-char lower-case SHA-256 of the SRS file contents. Use :func:`sha256_of_file`."""
 
     code_root: Optional[str] = None
     """Workspace root of the validated codebase. ``None`` for generation-only runs."""
 
-    code_sha256: Optional[str] = None
-    """64-hex-char SHA-256 of all ``.py`` files under ``code_root``. ``None`` iff ``code_root is None``."""
+    code_sha256: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    """64-hex-char lower-case SHA-256 of all ``.py`` files under ``code_root``.
+
+    ``None`` iff ``code_root is None`` — enforced by :meth:`_check_code_provenance`.
+    """
 
     # --- Outputs -----------------------------------------------------------
 
@@ -255,6 +262,25 @@ class PaperRunManifest(BaseModel):
 
     schema_version: str = "1.0"
     """Frozen at ``"1.0"`` for this WP-01b Task A release."""
+
+    # --- Invariant: code_root is None iff code_sha256 is None --------------
+
+    @model_validator(mode="after")
+    def _check_code_provenance(self) -> "PaperRunManifest":
+        """Enforce mutual-presence: both code fields must be set or both None.
+
+        - Both ``None`` is valid (generation-only run, no validation phase).
+        - Both set is valid (validation run with full provenance).
+        - Exactly one set is a provenance integrity error and is rejected.
+        """
+        root_set = self.code_root is not None
+        sha_set = self.code_sha256 is not None
+        if root_set != sha_set:
+            raise ValueError(
+                "code_root and code_sha256 must both be set or both be None; "
+                f"got code_root={self.code_root!r}, code_sha256={self.code_sha256!r}"
+            )
+        return self
 
     # --- Classmethod helper ------------------------------------------------
 

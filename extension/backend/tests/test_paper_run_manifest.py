@@ -18,6 +18,7 @@ import pytest
 from pydantic import ValidationError
 
 from core.run_manifest import (
+    EMPTY_TREE_SHA256,
     PaperRunManifest,
     Violation,
     compose_run_id,
@@ -59,23 +60,34 @@ def test_T01b_A1_instantiation_defaults():
 
 
 def test_T01b_A2_compose_run_id_path_safe():
-    """compose_run_id returns a string with no '/', '.', ' ', or ':' characters.
+    """compose_run_id returns a string free of POSIX- and Windows-reserved chars.
 
     The ISO-8601 timestamp ``"2026-05-23T18:30:00Z"`` contains colons; they
     must be sanitised because colons are illegal in Windows directory names and
-    ``run_id`` is used as a directory name under ``runs/``.
+    ``run_id`` is used as a directory name under ``runs/``.  The ``model_id``
+    ``"model*v1"`` and srs tag ``"d1?srs"`` exercise the new Windows-reserved
+    characters (``* ? < > " | backslash``) added in the Finding-1 fix.
     """
     result = compose_run_id(
         "P1",
-        "gemini-3.1-pro-preview",
-        "D1_SRS",
+        "model*v1",
+        "d1?srs",
         "2026-05-23T18:30:00Z",
         "seed-42",
     )
+    # POSIX chars
     assert "/" not in result, f"'/' found in run_id: {result!r}"
     assert "." not in result, f"'.' found in run_id: {result!r}"
     assert " " not in result, f"space found in run_id: {result!r}"
     assert ":" not in result, f"':' found in run_id: {result!r}"
+    # Windows-reserved chars
+    assert "<" not in result, f"'<' found in run_id: {result!r}"
+    assert ">" not in result, f"'>' found in run_id: {result!r}"
+    assert '"' not in result, f"'\"' found in run_id: {result!r}"
+    assert "|" not in result, f"'|' found in run_id: {result!r}"
+    assert "?" not in result, f"'?' found in run_id: {result!r}"
+    assert "*" not in result, f"'*' found in run_id: {result!r}"
+    assert "\\" not in result, f"'\\\\' found in run_id: {result!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -224,20 +236,17 @@ def test_T01b_A8_sha256_of_code_tree(tmp_path):
 # T-01b-A-9  sha256_of_code_tree returns empty-hash sentinel for empty dir
 # ---------------------------------------------------------------------------
 
-EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-
-
 def test_T01b_A9_sha256_of_code_tree_empty(tmp_path):
     """sha256_of_code_tree returns the empty-hash sentinel for an empty directory."""
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
-    assert sha256_of_code_tree(empty_dir) == EMPTY_SHA256
+    assert sha256_of_code_tree(empty_dir) == EMPTY_TREE_SHA256
 
 
 def test_T01b_A9_sha256_of_code_tree_nonexistent(tmp_path):
     """sha256_of_code_tree returns the sentinel for a non-existent root (no raise)."""
     missing = tmp_path / "does_not_exist"
-    assert sha256_of_code_tree(missing) == EMPTY_SHA256
+    assert sha256_of_code_tree(missing) == EMPTY_TREE_SHA256
 
 
 # ---------------------------------------------------------------------------
@@ -291,7 +300,7 @@ def test_T01b_A11_atomic_write_no_partial(tmp_path):
     runs_root = tmp_path / "runs"
     target = runs_root / manifest.run_id / "manifest.json"
 
-    with unittest.mock.patch("os.replace", side_effect=OSError("simulated crash")):
+    with unittest.mock.patch("core.run_manifest.os.replace", side_effect=OSError("simulated crash")):
         with pytest.raises(OSError, match="simulated crash"):
             write_paper_run_manifest(manifest, runs_root)
 
@@ -319,3 +328,94 @@ def test_T01b_A12_default_runs_root_fallback(monkeypatch):
     # Should end with 'runs' and be inside the backend directory
     assert result.name == "runs"
     assert "extension" in str(result) or "backend" in str(result)
+
+
+# ---------------------------------------------------------------------------
+# T-01b-A-13  code_root / code_sha256 mutual-presence invariant
+# ---------------------------------------------------------------------------
+
+_BASE_FIELDS = dict(
+    run_id="r",
+    model_id="gemini-3.1-pro-preview",
+    provider="gemini",
+    srs_path="/x",
+    srs_sha256="a" * 64,
+)
+_VALID_SHA = "b" * 64
+
+
+def test_T01b_A13_code_root_sha256_mutual_invariant():
+    """PaperRunManifest enforces that code_root and code_sha256 are both set or both None.
+
+    Sub-cases:
+      1. Both None (generation-only run) → valid.
+      2. Both set (validation run with provenance) → valid.
+      3. Only code_root set → ValidationError.
+      4. Only code_sha256 set → ValidationError.
+    """
+    # Sub-case 1: both None — valid
+    m = PaperRunManifest(**_BASE_FIELDS, code_root=None, code_sha256=None)
+    assert m.code_root is None
+    assert m.code_sha256 is None
+
+    # Sub-case 2: both set — valid
+    m2 = PaperRunManifest(**_BASE_FIELDS, code_root="/workspace/code", code_sha256=_VALID_SHA)
+    assert m2.code_root == "/workspace/code"
+    assert m2.code_sha256 == _VALID_SHA
+
+    # Sub-case 3: only code_root — invalid
+    with pytest.raises(ValidationError, match="code_root and code_sha256 must both be set or both be None"):
+        PaperRunManifest(**_BASE_FIELDS, code_root="/workspace/code", code_sha256=None)
+
+    # Sub-case 4: only code_sha256 — invalid
+    with pytest.raises(ValidationError, match="code_root and code_sha256 must both be set or both be None"):
+        PaperRunManifest(**_BASE_FIELDS, code_root=None, code_sha256=_VALID_SHA)
+
+
+# ---------------------------------------------------------------------------
+# T-01b-A-14  srs_sha256 / code_sha256 field format validation
+# ---------------------------------------------------------------------------
+
+
+def test_T01b_A14_sha256_field_format_validation():
+    """srs_sha256 and code_sha256 must be exactly 64 lower-case hex characters.
+
+    Sub-cases:
+      1. 64 valid lower-case hex chars -> accepted.
+      2. Empty string -> rejected.
+      3. 63 hex chars -> rejected.
+      4. 64 chars with uppercase letter -> rejected (must be lowercase).
+      5. 64 chars with non-hex character ('g') -> rejected.
+      6. code_sha256=None paired with code_root=None -> still accepted.
+    """
+    # Fields shared across sub-cases, WITHOUT srs_sha256 so each case supplies its own.
+    _base_no_sha = dict(
+        run_id="r",
+        model_id="gemini-3.1-pro-preview",
+        provider="gemini",
+        srs_path="/x",
+    )
+
+    # Sub-case 1: valid 64-hex — accepted
+    m = PaperRunManifest(**_base_no_sha, srs_sha256="a" * 64)
+    assert m.srs_sha256 == "a" * 64
+
+    # Sub-case 2: empty string — rejected
+    with pytest.raises(ValidationError):
+        PaperRunManifest(**_base_no_sha, srs_sha256="")
+
+    # Sub-case 3: 63 hex chars — rejected
+    with pytest.raises(ValidationError):
+        PaperRunManifest(**_base_no_sha, srs_sha256="a" * 63)
+
+    # Sub-case 4: 64 chars with uppercase — rejected
+    with pytest.raises(ValidationError):
+        PaperRunManifest(**_base_no_sha, srs_sha256="A" * 64)
+
+    # Sub-case 5: 64 chars with non-hex ('g') — rejected
+    with pytest.raises(ValidationError):
+        PaperRunManifest(**_base_no_sha, srs_sha256="g" * 64)
+
+    # Sub-case 6: code_sha256=None with code_root=None -> accepted (None bypasses pattern)
+    m2 = PaperRunManifest(**_base_no_sha, srs_sha256="a" * 64, code_root=None, code_sha256=None)
+    assert m2.code_sha256 is None
