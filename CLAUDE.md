@@ -23,6 +23,31 @@ source .venv/bin/activate
 pip install -r extension/backend/requirements.lock   # hash-pinned, reproducible
 ```
 
+### Repair a broken `.venv` (WP-CORE-29)
+
+If you inherit a `.venv/` that points at Python 3.14 (e.g. via Homebrew
+auto-upgrade) and `pip` / `pytest` are missing, rebuild from scratch:
+
+```bash
+# 1. Verify which Python is on PATH and which the venv is pinned to.
+ls -la extension/backend/.venv/bin/python   # symlink target reveals version
+python3.12 --version                        # confirm 3.12 is installed
+
+# 2. Nuke + recreate. The `.venv/` is gitignored so nothing to commit.
+rm -rf extension/backend/.venv
+python3.12 -m venv extension/backend/.venv
+source extension/backend/.venv/bin/activate
+pip install --upgrade pip
+pip install -r extension/backend/requirements.lock
+
+# 3. Smoke test.
+pytest -m "not integration" --maxfail=1 -q
+```
+
+CI still uses Python 3.12 per `requirements.lock` regardless of local
+drift. Local 3.13 fallback works for most tests but is not the
+supported version — keep 3.12 if you want CI-parity reproducibility.
+
 `.env` (in `extension/backend/`, never committed):
 ```
 GEMINI_API_KEY=<your-key>

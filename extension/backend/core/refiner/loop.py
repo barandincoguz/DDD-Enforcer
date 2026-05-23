@@ -6,7 +6,7 @@ and re-verifies. Capped at max_cycles cycles; on exhaustion raises
 RefinementExhaustedError carrying the residual issues.
 """
 
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Optional, Tuple
 from core.verifier.types import VerifierResult
 from core.orchestration.errors import RefinementExhaustedError
 
@@ -18,7 +18,7 @@ def refine_until_clean(
     stage_runner: Callable[[Any, VerifierResult], Any],
     verifier: Callable[[Any], VerifierResult],
     max_cycles: int = 2,
-    initial_result: VerifierResult = None,  # type: ignore[assignment]
+    initial_result: Optional[VerifierResult] = None,
 ) -> Tuple[Any, int]:
     """Run verifier; if issues, call stage_runner with (output, result)
     to produce a corrected output; loop up to max_cycles.
@@ -31,10 +31,14 @@ def refine_until_clean(
     without re-verifying. Avoids double-verify on the common path. When
     `initial_result is None`, the verifier is called as the first step of
     the loop (legacy behavior).
+
+    WP-CORE-29: `initial_result` is now properly `Optional[VerifierResult]`
+    so the three `type: ignore[assignment]` directives in the pre-WP body
+    are no longer needed.
     """
     output = initial_output
     cycles = 0
-    result: VerifierResult = initial_result  # type: ignore[assignment]
+    result: Optional[VerifierResult] = initial_result
     while True:
         if result is None:
             result = verifier(output)
@@ -46,4 +50,4 @@ def refine_until_clean(
             raise RefinementExhaustedError(issues=result.issues, cycles_attempted=cycles)
         output = stage_runner(output, result)
         cycles += 1
-        result = None  # type: ignore[assignment]  # force re-verify next iter
+        result = None  # force re-verify next iter
