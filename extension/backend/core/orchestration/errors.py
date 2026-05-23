@@ -69,6 +69,47 @@ class RefinementExhaustedError(PipelineError):
         super().__init__(message or f"Refiner exhausted retries with {len(issues)} unresolved issues")
 
 
+class ArchitectGroundingError(PipelineError):
+    """Raised when Refiner's architect-stage re-run exhausts budget on
+    persistent D1 (ungrounded_context) ERRORs.
+
+    Distinct from ArchitectExtractionError:
+      - ArchitectExtractionError = syntactic/extraction failure (no parseable
+        JSON, empty contexts list)
+      - ArchitectGroundingError = semantic grounding failure (well-formed
+        contexts whose supporting_sentence_ids fail D1)
+
+    Carries:
+        srs_path: SRS being processed (or "<unknown>" if unset).
+        issues: architect-stage VerifierIssue list at exhaustion.
+        residual_issues: non-architect-stage issues observed at exhaustion
+            (specialist/synthesizer issues that may have also been present).
+            Preserves post-mortem visibility per Codex W-4 disposition.
+        cycles_attempted: number of architect re-runs (1 in mode C hybrid).
+    """
+
+    def __init__(
+        self,
+        srs_path: str,
+        issues: List[Any],
+        residual_issues: List[Any],
+        cycles_attempted: int,
+        message: Optional[str] = None,
+    ):
+        self.srs_path = srs_path
+        self.issues = issues
+        self.residual_issues = residual_issues
+        self.cycles_attempted = cycles_attempted
+        super().__init__(
+            message
+            or (
+                f"Architect re-run exhausted ({cycles_attempted} cycle(s)) "
+                f"with {len(issues)} unresolved grounding issue(s) "
+                f"({len(residual_issues)} non-architect residual) for srs={srs_path}"
+            )
+        )
+
+
 class InsufficientGroundingError(PipelineError):
     def __init__(self, entity_name: str, message: Optional[str] = None):
         self.entity_name = entity_name

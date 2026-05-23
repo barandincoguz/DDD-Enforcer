@@ -18,20 +18,30 @@ def refine_until_clean(
     stage_runner: Callable[[Any, VerifierResult], Any],
     verifier: Callable[[Any], VerifierResult],
     max_cycles: int = 2,
+    initial_result: VerifierResult = None,  # type: ignore[assignment]
 ) -> Tuple[Any, int]:
     """Run verifier; if issues, call stage_runner with (output, result)
     to produce a corrected output; loop up to max_cycles.
 
     Returns (final_output, cycles_used). Raises RefinementExhaustedError
     when verifier still reports issues after max_cycles.
+
+    WP-CORE-7: optional `initial_result` lets callers (run_pipeline) pre-verify
+    once to dispatch architect-stage issues, then thread the result back in
+    without re-verifying. Avoids double-verify on the common path. When
+    `initial_result is None`, the verifier is called as the first step of
+    the loop (legacy behavior).
     """
     output = initial_output
     cycles = 0
+    result: VerifierResult = initial_result  # type: ignore[assignment]
     while True:
-        result = verifier(output)
+        if result is None:
+            result = verifier(output)
         if result.ok or result.error_count() == 0:
             return output, cycles
         if cycles >= max_cycles:
             raise RefinementExhaustedError(issues=result.issues)
         output = stage_runner(output, result)
         cycles += 1
+        result = None  # type: ignore[assignment]  # force re-verify next iter

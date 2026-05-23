@@ -10,6 +10,7 @@ from core.orchestration.errors import (
     SynthesizerEmptyModelError,
     RefinementExhaustedError,
     InsufficientGroundingError,
+    ArchitectGroundingError,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "SynthesizerEmptyModelError",
     "RefinementExhaustedError",
     "InsufficientGroundingError",
+    "ArchitectGroundingError",
 ]

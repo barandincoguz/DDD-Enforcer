@@ -26,7 +26,12 @@ def _ok():
 
 
 def _make_typed_deps():
-    """Build PipelineDeps with typed envelope stubs."""
+    """Build PipelineDeps with typed envelope stubs.
+
+    WP-CORE-7: architect_with_feedback is supplied as a feedback-ignoring
+    shim of architect_fn — sufficient for tests that do not exercise the
+    architect feedback rerun path.
+    """
 
     def scout_fn(srs_text: str) -> ScoutOutput:
         return ScoutOutput(
@@ -38,6 +43,9 @@ def _make_typed_deps():
         return ArchitectOutput(contexts=[
             ContextHypothesis(context_name="OrderMgmt", description="Manages orders"),
         ])
+
+    def architect_with_feedback_fn(scout: ScoutOutput, issues) -> ArchitectOutput:
+        return architect_fn(scout)
 
     def specialist_fn(arch: ArchitectOutput, scout: ScoutOutput):
         return [
@@ -68,6 +76,7 @@ def _make_typed_deps():
     return PipelineDeps(
         scout=scout_fn,
         architect=architect_fn,
+        architect_with_feedback=architect_with_feedback_fn,
         specialist=specialist_fn,
         synthesizer=synthesizer_fn,
         verifier=verifier_fn,
@@ -152,6 +161,7 @@ def test_pipeline_invokes_refiner_when_verifier_finds_issues():
             chunk_metadata=ChunkMetadata(chunk_count=1, total_chars=8),
         ),
         architect=architect_fn,
+        architect_with_feedback=lambda scout, issues: architect_fn(scout),
         specialist=specialist_fn,
         synthesizer=synthesizer_fn,
         verifier=verifier_fn,
@@ -237,6 +247,7 @@ def test_pipeline_raises_synthesizer_empty_model_error_when_refiner_rerun_return
             chunk_metadata=ChunkMetadata(chunk_count=1, total_chars=8),
         ),
         architect=architect_fn,
+        architect_with_feedback=lambda scout, issues: architect_fn(scout),
         specialist=specialist_fn,
         synthesizer=MagicMock(),  # Should never be invoked (pre-call guard).
         verifier=verifier_fn,

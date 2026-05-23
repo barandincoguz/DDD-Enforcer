@@ -134,10 +134,14 @@ class TestAnalyzeDocumentE2EPreservesIds:
     def test_analyze_document_e2e_preserves_supporting_sentence_ids_to_final_domain_model(self):
         arch = _make_architect()
 
-        # 1) Architect identify_contexts → object array with IDs
+        # 1) Architect identify_contexts → object array with IDs.
+        # WP-CORE-7: D1 verifier now enforces non-empty + subset-of-Scout
+        # AND raises ArchitectGroundingError on persistent failure (pre-
+        # WP-CORE-7 degraded silently). For this test the real Scout chunker
+        # emits only index 0 for the two-sentence text, so we cite [0] only.
         architect_payload = json.dumps({
             "contexts": [
-                {"name": "OrderMgmt", "supporting_sentence_ids": [0, 1]},
+                {"name": "OrderMgmt", "supporting_sentence_ids": [0]},
             ],
         })
         # 2) Specialist per-context → valid entity JSON
@@ -179,7 +183,7 @@ class TestAnalyzeDocumentE2EPreservesIds:
         assert len(final_model.bounded_contexts) == 1
         bc = final_model.bounded_contexts[0]
         assert bc.context_name == "OrderMgmt"
-        assert bc.supporting_sentence_ids == [0, 1], (
+        assert bc.supporting_sentence_ids == [0], (
             "End-to-end propagation: Architect IDs must survive through "
             "Specialist + Synthesizer to final DomainModel (Codex C-3)"
         )

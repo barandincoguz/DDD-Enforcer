@@ -416,8 +416,37 @@ Return empty array [] if no sentences match the criteria."""
     # STAGE 2: ARCHITECT - Identify Bounded Contexts
     # =========================================================================
 
+    @staticmethod
+    def _build_grounding_feedback_block(feedback_issues: Optional[List[Any]]) -> str:
+        """Construct the WP-CORE-7 feedback prepend for identify_contexts.
+
+        Per Codex W-3 + N-1: prepended ONCE per outer architect attempt;
+        reused unchanged across all internal 5-retry JSON parse loop.
+        Format must include the "PREVIOUS ATTEMPT FAILED VERIFICATION:"
+        header + each issue's target/location + message.
+        """
+        if not feedback_issues:
+            return ""
+        lines: List[str] = ["PREVIOUS ATTEMPT FAILED VERIFICATION:"]
+        lines.append(
+            "The previous response was rejected because of the following grounding issues:"
+        )
+        for issue in feedback_issues:
+            target = getattr(issue, "target", None) or getattr(issue, "location", "") or ""
+            message = getattr(issue, "message", "")
+            lines.append(f"- {target}: {message}")
+        lines.append("")
+        lines.append(
+            "For this retry, ensure every context cites valid supporting_sentence_id "
+            "values that appear in the numbered list below."
+        )
+        lines.append("")
+        return "\n".join(lines) + "\n"
+
     def identify_contexts(
-        self, domain_sentences: List[str]
+        self,
+        domain_sentences: List[str],
+        feedback_issues: Optional[List[Any]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Identify bounded contexts from domain sentences with sentence-grounding.
@@ -428,9 +457,18 @@ Return empty array [] if no sentences match the criteria."""
         empty, which caused D1 verifier check to pass vacuously for every
         run (F-21).
 
+        WP-CORE-7: optional `feedback_issues` kwarg accepts a list of
+        verifier issues (legacy or contract VerifierIssue) from a previous
+        failed attempt. A structured feedback block is prepended to the LLM
+        prompt to guide the retry. Used by the architect-stage refiner
+        dispatcher in `core/orchestration/pipeline.py:run_pipeline`.
+
         Args:
             domain_sentences: Scout-extracted sentences; their position in
                 this list is the index referenced by `supporting_sentence_ids`.
+            feedback_issues: Optional verifier issues from a prior failed
+                attempt. When supplied, prepended once to the LLM prompt;
+                reused across the 5 internal JSON-parse retries.
 
         Returns:
             List of dicts with keys `name` (str) and `supporting_sentence_ids`
@@ -456,7 +494,13 @@ Return empty array [] if no sentences match the criteria."""
             )
         numbered_text = "\n".join(f"[{i}] {s}" for i, s in truncated_pairs)
 
-        prompt = f"""Identify distinct Bounded Contexts from the numbered domain sentences below.
+        # WP-CORE-7 (Codex W-3 + N-1): if a previous attempt failed verification,
+        # prepend a structured feedback block ONCE per outer architect attempt.
+        # The block is reused across all internal 5-retry JSON-parse loop
+        # without re-derivation.
+        feedback_block = self._build_grounding_feedback_block(feedback_issues)
+
+        prompt = feedback_block + f"""Identify distinct Bounded Contexts from the numbered domain sentences below.
 
 A Bounded Context is a cohesive business area with:
 - Its own terminology and ubiquitous language
@@ -879,6 +923,26 @@ Do not invent data not present in the sentences."""
             ]
             return ArchitectOutput(contexts=contexts)
 
+        def architect_with_feedback_fn(
+            scout: ScoutOutput, issues: List[Any],
+        ) -> ArchitectOutput:
+            """WP-CORE-7 (F-22 mode C hybrid): re-run identify_contexts with
+            issue-aware feedback prepended to the prompt. Invoked by
+            `run_pipeline` when D1 (or any architect-stage) ERROR surfaces."""
+            sentence_texts = [s.text for s in scout.sentences]
+            ctx_proposals = self.identify_contexts(
+                sentence_texts, feedback_issues=issues,
+            )
+            contexts = [
+                ContextHypothesis(
+                    context_name=c["name"],
+                    description=f"{c['name']} context",
+                    supporting_sentence_ids=c["supporting_sentence_ids"],
+                )
+                for c in ctx_proposals
+            ]
+            return ArchitectOutput(contexts=contexts)
+
         def specialist_fn(
             arch: ArchitectOutput, scout: ScoutOutput
         ) -> List[SpecialistAnalysis]:
@@ -940,6 +1004,7 @@ Do not invent data not present in the sentences."""
         deps = PipelineDeps(
             scout=scout_fn,
             architect=architect_fn,
+            architect_with_feedback=architect_with_feedback_fn,
             specialist=specialist_fn,
             synthesizer=synthesizer_fn,
             verifier=verifier_fn,
