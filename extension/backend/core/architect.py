@@ -769,8 +769,6 @@ Do not invent data not present in the sentences."""
         Returns:
             New List[SpecialistAnalysis] — same length as arch.contexts.
         """
-        from core.pipeline_contracts import ArchitectOutput as _AO, ScoutOutput as _SO
-
         # ------------------------------------------------------------------
         # Step 1: build lookup from prev_output by context_name.
         # ------------------------------------------------------------------
@@ -802,12 +800,9 @@ Do not invent data not present in the sentences."""
         }
 
         # ------------------------------------------------------------------
-        # Step 3: build numbered sentence text (mirrors extract_per_context_details).
+        # Step 3: build sentence text list for prompt context.
         # ------------------------------------------------------------------
         sentence_texts = [s.text for s in scout.sentences]
-        numbered_sentences_text = "\n".join(
-            f"[{i}] {s}" for i, s in enumerate(sentence_texts)
-        )
 
         # ------------------------------------------------------------------
         # Step 4: render_refinement_prompt expects core.verifier.types.VerifierIssue
