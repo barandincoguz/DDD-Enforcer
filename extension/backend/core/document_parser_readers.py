@@ -8,6 +8,7 @@ from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
 from docx.text.paragraph import Paragraph
+from docx.opc.exceptions import OpcError
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
@@ -146,6 +147,51 @@ class CorruptedPDFError(ValueError):
         )
 
 
+class CorruptedDOCXError(ValueError):
+    """Raised when python-docx cannot open the file (e.g., truncated archive,
+    missing OPC parts, mislabeled non-OOXML ZIP). Wraps the underlying
+    `docx.opc.exceptions.OpcError`.
+
+    Pattern symmetric to `CorruptedPDFError`: `.cause` (custom payload)
+    AND `__cause__` (Python exception chain via `raise ... from`) both
+    preserve the original docx error.
+    """
+
+    def __init__(
+        self,
+        file_path: str,
+        cause: Exception,
+        message: Optional[str] = None,
+    ):
+        self.file_path = file_path
+        self.cause = cause
+        super().__init__(
+            message
+            or (
+                f"DOCX {file_path!r} could not be opened: "
+                f"{type(cause).__name__}: {cause}"
+            )
+        )
+
+
+class EmptyDOCXError(ValueError):
+    """Raised when a DOCX parses successfully but yields no paragraphs or
+    tables. Distinct from `EmptySRSDocumentError` (generic post-processed
+    empty content): this surfaces at the reader level so callers know
+    the failure is DOCX-specific.
+    """
+
+    def __init__(self, file_path: str, message: Optional[str] = None):
+        self.file_path = file_path
+        super().__init__(
+            message
+            or (
+                f"DOCX {file_path!r} parsed but contains no extractable "
+                f"paragraphs or tables."
+            )
+        )
+
+
 class EmptyPDFError(ValueError):
     """Raised when a PDF parses successfully but yields no text content.
 
@@ -228,21 +274,37 @@ def _extract_pdf_page_text(page) -> str:
 
 
 def read_docx(file_path: str) -> str:
-    document = docx.Document(file_path)
-    blocks = []
+    # WP-CORE-11 (F-7): DOCX is a ZIP archive (PK\x03\x04). Magic-byte check
+    # at byte 0 rejects mislabeled non-ZIP content upfront with
+    # MisLabeledFileError instead of opaque PackageNotFoundError.
+    with open(file_path, "rb") as f:
+        header = f.read(_MAGIC_HEADER_BYTES)
+    detected = _detect_binary_signature(header)
+    if detected is None or not detected.startswith("ZIP"):
+        raise MisLabeledFileError(
+            file_path=file_path,
+            detected_format=detected or "non-ZIP/DOCX (no PK signature at byte 0)",
+        )
 
-    for block in _iter_docx_blocks(document):
-        if isinstance(block, Paragraph):
-            paragraph_text = _extract_docx_paragraph(block)
-            if paragraph_text:
-                blocks.append(paragraph_text)
-            continue
+    try:
+        document = docx.Document(file_path)
+        blocks = []
+        for block in _iter_docx_blocks(document):
+            if isinstance(block, Paragraph):
+                paragraph_text = _extract_docx_paragraph(block)
+                if paragraph_text:
+                    blocks.append(paragraph_text)
+                continue
+            table_text = _extract_docx_table(block)
+            if table_text:
+                blocks.append(table_text)
+    except OpcError as exc:
+        raise CorruptedDOCXError(file_path=file_path, cause=exc) from exc
 
-        table_text = _extract_docx_table(block)
-        if table_text:
-            blocks.append(table_text)
-
-    return "\n\n".join(blocks)
+    joined = "\n\n".join(blocks)
+    if not joined.strip():
+        raise EmptyDOCXError(file_path=file_path)
+    return joined
 
 
 def _iter_docx_blocks(document: DocxDocument) -> Iterator[Union[Paragraph, Table]]:
