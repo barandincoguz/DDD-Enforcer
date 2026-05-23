@@ -134,6 +134,22 @@
 - **NEW backlog entry F-22** (MAJOR, OPEN): Refiner cannot re-run Architect; Architect-stage verifier failures degrade silently to best-effort via `RefinementExhaustedError` handler. D-3 D1 ERROR is logged but not enforced — F-22 tracks the Refiner stage-aware extension needed for full fail-fast enforcement.
 - Test delta 338 → 348 (+10 tests; T-INT-1 locks the E2E IDs propagation invariant). See `decision_log.md` D-CODEX-REVIEW-WP-CORE-6 + `development_docs/WP-CORE-6-d1-verifier-non-vacuous.md` for full rationale.
 
+### F-22 — Refiner cannot re-run Architect; D1 architect-stage ERRORs degrade silently — MAJOR — SHIPPED (WP-CORE-7 `ce56d99`)
+
+**Origin:** Discovered during WP-CORE-6 spec drafting (Codex W-4 / A6-f22). After WP-CORE-6 D-3 added the D1 non-empty clause, architect-stage ERRORs (`stage="architect"`) surfaced through `RefinementExhaustedError.issues` but Refiner's `_re_run_specialist` (`core/orchestration/pipeline.py:70-72`) only re-ran Specialist — Architect-stage failures could not be auto-corrected. Pipeline degraded to best-effort and shipped the model.
+
+**Status update (2026-05-23 12:43 GMT+3) — SHIPPED in WP-CORE-7 at `ce56d99`.** Codex xhigh review (2 CRITICAL + 6 WARN + 2 NIT + 1 OQ; all CRITICAL+WARN handled inline). Mode C hybrid: 1 architect re-run with issue-aware feedback prompt, then hard-fail via new `ArchitectGroundingError`.
+
+- Stage routing via `_issue_stage(issue)` helper (Codex C-1): derives stage from `target` prefix — avoids `VerifierIssue` schema widen + 13-callsite migration.
+- Pre-check verifier ONCE before specialist refine loop (Codex C-2); thread `initial_result=` into `refine_until_clean` so the verifier is not called twice on the common path.
+- New `ArchitectGroundingError(PipelineError)` taxonomically distinct from `ArchitectExtractionError` (syntactic vs semantic failure). Carries `srs_path`, `issues`, `residual_issues` (Codex W-4 — non-architect issues for post-mortem visibility), `cycles_attempted`.
+- `identify_contexts(feedback_issues=...)` prepends a structured `"PREVIOUS ATTEMPT FAILED VERIFICATION:"` block ONCE per outer architect attempt; reused across all 5 internal JSON-parse retries (Codex W-3, N-1).
+- Bare `except Exception` at `pipeline.py:98-112` narrowed to `except RefinementExhaustedError` only (Codex W-5 — explicit-failure mandate).
+- `PipelineDeps` widened with `architect_with_feedback` field; 3 fixture sites updated.
+- **NEW backlog entries**: F-23 (typed `PipelineError` handler in `main.py` — runs-manifest signal completeness) + F-24 (`srs_path` in `VerifierIssue` schema — WP-CORE-6 A6-srs-path unlocked post-F-22).
+- Test delta 348 → 358 (+10 tests; T-AGE-1 + T-DISPATCH-1..5 + T-FEEDBACK-1 + T-LOG-1 + T-LOG-2 + T-INT-1 + T-DEGRADE-LOG-1 flip). See `decision_log.md` D-CODEX-REVIEW-WP-CORE-7 + `development_docs/WP-CORE-7-refiner-stage-aware.md` for full rationale.
+- EMSE methodology claim "D1 enforces grounding" now true at both verifier and pipeline levels.
+
 ## Anomalies (NO fix yet — Explore observations)
 
 - **`_current_srs_path` attribute is set via `getattr(..., "<unknown>")` fallback** (lines 434, 479, 491, 496) but never assigned anywhere in the class. This is a defensive fallback for error messages, but the attribute is never set, meaning all error messages will always print "<unknown>". To properly surface the SRS path in errors, the caller at `main.py:107` would need to pass the `srs_path` to `DomainArchitect` or store it during `analyze_document`. Currently a no-op that masks which SRS failed.
