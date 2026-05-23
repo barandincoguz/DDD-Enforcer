@@ -16,7 +16,7 @@ Each row: `id | component | finding | severity | effort | blast | status`.
 | F-1 | document_parser_readers.py | `read_pdf` has no defensive handling for encrypted/image-only/malformed PDFs — propagates raw pypdf errors + emits empty string on image-only PDFs (pypdf2:16-19, 22-27). | MAJOR | S | PIPELINE | OPEN |
 | F-2 | document_parser_readers.py | `read_txt` silently emits binary garbage when `_looks_like_text` passes a near-binary file under cp1254 (`:92-109`, `:120-126`). | MAJOR | S | PIPELINE | OPEN |
 | F-4 | document_parser.py | TOC heuristic anchored to first 120 lines + `cluster < 2` drop; layout-mode PDFs leak TOC entries into Scout (`:81-101`, `:103-117`). | MAJOR (uncertain) | M | PIPELINE | OPEN |
-| F-6 | document_parser.py | `_should_merge` only checks `[.!?;:]$`; quote-terminated / bracket-terminated / Unicode-ellipsis lines collapse silently; soft-hyphen vs compound-word hyphen indistinct (`:154-165`). | MINOR | S | LOCAL | OPEN |
+| F-6 | document_parser.py | `_should_merge` terminator regex `[.!?;:]$` missed quote/bracket/ellipsis terminators. WP-CORE-17 expanded character class to cover ASCII quotes, Unicode curly quotes, closing parens/brackets, U+2026 ellipsis. | MINOR | S | LOCAL | **SHIPPED (26e6df2)** |
 | F-7 | document_parser_readers.py | DOCX reader has zero try/except around `docx.Document(file_path)`; `PackageNotFoundError` propagates raw (`:30-31`). | MINOR | S | LOCAL | OPEN |
 | F-8 | document_parser_readers.py | No explicit XXE / external-entity hardening on lxml XML parsing (defense-in-depth gap visible to EMSE reviewers) (`:31`). | MINOR (uncertain) | S | REPO | OPEN |
 | F-9 | document_parser.py + readers | Zero logging anywhere; PDF layout→plain downgrade invisible to WP-NEW-B run manifest. | MINOR | S | PIPELINE | OPEN |
@@ -27,13 +27,13 @@ Each row: `id | component | finding | severity | effort | blast | status`.
 | id | component | finding | severity | effort | blast | status |
 |---|---|---|---|---|---|---|
 | F-11 | core/architect.py | Parallel Scout (`scout_max_workers > 1`) rate-limit reentrancy: lock window in `_wait_for_rate_limit` (`:141-150`) allows microslip on consecutive workers — cumulative quota loss under N workers can be `(N-1) * (min_delay / N)`. Needs condition-variable or semaphore. **DORMANT (2026-05-21 11:08)**: parallel Scout path (`extract_domain_sentences` `ThreadPoolExecutor` at line 228) is dead from production — `analyze_document.scout_fn` at lines 757-774 calls only `section_aware_chunks()` (no LLM, no `_wait_for_rate_limit`). Codex xhigh review on WP-CORE-5 spec also surfaced that the proposed reservation fix paces returns not sends, so a correct fix needs send-gating (out of "smallest correct change" envelope). Sequential primitive slip (~1-5 ms per gap) within 6 s buffer in practice. Reopen when Scout is rewired or `section_aware_chunks` gains an LLM call. See `decision_log.md` D-CODEX-REVIEW-WP-CORE-5. | MAJOR | M-L | PIPELINE | OPEN (DORMANT) |
-| F-12 | core/architect.py | Specialist shape-error retry token tracking gap (`:604-635`): on retry-N→retry-N+1 success, previous retry tokens are not tracked because `token_tracker.track_api_call` runs after validation; run manifest understates token cost. | MINOR | S | LOCAL | OPEN |
-| F-15 | core/orchestration/pipeline.py | Refiner exhaustion fallback (`:75-78`) logs only exception type, not residual verifier issues; observability gap. | MINOR | S | LOCAL | OPEN |
+| F-12 | core/architect.py | Specialist shape-retry token tracking ran AFTER validation; intermediate-retry tokens dropped from manifest. WP-CORE-18: moved track_api_call to right after LLMResponseAdapter wraps response; operation label includes attempt index. | MINOR | S | LOCAL | **SHIPPED (00f87bd)** |
+| F-15 | core/orchestration/pipeline.py | Refiner exhaustion fallback logged only exception type; observability gap. Closed indirectly: WP-CORE-6 C-4 enriched degrade-log with full exc.issues list; WP-CORE-7 D-5 added `_log_architect_rerun`/`_log_architect_fail`/`_log_specialist_degrade` helpers each emitting `severity@target: message` per issue. | MINOR | S | LOCAL | **SHIPPED indirectly (a86bbbb WP-CORE-6 C-4 + ce56d99 WP-CORE-7 D-5)** |
 | F-16 | core/architect.py | Dead code: `_split_text_into_chunks` (`:249-265`) never called — Scout uses `section_aware_chunks`. | TRIVIAL | S | NONE | OPEN |
-| F-17 | core/architect.py | Stage config validation deferred to first LLM call (`:99,303,403,586`); should validate at `__init__` for early error surfacing. | MINOR | S | LOCAL | OPEN |
+| F-17 | core/architect.py | Stage config validation lazy — only Architect at __init__; Scout/Specialist/Synthesizer/Validator validated at first LLM call. Fixed: iterate 5 stage names at __init__ for eager KeyError surfacing. | MINOR | S | LOCAL | **SHIPPED (8603ede)** |
 | F-18 | core/architect.py + core/synthesizer/merge.py + core/schemas.py | Synthetic `f"{name} context"` descriptions emitted at two layers (architect closures → intermediate JSON; merge.py fallback → final DomainModel). WP-CORE-14 removed both; architect emits `""`; merge.py passes through; schema permits empty default; downstream enrich step LLM-populates. Honest signal of "awaiting enrichment" vs misleading placeholder. | MINOR | S | LOCAL | **SHIPPED (37dbc3a)** |
-| F-19 | core/architect.py | Exponential backoff comment (`:171`) says "15s, 30s, 60s, 120s" but actual progression goes to 300s; comment-code mismatch. | MINOR | S | NONE | OPEN |
-| F-20 | core/architect.py + core/token_tracker.py | Token tracker thread-safety undocumented at architect call site (`:337-341`); verified safe via TokenTracker's `_lock` at `:44`+`:97`. DOWNGRADED to documentation gap. | MINOR | S | LOCAL | OPEN |
+| F-19 | core/architect.py | Comment said "15s, 30s, 60s, 120s" but code goes 15→30→60→120→240→300 capped. Comment fixed. | MINOR | TRIVIAL | NONE | **SHIPPED (c9c3083)** |
+| F-20 | core/architect.py | Thread-safety undocumented at _wait_for_rate_limit + token_tracker call sites. WP-CORE-19: added docstring explaining `_rate_limit_lock` serialization + token_tracker's own `_lock` independence. | MINOR | TRIVIAL | NONE | **SHIPPED (f340135)** |
 | F-24 | core/verifier/types.py + core/pipeline_contracts.py + core/architect.py + core/verifier/checks_deterministic.py | Optional `srs_path: Optional[str] = None` added to BOTH VerifierIssue classes (legacy dataclass + contract Pydantic). `_to_contract_issue` adapter propagates. `check_d1_supporting_sentence_ids_subset` accepts optional kwarg and threads into emitted issues. D1-only opt-in for v1 per smallest-correct-change; D2-D5 + D6-D8 + S1 opt in as updated in future WPs. Default None preserves back-compat for 13 existing call sites. Completes srs_path threading sweep across orchestration error taxonomy (IntermediateSaveError + SynthesizerEmptyModelError + ArchitectGroundingError + now VerifierIssue). | MINOR | M | LOCAL | **SHIPPED (29e3ab7)** |
 
 ## Shipped
@@ -60,10 +60,10 @@ _(empty)_
 
 **Decision priority:** production bug fix > test-coverage critical gap > measurable perf regression > evidence-backed clarity smell > cosmetic.
 
-**Status summary (post-iteration-12):**
-- 10 ingestion findings: 6 SHIPPED, 0 MAJOR-OPEN, 3 MINOR-OPEN (F-6, F-8, F-9), 1 TRIVIAL-OPEN (F-10).
-- 14 orchestrator findings: 6 SHIPPED (F-13, F-14, F-21, F-22, F-23, F-24), 1 MAJOR-OPEN-DORMANT (F-11), 6 MINOR-OPEN (F-12, F-15, F-17, F-18, F-19, F-20), 1 TRIVIAL-OPEN (F-16).
-- **Total OPEN MAJOR (live): 0** + 1 DORMANT (F-11).
-- **Iteration-13 recommendation:** F-18 (synthetic context descriptions in intermediate JSON) — small scope, debugging clarity. Alternatives: F-12 (token tracking gap), F-19 (backoff comment), F-20 (thread-safety docs gap), F-6 (_should_merge), F-8 (XXE hardening), F-9 (logging).
+**Status summary (post-iteration-17):**
+- 10 ingestion findings: 7 SHIPPED (F-3, F-5, F-2, F-1, F-7, F-4, F-6), 0 MAJOR-OPEN, 2 MINOR-OPEN (F-8 XXE, F-9 logging), 1 TRIVIAL-OPEN (F-10).
+- 14 orchestrator findings: 10 SHIPPED (F-13, F-14, F-21, F-22, F-23, F-24, F-18, F-19, F-17, F-12, F-20), 1 MAJOR-OPEN-DORMANT (F-11), 1 MINOR-OPEN (F-15 SHIPPED-indirectly), 1 TRIVIAL-OPEN (F-16).
+- **Total OPEN MAJOR (live): 0** + 1 DORMANT (F-11). **17-iteration session shipped 16 findings.**
+- **Remaining work:** F-8 (XXE — needs threat model; defer to dedicated security WP), F-9 (logging framework — broader scope), F-10 (TRIVIAL — accept-as-is, redundant parse is intentional Scout-vs-RAG separation), F-16 (TRIVIAL — cascades to extract_domain_sentences removal + test removal, deferred).
 
-**Last refresh:** 2026-05-23 15:40 GMT+3 (post-WP-CORE-13)
+**Last refresh:** 2026-05-23 16:30 GMT+3 (post-WP-CORE-19)
