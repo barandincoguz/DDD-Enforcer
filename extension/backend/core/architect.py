@@ -64,6 +64,44 @@ DEFAULT_SCOUT_MAX_WORKERS = max(1, int(os.getenv("DDD_SCOUT_MAX_WORKERS", "1")))
 ProgressCallback = Optional[Callable[[Dict[str, Any]], None]]
 
 
+def _record_json_parse_failure_if_emitter(
+    stage: str,
+    operation: str,
+    model_id: str,
+) -> None:
+    """WP-CORE-26: bump active StageEmitter's json_parse_failure_count when a
+    Scout/Architect/Specialist manual JSON parse fails after a `chat()` call.
+
+    Production hot path: these stages call `self.client.chat(...)` (no
+    schema enforcement) then `self._parse_json_response(...)` manually.
+    Provider-side `LLMResponse.json_failed` is always False on that path
+    (only `structured_output` sets it). Without this helper, the run
+    manifest under-reported the true `json_failed_rate` for the EMSE
+    paper Methods section.
+
+    `_stage_var` is temporarily set so the emitter's `record_json_parse_failure`
+    accepts the call (it gates on ContextVar presence). No-op when no
+    StageEmitter is in context (CLI / schema_probe / tests without manifest).
+    """
+    try:
+        from core.observability.emitter import _stage_var, get_current_emitter
+        emitter = get_current_emitter()
+        if emitter is None:
+            return
+        token = _stage_var.set(stage)
+        try:
+            emitter.record_json_parse_failure(
+                operation=operation,
+                model_id=model_id,
+                reason="json_parse_failed",
+            )
+        finally:
+            _stage_var.reset(token)
+    except Exception:
+        # Never let observability bring down the architect.
+        pass
+
+
 def _truncate_with_head_tail(text: str, max_chars: int, head_ratio: float = 0.6) -> str:
     """Truncate `text` to `max_chars` by keeping the head and tail and
     dropping the middle, with an explicit marker so the LLM knows the
@@ -404,6 +442,12 @@ Return empty array [] if no sentences match the criteria."""
                     isinstance(result, dict)
                     and result.get("error") == "json_parse_failed"
                 ):
+                    # WP-CORE-26: record caller-side parse failure into manifest.
+                    _record_json_parse_failure_if_emitter(
+                        stage="scout",
+                        operation=f"extract_sentences_chunk_{chunk_num} attempt-{retry + 1}",
+                        model_id=getattr(llm_response, "model_id", self.model_name),
+                    )
                     print(f"      ⚠️  Parse failed - Retry {retry + 1}/5")
                     if retry < 4:
                         continue
@@ -574,6 +618,12 @@ RESPOND WITH STRICT JSON OBJECT (no bare strings, no top-level list):
                     isinstance(result, dict)
                     and result.get("error") == "json_parse_failed"
                 ):
+                    # WP-CORE-26: record caller-side parse failure into manifest.
+                    _record_json_parse_failure_if_emitter(
+                        stage="architect",
+                        operation=f"identify_contexts attempt-{retry + 1}",
+                        model_id=getattr(llm_response, "model_id", self.model_name),
+                    )
                     print(f"  ⚠️  Parse failed - Retry {retry + 1}/5")
                     if retry < 4:
                         continue
@@ -777,6 +827,12 @@ RESPOND WITH STRICT JSON OBJECT (no bare strings, no top-level list):
                             continue
                     result = self._parse_json_response(self._safe_response_text(response))
                     if isinstance(result, dict) and result.get("error") == "json_parse_failed":
+                        # WP-CORE-26: record caller-side parse failure into manifest.
+                        _record_json_parse_failure_if_emitter(
+                            stage="specialist",
+                            operation=f"per_context:{ctx_name}:attempt-{retry + 1}",
+                            model_id=getattr(llm_response, "model_id", self.model_name),
+                        )
                         if retry < 4:
                             time.sleep(2)
                             continue
