@@ -17,6 +17,7 @@ AST_ONLY_MERGE_THRESHOLD = 0.62
 CONTEXT_THRESHOLD = 2.25
 CONTEXT_MARGIN = 0.75
 # WP-CORE-22: repositories + factories added as first-class buckets.
+# WP-CORE-33: anti_corruption_layers + specifications added.
 CANDIDATE_TYPES = (
     "entities",
     "value_objects",
@@ -25,6 +26,8 @@ CANDIDATE_TYPES = (
     "domain_events",
     "repositories",
     "factories",
+    "anti_corruption_layers",
+    "specifications",
 )
 
 

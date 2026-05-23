@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Set
+from typing import Dict, List, Literal, Optional, Set
 
 
 CandidateType = Literal[
@@ -13,6 +13,9 @@ CandidateType = Literal[
     # WP-CORE-22: first-class Repository + Factory detection.
     "repositories",
     "factories",
+    # WP-CORE-33: first-class Anti-Corruption Layer + Specification detection.
+    "anti_corruption_layers",
+    "specifications",
 ]
 
 
@@ -106,6 +109,10 @@ class CandidateSignal:
     attributes: List[str] = field(default_factory=list)
     file_path: str = ""
     module_tokens: Set[str] = field(default_factory=set)
+    # WP-CORE-33 (V9): service-kind discriminator. Set by `_score_service`
+    # for services candidates; None for every other candidate_type. Emitted
+    # as `kind` in the public payload.
+    service_kind: "Optional[str]" = None
 
     def to_public_dict(self) -> Dict[str, object]:
         payload: Dict[str, object] = {
@@ -141,6 +148,12 @@ class CandidateSignal:
             payload["aggregate_root"] = _strip_suffix(self.name, _REPOSITORY_SUFFIXES)
         if self.candidate_type == "factories":
             payload["produces"] = _strip_suffix(self.name, _FACTORY_SUFFIXES)
+        # WP-CORE-33 (V9): surface the service-kind discriminator on
+        # service payloads. Falls back to "domain" when the classifier
+        # did not populate it (shouldn't happen for the live scorer but
+        # keeps the schema field non-null on best-effort recovery).
+        if self.candidate_type == "services":
+            payload["kind"] = self.service_kind or "domain"
         return payload
 
 

@@ -5,7 +5,7 @@ Pydantic models defining the structure of DDD domain models.
 Used for validation and serialization of domain model data.
 """
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -97,6 +97,21 @@ class Service(BaseModel):
     """Domain service candidate definition."""
     name: str = Field(description="Name of the domain service")
     description: str = Field(description="Service responsibility summary")
+    # WP-CORE-33 (V9): optional service-kind discriminator. None on legacy
+    # payloads. AST-inferred via dependency shape:
+    #   * "domain"         — no injected deps, pure logic.
+    #   * "application"    — at least one repository dep (orchestrates
+    #                        a use case across persistence boundaries).
+    #   * "infrastructure" — deps are exclusively external clients /
+    #                        gateways / adapters (no repo) — service is
+    #                        a thin wrapper around an external system.
+    kind: Optional[Literal["domain", "application", "infrastructure"]] = Field(
+        default=None,
+        description=(
+            "Service kind discriminator. None preserves backward compatibility "
+            "for payloads written before WP-CORE-33."
+        ),
+    )
     confidence: float = Field(
         default=0.5,
         ge=0.0,
@@ -202,6 +217,64 @@ class Factory(BaseModel):
     )
 
 
+class AntiCorruptionLayer(BaseModel):
+    """Anti-Corruption Layer candidate. WP-CORE-33 (V7): classes whose
+    purpose is to translate between the bounded context's domain model
+    and an external system's representation. Detected by suffix
+    (Translator / Adapter / Mapper / Gateway / ACL / AntiCorruption) and
+    translate-shaped methods (translate_*, convert_*, to_domain,
+    from_external, adapt). Optional `description` and traceable sources
+    follow the same conventions as Repository / Factory.
+    """
+    name: str = Field(description="Name of the ACL class")
+    description: Optional[str] = Field(
+        default=None,
+        description="Brief description of what this ACL translates",
+    )
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="AST-detection confidence in this candidate",
+    )
+    sources: List["InferenceSource"] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)",
+    )
+    evidence_sentence_indices: List[int] = Field(
+        default_factory=list,
+        description="Scout sentence indices that ground this ACL (if any)",
+    )
+
+
+class Specification(BaseModel):
+    """Specification candidate. WP-CORE-33 (V8): predicate-as-object
+    classes that encapsulate a domain rule. Detected by suffix
+    (Specification / Spec / Rule / Predicate) and the canonical
+    `is_satisfied_by(...)` method, optionally with combinator helpers
+    (`and_`, `or_`, `not_`).
+    """
+    name: str = Field(description="Name of the specification class")
+    description: Optional[str] = Field(
+        default=None,
+        description="Brief description of the rule this specification encodes",
+    )
+    confidence: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="AST-detection confidence in this candidate",
+    )
+    sources: List["InferenceSource"] = Field(
+        default_factory=list,
+        description="Traceable evidence list (file/line/rule)",
+    )
+    evidence_sentence_indices: List[int] = Field(
+        default_factory=list,
+        description="Scout sentence indices that ground this spec (if any)",
+    )
+
+
 class UbiquitousLanguage(BaseModel):
     """Collection of domain terminology for a bounded context."""
     entities: List[Entity] = Field(description="List of entities in this context")
@@ -227,6 +300,17 @@ class UbiquitousLanguage(BaseModel):
     factories: Optional[List[Factory]] = Field(
         default=None,
         description="Factory candidates discovered for this context"
+    )
+    # WP-CORE-33: V7 Anti-Corruption Layer + V8 Specification first-class
+    # buckets. Optional with default None preserves backward compat for
+    # model.json documents that predate this WP.
+    anti_corruption_layers: Optional[List[AntiCorruptionLayer]] = Field(
+        default=None,
+        description="Anti-corruption layer candidates discovered for this context",
+    )
+    specifications: Optional[List[Specification]] = Field(
+        default=None,
+        description="Specification-pattern candidates discovered for this context",
     )
 
 

@@ -28,6 +28,45 @@ FACTORY_SUFFIXES = ("Factory", "Builder")
 REPOSITORY_METHOD_PREFIXES = ("find_by_", "get_by_", "find_one", "find_all")
 REPOSITORY_METHOD_NAMES = {"save", "delete", "add", "remove", "find", "get", "exists"}
 FACTORY_METHOD_PREFIXES = ("create_", "build_", "make_", "from_", "build")
+# WP-CORE-33 (V7): Anti-Corruption Layer suffixes. Kept distinct from
+# SERVICE_SUFFIXES so the ACL scorer can claim *Translator / *Adapter /
+# *Mapper / *Gateway / *ACL / *AntiCorruption before _score_service runs.
+ACL_SUFFIXES = (
+    "Translator",
+    "Adapter",
+    "Mapper",
+    "ACL",
+    "AntiCorruption",
+    "Gateway",
+)
+# Method-shape signals that ACL classes use to translate between
+# external-system models and the bounded context's domain model.
+ACL_METHOD_PREFIXES = (
+    "translate_",
+    "convert_",
+    "adapt_",
+    "to_domain",
+    "from_external",
+    "from_dto",
+    "to_dto",
+)
+ACL_METHOD_NAMES = {"translate", "convert", "adapt", "to_domain", "from_external"}
+# WP-CORE-33 (V8): Specification suffixes — predicate-as-object classes.
+SPECIFICATION_SUFFIXES = ("Specification", "Spec", "Rule", "Predicate")
+SPECIFICATION_METHOD_NAMES = {
+    "is_satisfied_by",
+    "and_",
+    "or_",
+    "not_",
+    "evaluate",
+    "matches",
+}
+# WP-CORE-33 (V9): dependency suffixes that mark a Service as
+# *application*-tier (repository injection) vs *infrastructure*-tier
+# (external clients / gateways / sdks only). Repository markers win
+# whenever both are present.
+_REPO_DEP_SUFFIXES = ("repo", "repository")
+_INFRA_DEP_SUFFIXES = ("client", "gateway", "adapter", "sdk", "publisher")
 EVENT_SUFFIXES = (
     "Event",
     "Created",
@@ -48,6 +87,9 @@ TYPE_LABELS = {
     "aggregates": "aggregate",
     "repositories": "repository",
     "factories": "factory",
+    # WP-CORE-33
+    "anti_corruption_layers": "anti-corruption layer",
+    "specifications": "specification",
 }
 TYPE_RULES = {
     "entities": "AST_ENTITY",
@@ -56,20 +98,27 @@ TYPE_RULES = {
     "aggregates": "AST_AGGREGATE",
     "repositories": "AST_REPOSITORY",
     "factories": "AST_FACTORY",
+    # WP-CORE-33
+    "anti_corruption_layers": "AST_ACL",
+    "specifications": "AST_SPECIFICATION",
 }
 
 
 class SignalClassifier:
     def classify(self, facts: ClassFacts) -> List[CandidateSignal]:
         signals: List[CandidateSignal] = []
-        # WP-CORE-22: Repository + Factory must run BEFORE _score_service to
-        # claim *Repository / *Factory class names. Without this ordering,
-        # _score_service would not fire (Service suffix mismatch) but the
-        # legacy base_score penalty would have prevented Repository/Factory
-        # detection entirely.
+        # WP-CORE-22: Repository + Factory run BEFORE _score_service so
+        # *Repository / *Factory class names land in their dedicated
+        # buckets instead of being silently dropped by base_score's
+        # legacy penalty.
+        # WP-CORE-33: ACL + Specification scorers slot in here too —
+        # *Translator / *Adapter / *Specification class names are
+        # neither Services nor ValueObjects in the DDD pattern catalog.
         for scorer in (
             self._score_repository,
             self._score_factory,
+            self._score_acl,
+            self._score_specification,
             self._score_service,
             self._score_value_object,
             self._score_aggregate,
@@ -145,6 +194,78 @@ class SignalClassifier:
             score -= 0.15
         return self._build_candidate("factories", facts, score, 0.62, reasons)
 
+    def _score_acl(self, facts: ClassFacts) -> Optional[CandidateSignal]:
+        """WP-CORE-33 (V7): Anti-Corruption Layer detector.
+
+        ACLs sit at the seam between an internal bounded context and an
+        external system, translating one model into the other.  The
+        class-name suffix is the strongest signal; presence of
+        translate_*, convert_*, to_domain, from_external methods
+        reinforces.  An external collaborator (typical of ACLs) is a
+        moderate signal but not required — pure translator classes can
+        be implemented as static-style adapters with no DI.
+        """
+        score, reasons = self._base_score(facts)
+        has_acl_suffix = any(facts.name.endswith(s) for s in ACL_SUFFIXES)
+        if has_acl_suffix:
+            score += 0.40
+            reasons.append("ACL-style suffix")
+        translate_methods = [
+            name for name in facts.methods
+            if name.startswith(ACL_METHOD_PREFIXES) or name in ACL_METHOD_NAMES
+        ]
+        if translate_methods:
+            score += min(0.30, 0.15 + 0.05 * len(translate_methods))
+            reasons.append("translation/adaptation methods")
+        if facts.dependency_attributes:
+            # ACLs typically hold a reference to the external collaborator.
+            score += 0.15
+            reasons.append("external collaborator")
+        if self._identity_attributes(facts):
+            # ACLs do not carry domain identity.
+            score -= 0.20
+        if facts.is_frozen:
+            # ACLs are translation gateways, not value objects.
+            score -= 0.20
+        return self._build_candidate(
+            "anti_corruption_layers", facts, score, 0.62, reasons,
+        )
+
+    def _score_specification(self, facts: ClassFacts) -> Optional[CandidateSignal]:
+        """WP-CORE-33 (V8): Specification-pattern detector.
+
+        Specifications encapsulate a predicate as an object.  The canonical
+        `is_satisfied_by(...)` method is the highest-value signal; suffix
+        (Specification / Spec / Rule / Predicate) reinforces.  Combinator
+        helpers (`and_`, `or_`, `not_`) add small bonuses.  Heavy DI
+        demotes — a class with several repository-like deps is an
+        application service borrowing the *Spec* suffix.
+        """
+        score, reasons = self._base_score(facts)
+        has_spec_suffix = any(facts.name.endswith(s) for s in SPECIFICATION_SUFFIXES)
+        if has_spec_suffix:
+            score += 0.40
+            reasons.append("specification-style suffix")
+        if "is_satisfied_by" in facts.methods:
+            score += 0.30
+            reasons.append("predicate-as-object method (is_satisfied_by)")
+        combinators = {"and_", "or_", "not_"} & facts.methods
+        if combinators:
+            score += min(0.15, 0.05 * len(combinators))
+            reasons.append("specification combinators")
+        if facts.is_frozen or facts.is_dataclass:
+            # Many specifications are immutable. Small bonus only.
+            score += 0.05
+        if self._identity_attributes(facts):
+            score -= 0.20
+        # Heavy DI shifts the candidate toward Application Service.
+        if len(facts.dependency_attributes) >= 2:
+            score -= 0.30
+            reasons.append("multiple injected deps demote to service")
+        return self._build_candidate(
+            "specifications", facts, score, 0.62, reasons,
+        )
+
     def _score_service(self, facts: ClassFacts) -> Optional[CandidateSignal]:
         score, reasons = self._base_score(facts)
         if any(facts.name.endswith(suffix) for suffix in SERVICE_SUFFIXES):
@@ -165,7 +286,39 @@ class SignalClassifier:
             score -= 0.25
         if facts.is_dataclass and not facts.public_methods:
             score -= 0.25
-        return self._build_candidate("services", facts, score, 0.60, reasons)
+        candidate = self._build_candidate("services", facts, score, 0.60, reasons)
+        # WP-CORE-33 (V9): stamp the kind discriminator on the service
+        # candidate before returning so downstream consumers can split
+        # domain / application / infrastructure tiers without re-doing
+        # the dependency analysis.
+        if candidate is not None:
+            candidate.service_kind = self._classify_service_kind(facts)
+        return candidate
+
+    def _classify_service_kind(self, facts: ClassFacts) -> str:
+        """WP-CORE-33 (V9): deterministic Service-tier discriminator.
+
+        * No injected deps -> "domain" (pure logic).
+        * Any repository-style dep -> "application" (orchestrates a use
+          case that crosses the persistence boundary).
+        * Only external-client / gateway / adapter / sdk / publisher
+          deps -> "infrastructure" (wrapper around an external system).
+        * Mixed / unclassifiable deps default to "application" — the
+          common case for orchestration code.
+        """
+        deps = set(facts.dependency_attributes) | set(self._dependency_params(facts))
+        if not deps:
+            return "domain"
+        lowered = {d.lower() for d in deps}
+        has_repo = any(name.endswith(_REPO_DEP_SUFFIXES) for name in lowered)
+        if has_repo:
+            return "application"
+        if lowered and all(
+            any(name.endswith(suffix) for suffix in _INFRA_DEP_SUFFIXES)
+            for name in lowered
+        ):
+            return "infrastructure"
+        return "application"
 
     def _score_value_object(self, facts: ClassFacts) -> Optional[CandidateSignal]:
         score, reasons = self._base_score(facts)
