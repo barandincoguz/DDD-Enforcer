@@ -222,7 +222,12 @@ class SRSDocumentParser:
             return False
         if self._looks_like_table_row(previous) or self._looks_like_table_row(current):
             return False
-        if re.search(r"[.!?;:]$", previous):
+        # WP-CORE-17 (F-6): expanded sentence-terminator set covers Latin
+        # punctuation plus curly quotes, closing parens/brackets, and
+        # Unicode ellipsis. Quote-terminated or bracket-terminated lines
+        # previously merged into the next paragraph (e.g., '"... shall not
+        # exceed 5%"' followed by a new paragraph got glued together).
+        if re.search(r'[.!?;:"\'\)\]”’……]$', previous):
             return False
         return True
 
