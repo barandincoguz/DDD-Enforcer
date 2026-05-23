@@ -7,6 +7,10 @@ Usage:
 
 The --all form generates rq1.tex through rq4.tex in <dir>/.
 
+If _aggregated/ is empty (no config files present), the command still succeeds
+and writes a valid .tex file with an empty table body (zero data rows). This is
+not an error — it is the expected behaviour before any evaluation runs exist.
+
 Pipeline:
     load_aggregated_configs → build_rqN_table → render_table_spec → write_table_tex_atomic
 """
@@ -60,12 +64,18 @@ def _main(argv: list[str] | None = None) -> int:
         "--rq",
         type=int,
         choices=[1, 2, 3, 4],
-        help="Render a single RQ table (1–4).",
+        help=(
+            "Render a single RQ table (1–4). "
+            "If _aggregated/ is empty, produces a valid .tex with no data rows."
+        ),
     )
     mode.add_argument(
         "--all",
         action="store_true",
-        help="Render all four RQ tables.",
+        help=(
+            "Render all four RQ tables (rq1.tex–rq4.tex). "
+            "If _aggregated/ is empty, each output is a valid .tex with no data rows."
+        ),
     )
 
     parser.add_argument(

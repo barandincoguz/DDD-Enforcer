@@ -315,6 +315,32 @@ def test_d10_render_table_spec_structure():
 # ---------------------------------------------------------------------------
 
 
+def _mask_detokenize_blocks(text: str) -> str:
+    """Mask out every \\detokenize{...} block in `text`, including nested
+    braces. Returns the text with each block replaced by an empty string."""
+    result = []
+    i = 0
+    n = len(text)
+    while i < n:
+        idx = text.find(r"\detokenize{", i)
+        if idx == -1:
+            result.append(text[i:])
+            break
+        result.append(text[i:idx])
+        # Walk past the \detokenize{ start.
+        j = idx + len(r"\detokenize{")
+        depth = 1
+        while j < n and depth > 0:
+            if text[j] == "{":
+                depth += 1
+            elif text[j] == "}":
+                depth -= 1
+            j += 1
+        # j now points one past the matching closing }.
+        i = j
+    return "".join(result)
+
+
 def test_d11_render_table_spec_injection_probe():
     from core.latex_tables import (
         TableCell,
@@ -325,8 +351,15 @@ def test_d11_render_table_spec_injection_probe():
         sanitize_latex_label,
     )
 
-    # Adversarial inputs that pass through the sanitizers
-    dangerous_caption = escape_latex_value("Caption with & and $ and % and #")
+    # Adversarial inputs that pass through the sanitizers.
+    # The caption is constructed to contain a \detokenize{...} block with a nested `}`
+    # inside it so the depth-tracking walker is non-vacuously exercised:
+    #   \detokenize{Caption with {nested} braces & $ and #}
+    # A naive `[^}]*` regex stops at the first `}` (after "nested"), leaking
+    # " braces & $ and #}" as unmasked content and giving a false-confident pass.
+    # The depth-tracking walker correctly skips the inner `{nested}` pair and masks
+    # the entire block.
+    dangerous_caption = r"\detokenize{Caption with {nested} braces & $ and #}"
     dangerous_label = sanitize_latex_label("model#id$percent%amp&brace{}")
 
     spec = TableSpec(
@@ -346,17 +379,21 @@ def test_d11_render_table_spec_injection_probe():
 
     output = render_table_spec(spec)
 
-    # The raw dangerous characters must NOT appear OUTSIDE of \detokenize{...} wrappers
-    # Find all \detokenize{...} segments and mask them out
-    masked = re.sub(r"\\detokenize\{[^}]*\}", "SAFE", output)
+    # The raw dangerous characters must NOT appear OUTSIDE of \detokenize{...} wrappers.
+    # Use the depth-tracking walker to correctly mask blocks that contain nested `}`.
+    masked = _mask_detokenize_blocks(output)
 
-    # After masking, no bare `&` (the LaTeX column separator is fine)
-    # but $ and % and # outside detokenize are dangerous
-    # We do not mask `&` because it IS the column separator — check only %, $, # outside wrappers
+    # Verify the walker is non-vacuous: the un-masked output should contain the
+    # dangerous characters (proving they were present in a \detokenize block).
+    assert "$" in output, "Test setup error: $ not found in rendered output at all"
+
+    # After masking, $ and % and # outside detokenize are dangerous.
+    # We do not assert against `&` (it IS the LaTeX column separator) or `\`
+    # (it appears in structural commands like \begin, \\, etc.).
     assert "$" not in masked, f"Raw $ found outside detokenize in output"
     assert "%" not in masked, f"Raw % found outside detokenize in output"
     # `#` is only dangerous in certain positions — the sanitizer replaced it with `_`
-    # so it shouldn't appear at all
+    # so it shouldn't appear at all.
     assert "#" not in masked, f"Raw # found in output"
 
 
