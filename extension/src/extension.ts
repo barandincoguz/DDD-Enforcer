@@ -228,6 +228,9 @@ export const STAGE_WEIGHTS: Readonly<Record<string, number>> = {
   Synthesizer: 10,
 };
 
+/** A within-stage progress counter (e.g. context 2 of 5). */
+export type SubProgress = { current: number; total: number };
+
 /**
  * Compute the overall pipeline completion percentage (0-100) given the
  * current stage and how far through that stage we are (0-100). Sums the
@@ -265,7 +268,7 @@ export function computeOverallPercent(
  */
 export function parseSubProgress(
   detail: string,
-): { current: number; total: number } | null {
+): SubProgress | null {
   const match = detail.match(/(\d+)\s*\/\s*(\d+)/);
   if (!match) {
     return null;
@@ -329,7 +332,7 @@ export interface StageStatusBarParts {
   /** Whether the pipeline is still running (spinner) or done (check). */
   active: boolean;
   /** Optional within-stage N/M counter parsed from the detail text. */
-  sub?: { current: number; total: number };
+  sub?: SubProgress;
   /** Optional remaining-time estimate in ms; null/undefined omits the ETA. */
   etaMs?: number | null;
 }
