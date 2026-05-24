@@ -554,6 +554,45 @@ export async function validateGeminiKey(
   }
 }
 
+/** Where a Gemini API key was found. */
+export type ApiKeySource = "settings" | "env" | "secret" | "prompt";
+
+/** Decision returned by `decideMigrationOffer`. */
+export interface MigrationDecision {
+  /** Whether to surface the "move to secret storage?" toast. */
+  shouldOffer: boolean;
+  /** Human-readable label describing where the key came from (for the toast text). */
+  sourceLabel: string;
+}
+
+/**
+ * Decide whether to surface the migration-to-secret-storage offer for a
+ * key sourced from `source`. The user's prior decline (persisted to
+ * `globalState` by the caller) suppresses the offer permanently.
+ *
+ * - `settings` / `env`: less-secure sources → offer migration (unless previously declined)
+ * - `secret`: already in secret storage → no offer
+ * - `prompt`: just typed in by the user → was stored in secret storage as part of the prompt flow → no offer
+ */
+export function decideMigrationOffer(
+  source: ApiKeySource,
+  migrationDeclined: boolean,
+): MigrationDecision {
+  const labels: Record<ApiKeySource, string> = {
+    settings: "VS Code settings",
+    env: "GEMINI_API_KEY environment variable",
+    secret: "VS Code secret storage",
+    prompt: "user prompt",
+  };
+  if (migrationDeclined) {
+    return { shouldOffer: false, sourceLabel: labels[source] };
+  }
+  if (source === "settings" || source === "env") {
+    return { shouldOffer: true, sourceLabel: labels[source] };
+  }
+  return { shouldOffer: false, sourceLabel: labels[source] };
+}
+
 // =============================================================================
 // API KEY MANAGEMENT
 // =============================================================================

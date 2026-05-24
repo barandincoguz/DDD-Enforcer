@@ -7,6 +7,8 @@ import {
   classifyApiKeyError,
   validateGeminiKey,
   type ApiKeyValidationResult,
+  decideMigrationOffer,
+  type ApiKeySource,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -299,5 +301,34 @@ suite("Extension Test Suite", () => {
     if (!result.ok) {
       assert.strictEqual(result.kind, "invalid_key");
     }
+  });
+
+  test("decideMigrationOffer offers migration for settings source", () => {
+    const decision = decideMigrationOffer("settings", false);
+    assert.strictEqual(decision.shouldOffer, true);
+    assert.strictEqual(decision.sourceLabel, "VS Code settings");
+  });
+
+  test("decideMigrationOffer offers migration for env source", () => {
+    const decision = decideMigrationOffer("env", false);
+    assert.strictEqual(decision.shouldOffer, true);
+    assert.strictEqual(decision.sourceLabel, "GEMINI_API_KEY environment variable");
+  });
+
+  test("decideMigrationOffer does NOT offer for secret source", () => {
+    const decision = decideMigrationOffer("secret", false);
+    assert.strictEqual(decision.shouldOffer, false);
+  });
+
+  test("decideMigrationOffer does NOT offer for prompt source", () => {
+    const decision = decideMigrationOffer("prompt", false);
+    assert.strictEqual(decision.shouldOffer, false);
+  });
+
+  test("decideMigrationOffer respects prior declined choice", () => {
+    const decisionSettings = decideMigrationOffer("settings", true);
+    assert.strictEqual(decisionSettings.shouldOffer, false);
+    const decisionEnv = decideMigrationOffer("env", true);
+    assert.strictEqual(decisionEnv.shouldOffer, false);
   });
 });
