@@ -207,6 +207,12 @@ let outputChannel: vscode.OutputChannel;
 let isBackendReady: boolean = false;
 let backendStarting: boolean = false;
 
+/** Flag set by stopBackend / restartBackend so the child.on('exit') handler does not interpret the planned shutdown as a crash. Reset to false at the start of every startBackend invocation. */
+let backendIntentionalStop: boolean = false;
+
+/** Number of consecutive auto-restart attempts since the last successful boot. Reset to 0 when the backend reaches the ready state. Bounded by shouldAttemptRestart. */
+let backendRestartAttempts: number = 0;
+
 // Track last validated semantic content per document.
 // Semantic fingerprint ignores whitespace/comment-only edits.
 const lastValidatedContentFingerprint = new Map<string, string>();
@@ -367,6 +373,7 @@ async function startBackend(
   }
 
   backendStarting = true;
+  backendIntentionalStop = false;
   updateStatusBar("starting");
   log("Starting backend server...");
 
@@ -444,12 +451,23 @@ async function startBackend(
     });
 
     // Handle process exit
-    backendProcess.on("exit", (code) => {
-      log(`Backend process exited with code ${code}`);
+    backendProcess.on("exit", (code, signal) => {
+      const reason = formatExitReason(code, signal);
+      const disposition = classifyExitForRestart(
+        code,
+        signal,
+        backendIntentionalStop,
+      );
+      log(`Backend process ${reason} (disposition: ${disposition}).`);
       isBackendReady = false;
       backendStarting = false;
       backendProcess = null;
-      updateStatusBar("inactive");
+      if (disposition === "crash") {
+        updateStatusBar("error");
+        void handleUnexpectedExit(context, reason);
+      } else {
+        updateStatusBar("inactive");
+      }
     });
 
     // Handle errors
@@ -470,6 +488,7 @@ async function startBackend(
     if (ready) {
       log("Backend server is ready!");
       isBackendReady = true;
+      backendRestartAttempts = 0;
 
       // Check if domain model is loaded and update status accordingly
       await updateStatusFromBackend();
@@ -518,6 +537,7 @@ async function waitForBackend(timeoutMs: number): Promise<boolean> {
 function stopBackend() {
   if (backendProcess) {
     log("Stopping backend server...");
+    backendIntentionalStop = true;
     backendProcess.kill();
     backendProcess = null;
     isBackendReady = false;
@@ -530,6 +550,16 @@ function stopBackend() {
  * Restarts the backend server.
  */
 async function restartBackend(context: vscode.ExtensionContext) {
+  const reason = await vscode.window.showInputBox({
+    prompt: "Reason for restarting the DDD Enforcer backend (optional)",
+    placeHolder: "e.g. backend logs went silent, want a clean slate, ...",
+    ignoreFocusOut: true,
+  });
+  if (reason && reason.trim()) {
+    log(`Manual restart requested. Reason: ${reason.trim()}`);
+  } else {
+    log("Manual restart requested. (No reason supplied.)");
+  }
   stopBackend();
   await sleep(1000);
   const success = await startBackend(context);
@@ -537,7 +567,77 @@ async function restartBackend(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage(
       "DDD Enforcer: Backend restarted successfully!",
     );
+  } else {
+    vscode.window.showErrorMessage(
+      "DDD Enforcer: Failed to restart backend",
+    );
   }
+}
+
+/**
+ * Surface the crash dialog after the backend exited with a "crash"
+ * disposition. Three buttons: "Restart automatically", "Show logs",
+ * "Cancel". Yes triggers attemptAutoRestart; "Show logs" reveals the
+ * Output channel; Cancel sets the status to "error" and exits.
+ */
+async function handleUnexpectedExit(
+  context: vscode.ExtensionContext,
+  reason: string,
+): Promise<void> {
+  const choice = await vscode.window.showWarningMessage(
+    `DDD Enforcer backend ${reason}. Restart automatically?`,
+    "Restart automatically",
+    "Show logs",
+    "Cancel",
+  );
+  if (choice === "Restart automatically") {
+    backendRestartAttempts = 0;
+    await attemptAutoRestart(context);
+  } else if (choice === "Show logs") {
+    outputChannel.show();
+    log(
+      "User chose 'Show logs' after backend crash. No restart attempted.",
+    );
+  } else {
+    log(
+      "User declined auto-restart after backend crash. Use 'DDD Enforcer: Restart Backend Server' to retry manually.",
+    );
+  }
+}
+
+/**
+ * Auto-restart loop with exponential backoff (computeBackoffMs).
+ * Caps at shouldAttemptRestart's default 5 attempts. On final failure,
+ * surfaces a persistent error toast and stops the loop — does NOT
+ * spawn indefinitely.
+ */
+async function attemptAutoRestart(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  while (shouldAttemptRestart(backendRestartAttempts)) {
+    const delayMs = computeBackoffMs(backendRestartAttempts);
+    log(
+      `Auto-restart attempt ${backendRestartAttempts + 1}/5 in ${delayMs}ms...`,
+    );
+    await sleep(delayMs);
+    backendRestartAttempts += 1;
+    const success = await startBackend(context);
+    if (success) {
+      log("Auto-restart succeeded.");
+      vscode.window.showInformationMessage(
+        "DDD Enforcer: Backend restarted automatically.",
+      );
+      return;
+    }
+    log(`Auto-restart attempt ${backendRestartAttempts}/5 failed.`);
+  }
+  log(
+    "Auto-restart gave up after 5 failed attempts. Use 'DDD Enforcer: Restart Backend Server' to retry manually.",
+  );
+  vscode.window.showErrorMessage(
+    "DDD Enforcer: Backend could not be restarted automatically after 5 attempts. Open the Output channel for details and use 'DDD Enforcer: Restart Backend Server' once the underlying issue is fixed.",
+  );
+  updateStatusBar("error");
 }
 
 // =============================================================================
@@ -1748,14 +1848,19 @@ async function findAvailablePort(): Promise<number> {
     return preferredPort;
   }
 
-  // Find another available port
+  log(
+    `Preferred port ${preferredPort} is in use. Scanning for an available port in the next 99 candidates...`,
+  );
   for (let port = preferredPort + 1; port < preferredPort + 100; port++) {
     if (await isPortAvailable(port)) {
+      log(`Selected port ${port} (preferred port ${preferredPort} was unavailable).`);
       return port;
     }
   }
 
-  // Fallback
+  log(
+    `WARNING: no available port found in ${preferredPort}..${preferredPort + 99}. Falling back to preferred port ${preferredPort} (backend startup is likely to fail).`,
+  );
   return preferredPort;
 }
 
