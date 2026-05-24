@@ -55,8 +55,72 @@ still reports **716 passed**, zero regression.
   ALL CLOSED in iter 46 (see iter-46 commit list above).
 
 **Baseline:** 729 passed, 31 deselected.
-**HEAD:** `ee9d57b` (iter 48 D-fix-2 — race close).
-**Ahead of origin/main:** 53 commits (NOT pushed).
+**HEAD:** `673a7a4` (iter 49 D-fix — dead-code delete).
+**Ahead of origin/main:** 61 commits (NOT pushed).
+
+---
+
+## Iteration 49 — WP-CORE-28 Feature 3 (Multi-stage status bar progress) COMPLETE (2026-05-24)
+
+WP-CORE-28 Iter 49 shipped via Subagent-Driven Development (SDD).
+Plan at `.planning/plans/2026-05-24-wp-core-28-iter-49-multistage-progress.md`.
+Spec at `todos/WP-CORE-28-extension-ux-wave1.md`.
+
+**7 commits (4 feat + 3 refactor/test follow-up), 33 new test cases,
+zero baseline regression.**
+
+| Commit | Iter step | Content | Δ tests |
+|--------|-----------|---------|---------|
+| `9aecad4` | A | `STAGE_ORDER`/`STAGE_WEIGHTS` consts + `computeOverallPercent` + `parseSubProgress` + 9 tests | +9 |
+| `f98f351` | A follow-up | Guard STAGE_WEIGHTS sum-100 invariant (2 tests) + document parseSubProgress trust | +2 |
+| `ba72a29` | B | `formatEta` + `computeEtaMs` + 8 test blocks (17 assertions) | +8 |
+| `49f5bf4` | C | `StageStatusBarParts` + `formatStageStatusBar` + 6 tests | +6 |
+| `da77938` | C follow-up | Extract shared `SubProgress` type; keep strict etaMs guard (eslint eqeqeq rejects `!= null`) | 0 |
+| `b0483e4` | D | SSE wire-up: `showOutput` command + `updateStatusBarWithProgress` + timing tracking + `computeEtaMs`/`parseSubProgress`/`computeOverallPercent` integration + `LAST_RUN_DURATIONS_KEY` globalState persist + command swap | 0 |
+| `673a7a4` | D follow-up | Delete dead `updateStatusBarWithStage` delegator (zero callers post-wire-up) + document `withinStage=50` heuristic | 0 |
+
+**SDD telemetry (this iter):**
+
+| Task | Implementer | Spec review | Quality review | Fix loops | Dispatches |
+|------|-------------|-------------|----------------|-----------|-----------|
+| 1 | 1 | 1 | 1 | 1 (sum-guard + doc; re-review) | 5 |
+| 2 | 1 | 1 | 1 | 0 | 3 |
+| 3 | 1 | 1 | 1 | 1 (SubProgress extract; re-review) | 5 |
+| 4 | 1 | 1 | 1 | 1 (dead-code delete; re-review) | 5 |
+| **Total** | **4** | **4** | **4** | **3** | **18 subagent dispatches** |
+
+Three fix loops, all from quality review catching real improvements:
+- Task 1: STAGE_WEIGHTS summed to 100 by comment only → added an
+  invariant test (drift guard) + key-alignment test. An import-time
+  throw was deliberately avoided (would risk extension activation).
+- Task 3: `{current,total}` inline type duplicated → extracted a
+  shared `SubProgress` type. Reviewer also suggested `!= null` for the
+  etaMs guard, but eslint `eqeqeq` rejects loose equality, so the
+  strict `!== null && !== undefined` form was kept (verified by lint).
+- Task 4: the `updateStatusBarWithProgress` rewrite left
+  `updateStatusBarWithStage` with zero callers — the plan's
+  "backward-compat delegator" premise was false. Per AGENTS.md the
+  dead function was deleted rather than shipped as a shim.
+
+**Locked invariants added this iter:**
+
+| ID | Invariant |
+|----|-----------|
+| Iter 49 A | `STAGE_ORDER` + `STAGE_WEIGHTS` (6-stage post-P3: Scout 10 / Architect 15 / Specialist 50 / Verifier 5 / Refiner 10 / Synthesizer 10) MUST sum to 100. A test (`STAGE_WEIGHTS sums to exactly 100`) + a key-alignment test guard this — if you edit a weight, keep the sum at 100 and the two maps key-aligned, or those tests fail. |
+| Iter 49 A | `parseSubProgress(detail)` assumes `detail` is pipeline progress text, never a date — a date like "2024/05/24" would mis-match as {2024,5}. This is documented in the function's JSDoc; the backend never emits dates in the detail field. |
+| Iter 49 C | The `etaMs` null-check in `formatStageStatusBar` uses the strict `!== null && !== undefined` form, NOT `!= null`. The project's eslint `eqeqeq` rule rejects loose equality. Do not "simplify" it to `!= null` — lint will fail. |
+| Iter 49 D | `ddd-enforcer.showOutput` command (registered in `activate`) opens the Output channel. `generateModelWithStreaming` swaps `statusBarItem.command` to it for the run's duration and MUST restore `previousCommand` in all three exit paths (success / failure / catch). All throw points are inside the try whose catch restores — verified exception-safe. |
+| Iter 49 D | The within-stage progress fraction is a coarse heuristic: `completed → 100`, any other status → `50`. The backend emits no fine-grained within-stage fraction, so this keeps the overall percent monotonic without over-promising precision. Do not present the `(N%)` as exact. |
+| Iter 49 D | Last-run per-stage durations persist to `globalState` under `LAST_RUN_DURATIONS_KEY = "ddd-enforcer.lastRunStageDurations"` on successful completion only. This is the cold-start ETA basis; the live ETA itself is derived from within-run elapsed time via `computeEtaMs`. |
+
+**F5 smoke status:** Programmatic gates green (compile, lint, pyright,
+pytest 729). F5 GUI smoke requires a working backend
+(`ddd-enforcer.pythonPath` → a Python with uvicorn, e.g.
+`extension/backend/.venv/bin/python`) plus a real SRS to run
+generate-model against, so the live status-bar progression can be
+observed. Checklist posted to the user at iter close.
+
+**Baseline at iter close:** 729 passed, 31 deselected, pyright 0/0/0.
 
 ---
 
