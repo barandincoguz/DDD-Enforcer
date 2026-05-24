@@ -16,6 +16,8 @@ import {
   type ExitDisposition,
   computeOverallPercent,
   parseSubProgress,
+  STAGE_ORDER,
+  STAGE_WEIGHTS,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -533,5 +535,26 @@ suite("Extension Test Suite", () => {
   test("parseSubProgress ignores malformed ratios", () => {
     assert.strictEqual(parseSubProgress("version 1.2.3"), null);
     assert.strictEqual(parseSubProgress("5/0"), null);
+  });
+
+  test("STAGE_WEIGHTS sums to exactly 100", () => {
+    const sum = Object.values(STAGE_WEIGHTS).reduce((a, b) => a + b, 0);
+    assert.strictEqual(sum, 100);
+  });
+
+  test("every STAGE_ORDER entry has a STAGE_WEIGHTS entry", () => {
+    for (const stage of STAGE_ORDER) {
+      assert.ok(
+        typeof STAGE_WEIGHTS[stage] === "number",
+        `${stage} is missing a weight`,
+      );
+    }
+    // And no orphan weights without an order position.
+    for (const stage of Object.keys(STAGE_WEIGHTS)) {
+      assert.ok(
+        STAGE_ORDER.includes(stage),
+        `${stage} has a weight but is not in STAGE_ORDER`,
+      );
+    }
   });
 });

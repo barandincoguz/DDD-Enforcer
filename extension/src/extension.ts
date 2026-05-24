@@ -258,6 +258,10 @@ export function computeOverallPercent(
  * detail string (e.g. "Analyzing context 2/5"). Returns `{current, total}`
  * only when both are positive integers with total > 0. Returns null when
  * no valid ratio is found. Pure.
+ *
+ * `detail` is trusted to be pipeline progress text (e.g. "Analyzing
+ * context 2/5"), never a date — a date like "2024/05/24" would
+ * mis-match as {2024, 5}, but the backend never emits dates here.
  */
 export function parseSubProgress(
   detail: string,
