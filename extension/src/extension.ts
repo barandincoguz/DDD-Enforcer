@@ -614,6 +614,178 @@ export function sortRunSummaries(
   return copy;
 }
 
+/**
+ * Generate a 32-character alphanumeric nonce for the webview CSP.
+ * Pure-enough for testing (uses Math.random; not used for cryptographic
+ * secrecy — only to satisfy VS Code's inline-script CSP requirement).
+ */
+export function generateNonce(): string {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let nonce = "";
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
+}
+
+/**
+ * Build the complete inline HTML document for the run-manifest webview.
+ * Locks the CSP to `default-src 'none'`, allows only the nonce'd inline
+ * script and `cspSource`-scoped inline styles, and contains no external
+ * URLs (no network). The script acquires the VS Code API, renders the
+ * summaries table (sortable headers post a re-sort handled client-side),
+ * and posts `openDetail` / `refresh` messages back to the extension. The
+ * extension posts `runList` (RunSummary[]) and `runDetail` (full manifest)
+ * messages in. Pure (returns a string).
+ */
+export function buildRunManifestsHtml(
+  nonce: string,
+  cspSource: string,
+): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DDD Enforcer — Run Manifests</title>
+<style>
+  body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 0 12px; }
+  h2 { margin: 12px 0 4px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--vscode-panel-border); font-size: 12px; }
+  th { cursor: pointer; user-select: none; }
+  th:hover { color: var(--vscode-textLink-foreground); }
+  tr.run-row { cursor: pointer; }
+  tr.run-row:hover { background: var(--vscode-list-hoverBackground); }
+  #empty { color: var(--vscode-descriptionForeground); margin-top: 16px; }
+  #detail { margin-top: 16px; border-top: 2px solid var(--vscode-panel-border); padding-top: 8px; display: none; }
+  .sev-ERROR { color: var(--vscode-errorForeground); font-weight: bold; }
+  .sev-WARN { color: var(--vscode-editorWarning-foreground); }
+  pre { white-space: pre-wrap; word-break: break-word; background: var(--vscode-textCodeBlock-background); padding: 8px; }
+  button { margin-top: 8px; }
+</style>
+</head>
+<body>
+<h2>Run Manifests</h2>
+<button id="refresh">Refresh</button>
+<div id="empty" style="display:none;">No run manifests found under <code>runs/</code>. Run the pipeline first.</div>
+<table id="runs-table" style="display:none;">
+  <thead><tr>
+    <th data-col="runId">Run ID</th>
+    <th data-col="pipeline">Pipeline</th>
+    <th data-col="modelId">Model</th>
+    <th data-col="srsLabel">SRS</th>
+    <th data-col="timestamp">Timestamp</th>
+    <th data-col="costUsd">Cost (USD)</th>
+    <th data-col="violationCount">Violations</th>
+  </tr></thead>
+  <tbody id="runs-body"></tbody>
+</table>
+<div id="detail"></div>
+<script nonce="${nonce}">
+  const vscode = acquireVsCodeApi();
+  let runs = [];
+  let sortCol = "timestamp";
+  let sortDir = "desc";
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function sortRuns(rows, col, dir) {
+    const numeric = col === "costUsd" || col === "violationCount";
+    const sign = dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (numeric) { return (Number(a[col]) - Number(b[col])) * sign; }
+      const av = String(a[col]).toLowerCase();
+      const bv = String(b[col]).toLowerCase();
+      return av < bv ? -1 * sign : av > bv ? 1 * sign : 0;
+    });
+  }
+
+  function renderList() {
+    const table = document.getElementById("runs-table");
+    const empty = document.getElementById("empty");
+    const body = document.getElementById("runs-body");
+    if (!runs.length) {
+      table.style.display = "none";
+      empty.style.display = "block";
+      body.innerHTML = "";
+      return;
+    }
+    empty.style.display = "none";
+    table.style.display = "table";
+    const sorted = sortRuns(runs, sortCol, sortDir);
+    body.innerHTML = sorted.map((r) =>
+      '<tr class="run-row" data-run="' + esc(r.runId) + '">' +
+      "<td>" + esc(r.runId) + "</td>" +
+      "<td>" + esc(r.pipeline) + "</td>" +
+      "<td>" + esc(r.modelId) + "</td>" +
+      "<td>" + esc(r.srsLabel) + "</td>" +
+      "<td>" + esc(r.timestamp) + "</td>" +
+      "<td>" + esc(Number(r.costUsd).toFixed(4)) + "</td>" +
+      "<td>" + esc(r.violationCount) + "</td>" +
+      "</tr>"
+    ).join("");
+    body.querySelectorAll("tr.run-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        vscode.postMessage({ type: "openDetail", runId: row.getAttribute("data-run") });
+      });
+    });
+  }
+
+  function renderDetail(manifest) {
+    const detail = document.getElementById("detail");
+    detail.style.display = "block";
+    const violations = (manifest.violations || []).map((v) =>
+      '<li><span class="sev-' + esc(v.severity) + '">[' + esc(v.severity) + "]</span> " +
+      esc(v.violation_type) + " — " + esc(v.location) + "<br/>" + esc(v.message) + "</li>"
+    ).join("");
+    detail.innerHTML =
+      "<h2>" + esc(manifest.run_id) + "</h2>" +
+      "<p><b>Model:</b> " + esc(manifest.model_id) + " (" + esc(manifest.provider) + ")" +
+      " &nbsp; <b>Pipeline:</b> " + esc(manifest.pipeline || "—") +
+      " &nbsp; <b>Timestamp:</b> " + esc(manifest.timestamp_utc) + "</p>" +
+      "<p><b>Metrics:</b> latency " + esc(manifest.latency_seconds) + "s, " +
+      "prompt " + esc(manifest.prompt_tokens) + " + completion " + esc(manifest.completion_tokens) +
+      " = " + esc(Number(manifest.prompt_tokens) + Number(manifest.completion_tokens)) + " tokens, " +
+      "cost $" + esc(Number(manifest.cost_usd).toFixed(6)) + "</p>" +
+      "<p><b>Provenance:</b><br/>srs: " + esc(manifest.srs_path) + "<br/>" +
+      "srs_sha256: " + esc(manifest.srs_sha256) + "<br/>" +
+      "code_root: " + esc(manifest.code_root || "—") + "<br/>" +
+      "code_sha256: " + esc(manifest.code_sha256 || "—") + "</p>" +
+      "<h3>Violations (" + ((manifest.violations || []).length) + ")</h3>" +
+      "<ul>" + violations + "</ul>";
+  }
+
+  document.querySelectorAll("th[data-col]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const col = th.getAttribute("data-col");
+      if (sortCol === col) { sortDir = sortDir === "asc" ? "desc" : "asc"; }
+      else { sortCol = col; sortDir = "asc"; }
+      renderList();
+    });
+  });
+
+  document.getElementById("refresh").addEventListener("click", () => {
+    vscode.postMessage({ type: "refresh" });
+  });
+
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (msg.type === "runList") { runs = msg.runs || []; renderList(); }
+    else if (msg.type === "runDetail") { renderDetail(msg.manifest); }
+  });
+
+  vscode.postMessage({ type: "ready" });
+</script>
+</body>
+</html>`;
+}
+
 // =============================================================================
 // GLOBAL STATE
 // =============================================================================

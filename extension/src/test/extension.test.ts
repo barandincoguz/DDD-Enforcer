@@ -30,6 +30,8 @@ import {
   sortRunSummaries,
   type RunSummary,
   type PaperRunManifest,
+  generateNonce,
+  buildRunManifestsHtml,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -1033,5 +1035,48 @@ suite("Extension Test Suite", () => {
     const before = rows.map((r) => r.runId);
     sortRunSummaries(rows, "costUsd", "asc");
     assert.deepStrictEqual(rows.map((r) => r.runId), before);
+  });
+
+  test("generateNonce returns a 32-char alphanumeric string", () => {
+    const nonce = generateNonce();
+    assert.strictEqual(nonce.length, 32);
+    assert.ok(/^[A-Za-z0-9]+$/.test(nonce), "alphanumeric only");
+  });
+
+  test("generateNonce returns a different value each call", () => {
+    const a = generateNonce();
+    const b = generateNonce();
+    assert.notStrictEqual(a, b);
+  });
+
+  test("buildRunManifestsHtml embeds the nonce on the script tag and in the CSP", () => {
+    const html = buildRunManifestsHtml("NONCE123", "vscode-resource:");
+    assert.ok(
+      html.includes(`<script nonce="NONCE123">`),
+      "script tag carries the nonce",
+    );
+    assert.ok(
+      html.includes(`script-src 'nonce-NONCE123'`),
+      "CSP allows only the nonce'd script",
+    );
+    assert.ok(
+      html.includes("Content-Security-Policy"),
+      "has a CSP meta tag",
+    );
+  });
+
+  test("buildRunManifestsHtml CSP uses the provided cspSource and forbids external loads", () => {
+    const html = buildRunManifestsHtml("N", "vscode-webview://abc");
+    assert.ok(html.includes("default-src 'none'"), "locks default-src to none");
+    assert.ok(html.includes("vscode-webview://abc"), "uses the cspSource for styles");
+    assert.ok(!/https?:\/\//.test(html), "no external http(s) URLs in the HTML");
+  });
+
+  test("buildRunManifestsHtml contains the table scaffold and message wiring", () => {
+    const html = buildRunManifestsHtml("N", "vscode-webview://abc");
+    assert.ok(html.includes("acquireVsCodeApi()"), "acquires the vscode api");
+    assert.ok(html.includes("addEventListener(\"message\""), "listens for messages");
+    assert.ok(html.includes("id=\"runs-table\"") || html.includes("id='runs-table'"), "has the runs table element");
+    assert.ok(html.includes("id=\"detail\"") || html.includes("id='detail'"), "has the detail pane element");
   });
 });
