@@ -550,3 +550,66 @@ class TestSchemaVersionGuard:
 
         configs = load_aggregated_configs(tmp_path)
         assert configs == []  # bad file skipped, not crashed
+
+
+# ---------------------------------------------------------------------------
+# T-01b-C-17: pipeline=None grouping coverage (iter 46 commit C —
+# previously untested branch; compose_aggregate_key emits "pipelineNone"
+# and group_by_configuration keys on the Optional[str] tuple).
+# ---------------------------------------------------------------------------
+
+
+class TestPipelineNoneGrouping:
+    def test_compose_aggregate_key_uses_pipelineNone_sentinel(self):
+        from core.aggregate import AggregatedConfiguration, compose_aggregate_key
+
+        config = AggregatedConfiguration(
+            pipeline=None,
+            model_id="gemini-3.1-flash-lite",
+            srs_label="SRS_D1",
+            n_runs=1,
+            run_ids=["r1"],
+            scorelines=[],
+        )
+        key = compose_aggregate_key(config)
+        assert key.startswith("pipelineNone_")
+        assert "gemini-3" in key.replace(".", "_") or "gemini-3" in key
+        assert key.endswith("SRS_D1")
+
+    def test_group_by_configuration_separates_none_from_named_pipelines(
+        self, tmp_path
+    ):
+        from core.aggregate import discover_run_pairs, group_by_configuration
+        from core.run_manifest import write_paper_run_manifest
+
+        # Config 1: pipeline=None / model-A → 1 run
+        m_none = _make_manifest(
+            "run_None_A_1",
+            model_id="model-A",
+            srs_path="inputs/SRS_D1.docx",
+            pipeline=None,  # type: ignore[arg-type]
+        )
+        # Config 2: pipeline="P1" / model-A → 1 run (same model + srs!)
+        m_p1 = _make_manifest(
+            "run_P1_A_1",
+            model_id="model-A",
+            srs_path="inputs/SRS_D1.docx",
+            pipeline="P1",
+        )
+
+        for m in [m_none, m_p1]:
+            write_paper_run_manifest(m, tmp_path)
+            judge_path = tmp_path / m.run_id / f"{m.run_id}.judge.json"
+            judge_path.write_text("{}", encoding="utf-8")
+
+        pairs = discover_run_pairs(tmp_path)
+        groups = group_by_configuration(pairs)
+
+        # Same model + srs but different pipeline (None vs "P1") MUST
+        # produce two distinct group keys.
+        assert len(groups) == 2
+
+        keys = list(groups.keys())
+        pipelines = {k[0] for k in keys}
+        assert None in pipelines
+        assert "P1" in pipelines
