@@ -55,12 +55,71 @@ still reports **716 passed**, zero regression.
   ALL CLOSED in iter 46 (see iter-46 commit list above).
 
 **Baseline:** 729 passed, 31 deselected.
-**HEAD:** `9f7447e` (iter 50 D-fix — out-of-workspace open guard).
-**Ahead of origin/main:** 67 commits (NOT pushed).
+**HEAD:** `728d2e4` (WP-CORE-32 step C — webview wire-up).
+**Ahead of origin/main:** 72 commits (NOT pushed).
 
 **WP-CORE-28 (Extension UX wave 1) — ALL 4 FEATURES COMPLETE** (iters
-47-50, 2026-05-24). Next: WP-CORE-32 (extension webviews —
-PaperRunManifest viewer).
+47-50). **WP-CORE-32 (PaperRunManifest webview viewer) — COMPLETE**
+(2026-05-24). Both extension WPs shipped this session via SDD.
+
+---
+
+## WP-CORE-32 — PaperRunManifest webview viewer COMPLETE (2026-05-24)
+
+Shipped via Subagent-Driven Development (SDD).
+Plan at `.planning/plans/2026-05-24-wp-core-32-run-manifest-webview.md`.
+Spec at `todos/WP-CORE-32-extension-webviews.md`.
+
+**4 commits (3 feat + 1 fix), 18 new test cases, zero baseline regression.**
+
+| Commit | Step | Content | Δ tests |
+|--------|------|---------|---------|
+| `c8c45d2` | A | `PaperRunManifest`/`ManifestViolation`/`RunSummary` TS types + `summarizeManifest` + `sortRunSummaries` + 8 tests | +8 |
+| `c757957` | B | `generateNonce` + `buildRunManifestsHtml` (inline CSP-locked webview: sortable table + detail pane + vanilla-JS message wiring) + 9 tests | +9 |
+| `7a24162` | B follow-up | Security: harden client `esc()` to escape `"`/`'` (attribute-context defense-in-depth) + 1 test | +1 |
+| `728d2e4` | C | `ddd-enforcer.showRunManifests` command (package.json + register) + `resolveRunsDir` + `discoverRunManifests` + `openRunManifestsWebview` (panel + ready/refresh/openDetail messages + debounced FileSystemWatcher disposed on close) | 0 |
+
+**SDD telemetry (this WP):**
+
+| Task | Implementer | Spec review | Quality review | Fix loops | Dispatches |
+|------|-------------|-------------|----------------|-----------|-----------|
+| 1 | 1 | 1 | 1 | 0 | 3 |
+| 2 | 1 | 1 | 1 | 1 (esc hardening — accepted as additive, no re-review loop) | 4 |
+| 3 | 1 | 1 | 1 | 0 | 3 |
+| **Total** | **3** | **3** | **3** | **1** | **14 subagent dispatches** |
+
+Quality review caught a webview defense-in-depth gap on Task 2 (the
+client `esc()` escaped only `&<>`, not quotes, while one insertion is
+attribute-context `data-run="…"`). run_id is sanitized server-side by
+`sanitize_path_segment`, so it was not exploitable, but `esc()` is now
+hardened to escape `"`/`'` for both text and attribute contexts. Task 3
+review confirmed the webview security posture is sound (CSP
+`default-src 'none'`, nonce'd inline script, structured-clone
+postMessage, all interpolated data escaped) and flagged two accepted
+non-blocking observations (see invariants).
+
+**Locked invariants added this WP:**
+
+| ID | Invariant |
+|----|-----------|
+| WP-32 schema | `extension/src/extension.ts` `PaperRunManifest` / `ManifestViolation` TS interfaces MIRROR `extension/backend/core/run_manifest.py:188` (PaperRunManifest) + `:161` (Violation). If the backend schema changes, update the TS mirror. NOTE: the manifest has NO `srs_label` (derive via basename of `srs_path`) and NO per-stage token breakdown (only flat `prompt_tokens`/`completion_tokens`). |
+| WP-32 glob | PaperRunManifest files live at `runs/<run_id>/manifest.json` (per-run subdirectory; written by `write_paper_run_manifest`). The pre-existing flat `runs/*.manifest.json` files are a DIFFERENT internal observability format (`core.observability.run_manifest.RunManifest`) and are filtered out — `summarizeManifest` returns `null` for any JSON lacking a string `run_id`. `discoverRunManifests` only reads directory-child `<name>/manifest.json`. |
+| WP-32 webview security | The webview HTML is static (`buildRunManifestsHtml`); all dynamic data arrives via `postMessage` (structured clone) and is escaped client-side by `esc()` (escapes `&<>"'`). CSP is `default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';`. There are NO external URLs and NO local-resource loads, so `localResourceRoots` is intentionally unset (CSP already blocks all loads). Do not introduce un-escaped `innerHTML` of manifest data or external resource references. |
+| WP-32 lifecycle | `openRunManifestsWebview` opens a fresh panel per invocation (no singleton). Its `FileSystemWatcher` (`RelativePattern(runsDir, "**/manifest.json")`, 500ms debounce) and pending debounce timer MUST be disposed in `panel.onDidDispose`. The `onDidReceiveMessage` handler is registered on `context.subscriptions`. |
+
+**Accepted non-blocking observations (Task 3 review):**
+- `resolveRunsDir` reads `process.env.WORKSPACE_PATH` first, but that env var is set only on the spawned backend child, not the extension host — so that branch is currently inactive and resolution always falls to `workspaceFolders[0]` (the correct workspace root). Kept as a valid fallback ordering per the spec; not dead-zero-caller code.
+- The watcher glob `**/manifest.json` could also match a stray depth-0 `runs/manifest.json` (would trigger a harmless no-op refresh; `discoverRunManifests` ignores it). Left as-is (more robust if the layout ever nests deeper).
+
+**F5 smoke status:** Programmatic gates green (compile, lint, pyright,
+pytest 729). Live webview F5 smoke (8-step checklist in the WP-CORE-32
+plan) DEFERRED per user direction ("testleri ve debuglari sonra
+yapacagiz"). Needs a workspace with at least one
+`runs/<run_id>/manifest.json` (the paper pipeline has not yet produced
+any PaperRunManifest files on disk — only the older flat observability
+manifests exist).
+
+**Baseline at WP close:** 729 passed, 31 deselected, pyright 0/0/0.
 
 ---
 
