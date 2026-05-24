@@ -14,6 +14,8 @@ import {
   formatExitReason,
   classifyExitForRestart,
   type ExitDisposition,
+  computeOverallPercent,
+  parseSubProgress,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -478,5 +480,58 @@ suite("Extension Test Suite", () => {
 
   test("classifyExitForRestart returns cleanExit on code=0 signal=null intentional=false", () => {
     assert.strictEqual(classifyExitForRestart(0, null, false), "cleanExit");
+  });
+
+  // ==========================================================================
+  // PIPELINE PROGRESS TESTS (Iter 49)
+  // ==========================================================================
+
+  test("computeOverallPercent returns 0 when first stage just started", () => {
+    assert.strictEqual(computeOverallPercent("Scout", 0), 0);
+  });
+
+  test("computeOverallPercent returns the prior-stage weight sum at a stage start", () => {
+    assert.strictEqual(computeOverallPercent("Architect", 0), 10);
+    assert.strictEqual(computeOverallPercent("Specialist", 0), 25);
+    assert.strictEqual(computeOverallPercent("Verifier", 0), 75);
+  });
+
+  test("computeOverallPercent adds within-stage fraction", () => {
+    assert.strictEqual(computeOverallPercent("Specialist", 50), 50);
+    assert.strictEqual(computeOverallPercent("Scout", 100), 10);
+  });
+
+  test("computeOverallPercent returns 100 at final stage complete", () => {
+    assert.strictEqual(computeOverallPercent("Synthesizer", 100), 100);
+  });
+
+  test("computeOverallPercent clamps within-stage fraction to [0,100]", () => {
+    assert.strictEqual(computeOverallPercent("Scout", -50), 0);
+    assert.strictEqual(computeOverallPercent("Scout", 200), 10);
+  });
+
+  test("computeOverallPercent treats unknown stage as 0 weight (returns prior known sum or 0)", () => {
+    assert.strictEqual(computeOverallPercent("Bogus", 50), 0);
+  });
+
+  test("parseSubProgress extracts N/M from detail text", () => {
+    assert.deepStrictEqual(parseSubProgress("Analyzing context 2/5"), {
+      current: 2,
+      total: 5,
+    });
+    assert.deepStrictEqual(parseSubProgress("3 / 10 done"), {
+      current: 3,
+      total: 10,
+    });
+  });
+
+  test("parseSubProgress returns null when no N/M pattern present", () => {
+    assert.strictEqual(parseSubProgress("Extracting domain sentences"), null);
+    assert.strictEqual(parseSubProgress(""), null);
+  });
+
+  test("parseSubProgress ignores malformed ratios", () => {
+    assert.strictEqual(parseSubProgress("version 1.2.3"), null);
+    assert.strictEqual(parseSubProgress("5/0"), null);
   });
 });

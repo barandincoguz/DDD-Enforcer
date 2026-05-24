@@ -197,6 +197,84 @@ export function classifyExitForRestart(
 }
 
 // =============================================================================
+// PIPELINE PROGRESS (pure helpers — testable without vscode)
+// =============================================================================
+
+/**
+ * Canonical pipeline stage order (post-P3, 6 stages). Drives the
+ * overall-percent calculation. Stages not in this list contribute no
+ * weight and are treated as position-unknown.
+ */
+export const STAGE_ORDER: readonly string[] = [
+  "Scout",
+  "Architect",
+  "Specialist",
+  "Verifier",
+  "Refiner",
+  "Synthesizer",
+];
+
+/**
+ * Per-stage weight (percent of the overall pipeline). Sums to 100.
+ * Specialist dominates because per-context analysis is the bulk of
+ * the work. Source: WP-CORE-28 Feature 3 spec.
+ */
+export const STAGE_WEIGHTS: Readonly<Record<string, number>> = {
+  Scout: 10,
+  Architect: 15,
+  Specialist: 50,
+  Verifier: 5,
+  Refiner: 10,
+  Synthesizer: 10,
+};
+
+/**
+ * Compute the overall pipeline completion percentage (0-100) given the
+ * current stage and how far through that stage we are (0-100). Sums the
+ * weights of all stages before the current one, then adds the current
+ * stage's weight scaled by the within-stage fraction. Unknown stages
+ * (not in STAGE_ORDER) contribute 0 and return 0. The within-stage
+ * fraction is clamped to [0,100]. Pure.
+ */
+export function computeOverallPercent(
+  stage: string,
+  withinStagePercent: number,
+): number {
+  const index = STAGE_ORDER.indexOf(stage);
+  if (index < 0) {
+    return 0;
+  }
+  const clamped = Math.max(0, Math.min(100, withinStagePercent));
+  let priorSum = 0;
+  for (let i = 0; i < index; i++) {
+    priorSum += STAGE_WEIGHTS[STAGE_ORDER[i]] ?? 0;
+  }
+  const currentWeight = STAGE_WEIGHTS[stage] ?? 0;
+  return priorSum + (currentWeight * clamped) / 100;
+}
+
+/**
+ * Opportunistically extract an `N/M` sub-progress counter from a free-text
+ * detail string (e.g. "Analyzing context 2/5"). Returns `{current, total}`
+ * only when both are positive integers with total > 0. Returns null when
+ * no valid ratio is found. Pure.
+ */
+export function parseSubProgress(
+  detail: string,
+): { current: number; total: number } | null {
+  const match = detail.match(/(\d+)\s*\/\s*(\d+)/);
+  if (!match) {
+    return null;
+  }
+  const current = parseInt(match[1], 10);
+  const total = parseInt(match[2], 10);
+  if (!Number.isFinite(current) || !Number.isFinite(total) || total <= 0) {
+    return null;
+  }
+  return { current, total };
+}
+
+// =============================================================================
 // GLOBAL STATE
 // =============================================================================
 
