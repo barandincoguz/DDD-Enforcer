@@ -207,8 +207,8 @@ let outputChannel: vscode.OutputChannel;
 let isBackendReady: boolean = false;
 let backendStarting: boolean = false;
 
-/** Flag set by stopBackend / restartBackend so the child.on('exit') handler does not interpret the planned shutdown as a crash. Reset to false at the start of every startBackend invocation. */
-let backendIntentionalStop: boolean = false;
+/** Reference to the specific ChildProcess that stopBackend has intentionally killed. Captured at registration time by each child.on('exit') handler so per-process exits are judged against the correct target — protects against the race where a slow-exiting old process is misclassified as a crash after a new process has already started. Reset to null after the matched exit fires. */
+let intentionalStopTarget: ChildProcess | null = null;
 
 /** Number of consecutive auto-restart attempts since the last successful boot. Reset to 0 when the backend reaches the ready state. Bounded by shouldAttemptRestart. */
 let backendRestartAttempts: number = 0;
@@ -373,7 +373,7 @@ async function startBackend(
   }
 
   backendStarting = true;
-  backendIntentionalStop = false;
+  intentionalStopTarget = null;
   updateStatusBar("starting");
   log("Starting backend server...");
 
@@ -450,21 +450,31 @@ async function startBackend(
       log(`[Backend] ${message}`);
     });
 
+    // Capture this specific process so the exit handler can detect
+    // whether it was intentionally stopped (per-process flag protects
+    // against the race where a slow-exiting old process fires its exit
+    // event after a new process has already started).
+    const thisProcess = backendProcess;
+
     // Handle process exit
     backendProcess.on("exit", (code, signal) => {
       const reason = formatExitReason(code, signal);
-      const disposition = classifyExitForRestart(
-        code,
-        signal,
-        backendIntentionalStop,
-      );
+      const wasIntentional = intentionalStopTarget === thisProcess;
+      if (wasIntentional) {
+        intentionalStopTarget = null;
+      }
+      const disposition = classifyExitForRestart(code, signal, wasIntentional);
       log(`Backend process ${reason} (disposition: ${disposition}).`);
       isBackendReady = false;
       backendStarting = false;
       backendProcess = null;
       if (disposition === "crash") {
         updateStatusBar("error");
-        void handleUnexpectedExit(context, reason);
+        handleUnexpectedExit(context, reason).catch((err) =>
+          log(
+            `handleUnexpectedExit failed: ${err instanceof Error ? err.message : String(err)}`,
+          ),
+        );
       } else {
         updateStatusBar("inactive");
       }
@@ -537,7 +547,7 @@ async function waitForBackend(timeoutMs: number): Promise<boolean> {
 function stopBackend() {
   if (backendProcess) {
     log("Stopping backend server...");
-    backendIntentionalStop = true;
+    intentionalStopTarget = backendProcess;
     backendProcess.kill();
     backendProcess = null;
     isBackendReady = false;
