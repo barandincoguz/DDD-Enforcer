@@ -1,6 +1,9 @@
 # NEXT-WORK-PLAN — Iteration 45+ candidates
 
 **Written:** 2026-05-24 11:55 GMT+3
+**Revised:** 2026-05-24 12:00 GMT+3 — WP-01d CANCELLED per user
+direction (different pipeline architectures won't be explored on
+this paper). Re-ranked accordingly.
 **Author:** Claude Opus 4.7 + 5 parallel subagent investigation
 **Baseline at write:** HEAD `39dc89e` (Pyright tightening complete),
 716 tests passing, full `pyright` = 0 errors, 28 commits ahead origin.
@@ -12,18 +15,27 @@ and the deferred items in `CURRENT.md`.
 
 ---
 
-## 1. Quick rank — Top of the queue
+## 1. Quick rank — Top of the queue (post-WP-01d cancellation)
 
 | Rank | WP | ROI | Risk | Autonomy | Effort | Approach |
 |------|----|----|------|----------|--------|----------|
 | 1 | **F-8 XXE close-out** | High (clears security register) | Low | Full | 2h | Direct |
-| 2 | **Minor deferred sweep** (10 items) | Medium (latent-bug elimination) | Low | Full | 2.7h | Direct (3 batched commits) |
-| 3 | **WP-01d P1/P2/P3 pipeline classes** | High (RQ1 data unblock) | Mid | Full *if user un-defers* | 6-10h | SDD (5 tasks) |
-| 4 | **VerifierResult dual-type unification** | Medium (architecture clean + cast removal) | Mid-High | Full | 4-6h | SDD (3-4 tasks) |
-| 5 | **Tests/ pyright re-enable** | Low | Low | Full | 3-5h | Mixed (mostly bulk `# type: ignore`) |
-| 6 | **WP-CORE-28 Extension UX wave 1** | Mid | High (no spec, manual smoke) | Partial | TBD | Spec first, then SDD + human F5 |
-| 7 | **WP-CORE-32 Extension webviews** | Mid (visualizes WP-01b data) | High (no spec, webview manual smoke) | Partial | TBD | Spec first, then SDD + human F5 |
-| 8 | **paper.tex `\input{rqN.tex}` integration** | High (paper-data wired E2E) | N/A | Human-only | n/a | Human coordinator task |
+| 2 | **Minor deferred sweep** (10 items) | Medium (latent-bug elimination) | Low | Full | 2.7h | Direct (6 atomic commits) |
+| 3 | **VerifierResult dual-type unification** | Medium (architecture clean + cast removal) | Mid-High | Full | 4-6h | SDD (3-4 tasks) |
+| 4 | **Tests/ pyright re-enable** | Low | Low | Full | 3-5h | Mixed (mostly bulk `# type: ignore`) |
+| 5 | **WP-CORE-28 Extension UX wave 1** | Mid | High (no spec, manual smoke) | Partial | TBD | Spec first (brainstorm), then SDD + human F5 |
+| 6 | **WP-CORE-32 Extension webviews** | Mid (visualizes WP-01b data) | High (no spec, webview manual smoke) | Partial | TBD | Spec first (brainstorm), then SDD + human F5 |
+| 7 | **paper.tex `\input{rqN.tex}` integration** | High (paper-data wired E2E) | N/A | Human-only | n/a | Human coordinator task |
+
+**~~WP-01d P1/P2/P3 pipeline classes~~ — CANCELLED 2026-05-24 per user.**
+Different pipeline architectures (P1 naive vs P2 RAG vs P3 multi-agent
+comparison) won't be explored for this EMSE submission. The current
+`DomainArchitect` pipeline remains the sole production path. The
+`PaperRunManifest.pipeline: Optional[Literal["P1","P2","P3"]]` field
+stays on the schema (no migration cost; future contributors may
+revisit). RQ1 will report on the single shipped pipeline only — the
+paper narrative will need adjustment but that's a human-coordinator
+task, not autonomous.
 
 ---
 
@@ -31,12 +43,11 @@ and the deferred items in `CURRENT.md`.
 
 | Iter | WP | Rationale |
 |------|----|-----------|
-| 45 | F-8 XXE close-out | 2h security register cleanup. No prereqs. Defense-in-depth. Don't accumulate. |
-| 46 | Minor deferred sweep | 2.7h. Eliminates 10 carryover items in 3 batched commits. Resets quality register before bigger WPs. |
-| 47 | WP-01d (if un-deferred by user) | Highest ROI for paper: P1/P2/P3 RQ1 data depends on it. **Block on user un-defer signal.** |
-| 48 | VerifierResult unification | Removes the iter-44 cast bridge in pipeline.py. Better done after WP-01d so pipeline tests are stable. |
-| 49 | Tests/ pyright re-enable | Mostly cosmetic. Wait until VerifierResult unified (cluster 6 of test errors will resolve as a byproduct). |
-| 50+ | WP-CORE-28 → 32 | Specs must be written first. Paired with human F5 smoke sessions. **Not autonomous-safe.** |
+| 45 | F-8 XXE close-out | 2h security register cleanup. No prereqs. Defense-in-depth. |
+| 46 | Minor deferred sweep | 2.7h. Eliminates 10 carryover items in 6 atomic commits. Resets quality register before bigger refactors. |
+| 47 | VerifierResult unification | 4-6h SDD. Removes the iter-44 cast bridge in pipeline.py. **No longer blocked by WP-01d.** |
+| 48 | Tests/ pyright re-enable | 3-5h. Mostly cosmetic. Wait until VerifierResult unified (cluster 6 of test errors resolves as byproduct). |
+| 49+ | WP-CORE-28 → 32 | Specs must be brainstormed + written first (post-iter-46 deliverable). Paired with human F5 smoke sessions. **Not autonomous-safe.** |
 
 **Parallelizable**: Rank 1 (F-8) and Rank 2 (Minor sweep) touch
 non-overlapping files; could ship in same session if user wants.
@@ -138,7 +149,14 @@ short-result-list + schema_version guard) is non-trivial.
 
 ---
 
-### Rank 3 — WP-01d P1/P2/P3 pipeline classes (6-10h, BLOCKED on user)
+### Rank 3 (CANCELLED) — WP-01d P1/P2/P3 pipeline classes
+
+**STATUS: CANCELLED 2026-05-24 per user direction.** Different
+pipeline architectures will NOT be explored for this paper. The
+section below is preserved for historical context only. Skip to
+Rank 4 (VerifierResult) for the next active WP.
+
+Original scope (do NOT execute):
 
 **Subagent verdict (Explore):** PaperRunManifest already has
 `pipeline: Optional[Literal["P1", "P2", "P3"]]` (run_manifest.py:205,
@@ -184,7 +202,7 @@ If un-deferred, this becomes the highest-ROI iter 45 candidate
 
 ---
 
-### Rank 4 — VerifierResult dual-type unification (4-6h)
+### Rank 3 — VerifierResult dual-type unification (4-6h)
 
 **Subagent verdict (cavecrew-investigator):** *55 construction sites,
 13+ import statements, 2 adapter functions to delete.* Both
@@ -231,13 +249,13 @@ needed for stage-discard paths.
 **Approach:** SDD (4 tasks, sequential — schema first, then
 migrations).
 
-**Why after WP-01d:** P3 refactor touches architect.py heavily;
-better to land WP-01d first and have stable specialist tests before
-doing VerifierIssue field rename.
+**Why now (post WP-01d cancellation):** No longer blocked. After
+iter 45 (F-8) + iter 46 (Minor sweep), this is the next big refactor
+on the queue.
 
 ---
 
-### Rank 5 — Tests/ pyright re-enable (3-5h)
+### Rank 4 — Tests/ pyright re-enable (3-5h)
 
 **Subagent verdict (cavecrew-investigator):** 119 errors break
 down to 41 noise (A: 5 MagicMock + B: 12 Optional + C: 24 Literal)
@@ -280,7 +298,7 @@ already caught by pytest. Wait until VerifierResult is unified
 
 ---
 
-### Rank 6 — WP-CORE-28 Extension UX wave 1 (TBD)
+### Rank 5 — WP-CORE-28 Extension UX wave 1 (TBD)
 
 **Subagent verdict (Explore):** *No spec file exists.* Only
 referenced as "TypeScript work, manual smoke required, NOT
@@ -310,7 +328,7 @@ completed autonomously.
 
 ---
 
-### Rank 7 — WP-CORE-32 Extension webviews (TBD)
+### Rank 6 — WP-CORE-32 Extension webviews (TBD)
 
 Same as Rank 6 but for webview dashboards (PaperRunManifest viewer,
 validation results table, metrics breakdown). Builds on WP-01b
@@ -321,7 +339,7 @@ data (`core/metrics.py` + `core/run_manifest.py`). Manual smoke
 
 ---
 
-### Rank 8 — paper.tex `\input{rqN.tex}` integration
+### Rank 7 — paper.tex `\input{rqN.tex}` integration
 
 **Human task.** `LaTeX_DL_468198_240419/tables/README.md` lists
 candidate line numbers (227, 394, 456, 479) for inserting the
@@ -352,17 +370,18 @@ nearest scoped change:
 
 ## 5. Decision matrix
 
-User needs to decide:
+**RESOLVED 2026-05-24:**
 
-1. **Un-defer WP-01d?** Highest paper-data ROI. 6-10h SDD scope.
-   Recommendation: YES — RQ1 results need this.
-2. **Run F-8 close-out + Minor sweep as one session?** Both small,
-   non-overlapping, low risk. Recommendation: bundle.
-3. **Schedule WP-CORE-28/32 spec-writing sessions?** Specs first
-   (collaborative), then SDD impl. Recommendation: spec ready
-   before scheduling.
-4. **VerifierResult unification before or after WP-01d?** After,
-   to keep architect.py stable through P3 refactor.
+1. ~~Un-defer WP-01d?~~ **CANCELLED** — different pipeline
+   architectures off scope for this paper.
+2. **Run F-8 close-out + Minor sweep as one session?** Plan:
+   sequential within current session (iter 45 → iter 46), each
+   with verification + commits before next.
+3. **Schedule WP-CORE-28/32 spec-writing sessions?** Brainstorming
+   immediately AFTER iter 46 ships, via AskUserQuestion in the
+   same session.
+4. ~~VerifierResult before or after WP-01d?~~ Moot — WP-01d cancelled.
+   VerifierResult unification is now rank 3, scheduled for iter 47.
 
 ---
 

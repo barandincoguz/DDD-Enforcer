@@ -34,7 +34,11 @@ still reports **716 passed**, zero regression.
     registry, LLMResponseAdapter normalization, cost_usd field).
   - Remaining work: scripts/cost_estimate.py + multi-provider
     regression test (+ 11 tests).
-- WP-01d (P1/P2/P3 pipeline classes) — DEFERRED per user (kept on backlog).
+- WP-01d (P1/P2/P3 pipeline classes) — **CANCELLED 2026-05-24** per
+  user direction. Different pipeline architectures will NOT be
+  explored for this paper. `PaperRunManifest.pipeline` Literal field
+  stays on the schema (no migration cost) but only the current
+  `DomainArchitect` chain will produce RQ1 data.
 
 **Remaining backlog (engineering, paper-free):**
 - F-8 (MINOR-OPEN — XXE hardening; needs threat model)
