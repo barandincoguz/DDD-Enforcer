@@ -1271,8 +1271,11 @@ async function generateModelWithStreaming(
                 stageStartMs.set(currentStage, Date.now());
               }
 
-              // Compute overall percent: a "completed" status means the
-              // current stage is fully done; otherwise the stage is mid-flight.
+              // Compute overall percent. A "completed" status means the
+              // current stage is fully done (100%); any other status uses a
+              // coarse 50% mid-stage placeholder — the backend does not emit
+              // a fine-grained within-stage fraction, so this keeps the
+              // overall-percent monotonic without over-promising precision.
               const withinStage =
                 progressData.status === "completed" ? 100 : 50;
               const overallPercent = computeOverallPercent(
@@ -1474,20 +1477,6 @@ function updateStatusBarWithProgress(
   });
   statusBarItem.tooltip = "DDD Enforcer: generating domain model. Click to open the Output log.";
   statusBarItem.backgroundColor = undefined;
-}
-
-/**
- * Backward-compatible stage-only status update. Delegates to
- * updateStatusBarWithProgress with the stage's start-of-stage overall
- * percent and no ETA. Retained for call sites that only know the stage.
- */
-function updateStatusBarWithStage(stage: string, status: string) {
-  const active = status !== "completed";
-  const overallPercent = computeOverallPercent(
-    stage,
-    status === "completed" ? 100 : 0,
-  );
-  updateStatusBarWithProgress(stage, overallPercent, active);
 }
 
 /**
