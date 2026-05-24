@@ -9,6 +9,7 @@ import {
   type ApiKeyValidationResult,
   decideMigrationOffer,
   type ApiKeySource,
+  computeBackoffMs,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -339,5 +340,45 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(offerCount, 2);
     assert.ok(allDecisions.every((d) => typeof d.sourceLabel === "string"));
     assert.ok(allDecisions.every((d) => d.sourceLabel.length > 0));
+  });
+
+  // ==========================================================================
+  // BACKEND LIFECYCLE TESTS (Iter 48)
+  // ==========================================================================
+
+  test("computeBackoffMs returns 1000 for attempt 0", () => {
+    assert.strictEqual(computeBackoffMs(0), 1000);
+  });
+
+  test("computeBackoffMs returns 2000 for attempt 1", () => {
+    assert.strictEqual(computeBackoffMs(1), 2000);
+  });
+
+  test("computeBackoffMs returns 4000 for attempt 2", () => {
+    assert.strictEqual(computeBackoffMs(2), 4000);
+  });
+
+  test("computeBackoffMs returns 8000 for attempt 3", () => {
+    assert.strictEqual(computeBackoffMs(3), 8000);
+  });
+
+  test("computeBackoffMs returns 16000 for attempt 4", () => {
+    assert.strictEqual(computeBackoffMs(4), 16000);
+  });
+
+  test("computeBackoffMs clamps at default maxMs=30000 for large attempts", () => {
+    assert.strictEqual(computeBackoffMs(10), 30000);
+    assert.strictEqual(computeBackoffMs(100), 30000);
+  });
+
+  test("computeBackoffMs honors custom baseMs and maxMs", () => {
+    assert.strictEqual(computeBackoffMs(0, 500, 8000), 500);
+    assert.strictEqual(computeBackoffMs(3, 500, 8000), 4000);
+    assert.strictEqual(computeBackoffMs(10, 500, 8000), 8000);
+  });
+
+  test("computeBackoffMs floors negative attempts at baseMs", () => {
+    assert.strictEqual(computeBackoffMs(-1), 1000);
+    assert.strictEqual(computeBackoffMs(-100), 1000);
   });
 });

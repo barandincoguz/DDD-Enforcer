@@ -107,6 +107,28 @@ interface CombinedMetrics {
 }
 
 // =============================================================================
+// BACKEND LIFECYCLE (pure helpers — testable without vscode)
+// =============================================================================
+
+/**
+ * Return exponential backoff delay in milliseconds for a given attempt
+ * number. Attempt 0 returns `baseMs`; each subsequent attempt doubles
+ * the delay, capped at `maxMs`. Negative attempts are floored at `baseMs`.
+ * Pure: no I/O, no time/Date access.
+ */
+export function computeBackoffMs(
+  attempt: number,
+  baseMs: number = 1000,
+  maxMs: number = 30000,
+): number {
+  if (attempt <= 0) {
+    return baseMs;
+  }
+  const raw = baseMs * Math.pow(2, attempt);
+  return Math.min(raw, maxMs);
+}
+
+// =============================================================================
 // GLOBAL STATE
 // =============================================================================
 
