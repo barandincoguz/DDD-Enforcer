@@ -55,8 +55,70 @@ still reports **716 passed**, zero regression.
   ALL CLOSED in iter 46 (see iter-46 commit list above).
 
 **Baseline:** 729 passed, 31 deselected.
-**HEAD:** `673a7a4` (iter 49 D-fix — dead-code delete).
-**Ahead of origin/main:** 61 commits (NOT pushed).
+**HEAD:** `9f7447e` (iter 50 D-fix — out-of-workspace open guard).
+**Ahead of origin/main:** 67 commits (NOT pushed).
+
+**WP-CORE-28 (Extension UX wave 1) — ALL 4 FEATURES COMPLETE** (iters
+47-50, 2026-05-24). Next: WP-CORE-32 (extension webviews —
+PaperRunManifest viewer).
+
+---
+
+## Iteration 50 — WP-CORE-28 Feature 4 (Validation hover) COMPLETE + WP-CORE-28 WAVE DONE (2026-05-24)
+
+WP-CORE-28 Iter 50 shipped via Subagent-Driven Development (SDD).
+**This is the final feature of the WP-CORE-28 wave — all 4 UX features
+(iters 47-50) are now complete.**
+Plan at `.planning/plans/2026-05-24-wp-core-28-iter-50-validation-hover.md`.
+Spec at `todos/WP-CORE-28-extension-ux-wave1.md`.
+
+**5 commits (4 feat + 1 fix), 19 new test cases, zero baseline regression.**
+
+| Commit | Iter step | Content | Δ tests |
+|--------|-----------|---------|---------|
+| `868abb5` | A | generic `LruCache<K,V>` (cap-bounded, recency-promoting) + 7 tests | +7 |
+| `a8d4aef` | B | `truncateExcerpt` + `boldMatchingSpan` + 8 tests | +8 |
+| `bd73cbf` | C | `formatHoverMarkdown` (header + message + source block + trusted command link) + 4 tests | +4 |
+| `8158246` | D | `validationViolationCache` (LruCache cap 20, uri→line→Violation) + populate in validate + invalidate in clearSourcesForDocument + `DDDViolationHoverProvider` + register | 0 |
+| `9f7447e` | D follow-up | Security: gate out-of-workspace source opens (`isPathInsideWorkspace` + modal confirm) at the shared `openSourceCommand` choke point + document hover line-key last-wins | 0 |
+
+**SDD telemetry (this iter):**
+
+| Task | Implementer | Spec review | Quality review | Fix loops | Dispatches |
+|------|-------------|-------------|----------------|-----------|-----------|
+| 1 | 1 | 1 | 1 | 0 | 3 |
+| 2 | 1 | 1 | 1 | 0 | 3 |
+| 3 | 1 | 1 | 1 | 0 | 3 |
+| 4 | 1 | 1 | 1 | 1 (security fix; re-review) | 5 |
+| **Total** | **4** | **4** | **4** | **1** | **14 subagent dispatches** |
+
+Quality review on Task 4 surfaced a defense-in-depth gap:
+`openSourceCommand` opened a backend-supplied `file_path` via
+`vscode.Uri.file` with no workspace validation. The surface is
+pre-existing (the Code Action already invoked the same handler), but
+the hover's trusted `MarkdownString` command link made it more
+prominent. Fix `9f7447e` hardened the shared choke point —
+in-workspace paths open silently (the common case: SRS under the
+workspace `inputs/`), out-of-workspace paths require a modal
+confirmation. Severity was low (read-only local-file open, no
+execution), but the fix is proportionate and non-breaking.
+
+**Locked invariants added this iter:**
+
+| ID | Invariant |
+|----|-----------|
+| Iter 50 A-C | `extension/src/extension.ts` exports `LruCache<K,V>`, `truncateExcerpt`, `boldMatchingSpan`, `formatHoverMarkdown` in a `// VALIDATION HOVER (pure helpers — testable without vscode)` section. `formatHoverMarkdown`'s "Open SRS source" command link uses `encodeURIComponent(JSON.stringify([file_path, section]))` — the SAME (file_path, section) arg contract as the Code Action (`DDDSourceCodeActionProvider`). If you change one, change both. |
+| Iter 50 D | `validationViolationCache: LruCache<string, Map<number, Violation>>(20)` is the hover's data source. Populated in the validate function as diagnostics are created (keyed by `diagnostic.range.start.line`, last-violation-wins per line); invalidated in `clearSourcesForDocument` (which runs at the top of every validate, i.e. on every semantic save). The HoverProvider reads ONLY from this cache — no network on hover. |
+| Iter 50 D | `DDDViolationHoverProvider` returns a Hover only when the cache has a violation at the hovered line; otherwise undefined. The Markdown is wrapped in a TRUSTED `MarkdownString` (`isTrusted = true`) so the command link fires. |
+| Iter 50 D | `openSourceCommand` MUST gate out-of-workspace paths via `isPathInsideWorkspace` + a modal confirm before opening. This protects BOTH the Code Action and the hover command link from opening an arbitrary local file supplied by a compromised backend or a hallucinated RAG path. Do not bypass the guard. |
+
+**F5 smoke status:** Programmatic gates green (compile, lint, pyright,
+pytest 729). Live hover smoke (Test A-F in the iter-50 plan) DEFERRED
+per user direction 2026-05-24 ("testleri ve debuglari sonra
+yapacagiz") — needs a working backend (`pythonPath` → uvicorn-capable
+Python) + a validated Python file with violations.
+
+**Baseline at iter close:** 729 passed, 31 deselected, pyright 0/0/0.
 
 ---
 
