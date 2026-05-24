@@ -492,3 +492,61 @@ class TestAmbiguousJudgeFiles:
 
         with pytest.raises(ValueError, match=r"ambiguous"):
             discover_run_pairs(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# T-01b-C-16: AggregatedConfiguration.schema_version is gated by
+# SUPPORTED_SCHEMA_VERSIONS (iter 46 commit B.4 — was previously a default
+# string with no validation, so a stale or future-version artifact could
+# silently round-trip through write → load).
+# ---------------------------------------------------------------------------
+
+
+class TestSchemaVersionGuard:
+    def test_default_schema_version_passes(self):
+        from core.aggregate import AggregatedConfiguration, SCHEMA_VERSION
+
+        config = AggregatedConfiguration(
+            pipeline="P1",
+            model_id="gemini-3.1-flash-lite",
+            srs_label="SRS_D1",
+            n_runs=1,
+            run_ids=["r1"],
+            scorelines=[],
+        )
+        assert config.schema_version == SCHEMA_VERSION
+
+    def test_unsupported_schema_version_raises(self):
+        from pydantic import ValidationError
+        from core.aggregate import AggregatedConfiguration
+
+        with pytest.raises(ValidationError, match="SUPPORTED_SCHEMA_VERSIONS"):
+            AggregatedConfiguration(
+                pipeline="P1",
+                model_id="gemini-3.1-flash-lite",
+                srs_label="SRS_D1",
+                n_runs=1,
+                run_ids=["r1"],
+                scorelines=[],
+                schema_version="9.9",
+            )
+
+    def test_load_aggregated_configs_skips_unsupported_version(self, tmp_path):
+        """A future-version artifact on disk is skipped, not crashed on."""
+        from core.latex_tables import load_aggregated_configs
+
+        agg_dir = tmp_path / "_aggregated"
+        agg_dir.mkdir(parents=True)
+        bad = {
+            "pipeline": "P1",
+            "model_id": "gemini-3.1-flash-lite",
+            "srs_label": "SRS_D1",
+            "n_runs": 1,
+            "run_ids": ["r1"],
+            "scorelines": [],
+            "schema_version": "9.9",
+        }
+        (agg_dir / "bad.json").write_text(json.dumps(bad), encoding="utf-8")
+
+        configs = load_aggregated_configs(tmp_path)
+        assert configs == []  # bad file skipped, not crashed

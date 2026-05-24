@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from core.metrics import PrecisionRecallF1, compute_metrics, load_judge_verdict
 from core.run_manifest import PaperRunManifest
@@ -39,6 +39,10 @@ from core.run_manifest import PaperRunManifest
 DEFAULT_BOOTSTRAP_SEED = 42
 DEFAULT_BOOTSTRAP_RESAMPLES = 1000
 SCHEMA_VERSION = "1.0"
+SUPPORTED_SCHEMA_VERSIONS: frozenset = frozenset({"1.0"})
+"""Versions accepted by the writer + consumer (load_aggregated_configs).
+Add a new entry here when bumping the schema; remove an old entry only
+after every artifact in production has been migrated."""
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +92,17 @@ class AggregatedConfiguration(BaseModel):
     bootstrap_seed: int = DEFAULT_BOOTSTRAP_SEED
     bootstrap_resamples: int = DEFAULT_BOOTSTRAP_RESAMPLES
     schema_version: str = SCHEMA_VERSION
+
+    @field_validator("schema_version")
+    @classmethod
+    def _enforce_supported_schema_version(cls, value: str) -> str:
+        if value not in SUPPORTED_SCHEMA_VERSIONS:
+            raise ValueError(
+                f"schema_version {value!r} not in "
+                f"SUPPORTED_SCHEMA_VERSIONS={sorted(SUPPORTED_SCHEMA_VERSIONS)}; "
+                "refuse to read or write incompatible aggregate artifacts."
+            )
+        return value
 
 
 # ---------------------------------------------------------------------------
