@@ -451,6 +451,56 @@ async function restartBackend(context: vscode.ExtensionContext) {
 }
 
 // =============================================================================
+// API KEY VALIDATION (pure functions — testable without vscode)
+// =============================================================================
+
+/** Stable error kinds for the Gemini API-key pre-validation probe. */
+export type ApiKeyErrorKind =
+  | "invalid_key"
+  | "rate_limited"
+  | "network_error"
+  | "unknown";
+
+/**
+ * Classify an axios/network error from the API-key probe into a stable
+ * kind so the UI layer can render a clear message. Pure: no I/O, no
+ * vscode calls.
+ *
+ * Treated as `invalid_key`: HTTP 400/401/403 (Gemini rejects malformed
+ * or unauthorized keys with these statuses).
+ *
+ * Treated as `rate_limited`: HTTP 429.
+ *
+ * Treated as `network_error`: axios connection codes ENOTFOUND,
+ * ECONNABORTED, ECONNREFUSED, ETIMEDOUT.
+ *
+ * Everything else (including undefined input) maps to `unknown`.
+ */
+export function classifyApiKeyError(err: unknown): ApiKeyErrorKind {
+  if (err === undefined || err === null) {
+    return "unknown";
+  }
+  const e = err as { response?: { status?: number }; code?: string };
+  const status = e.response?.status;
+  if (status === 400 || status === 401 || status === 403) {
+    return "invalid_key";
+  }
+  if (status === 429) {
+    return "rate_limited";
+  }
+  const networkCodes = new Set([
+    "ENOTFOUND",
+    "ECONNABORTED",
+    "ECONNREFUSED",
+    "ETIMEDOUT",
+  ]);
+  if (e.code && networkCodes.has(e.code)) {
+    return "network_error";
+  }
+  return "unknown";
+}
+
+// =============================================================================
 // API KEY MANAGEMENT
 // =============================================================================
 

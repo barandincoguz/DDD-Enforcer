@@ -2,7 +2,10 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { classifySaveForValidationFromContent } from "../extension";
+import {
+  classifySaveForValidationFromContent,
+  classifyApiKeyError,
+} from "../extension";
 
 suite("Extension Test Suite", () => {
   vscode.window.showInformationMessage("Start all tests.");
@@ -200,5 +203,49 @@ suite("Extension Test Suite", () => {
       "class Order:\n    def confirm(self):\n        return False\n";
     const decision = classifySaveForValidationFromContent(before, after);
     assert.strictEqual(decision.shouldValidate, true);
+  });
+
+  // ==========================================================================
+  // API KEY VALIDATION TESTS (Iter 47)
+  // ==========================================================================
+
+  test("classifyApiKeyError maps HTTP 400 to invalid_key", () => {
+    const result = classifyApiKeyError({ response: { status: 400 } });
+    assert.strictEqual(result, "invalid_key");
+  });
+
+  test("classifyApiKeyError maps HTTP 401 to invalid_key", () => {
+    const result = classifyApiKeyError({ response: { status: 401 } });
+    assert.strictEqual(result, "invalid_key");
+  });
+
+  test("classifyApiKeyError maps HTTP 403 to invalid_key", () => {
+    const result = classifyApiKeyError({ response: { status: 403 } });
+    assert.strictEqual(result, "invalid_key");
+  });
+
+  test("classifyApiKeyError maps HTTP 429 to rate_limited", () => {
+    const result = classifyApiKeyError({ response: { status: 429 } });
+    assert.strictEqual(result, "rate_limited");
+  });
+
+  test("classifyApiKeyError maps ENOTFOUND to network_error", () => {
+    const result = classifyApiKeyError({ code: "ENOTFOUND" });
+    assert.strictEqual(result, "network_error");
+  });
+
+  test("classifyApiKeyError maps ECONNABORTED to network_error", () => {
+    const result = classifyApiKeyError({ code: "ECONNABORTED" });
+    assert.strictEqual(result, "network_error");
+  });
+
+  test("classifyApiKeyError maps unrecognized error to unknown", () => {
+    const result = classifyApiKeyError({ response: { status: 500 } });
+    assert.strictEqual(result, "unknown");
+  });
+
+  test("classifyApiKeyError maps undefined error to unknown", () => {
+    const result = classifyApiKeyError(undefined);
+    assert.strictEqual(result, "unknown");
   });
 });
