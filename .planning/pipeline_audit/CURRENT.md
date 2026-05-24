@@ -55,8 +55,70 @@ still reports **716 passed**, zero regression.
   ALL CLOSED in iter 46 (see iter-46 commit list above).
 
 **Baseline:** 729 passed, 31 deselected.
-**HEAD:** `6388075` (iter 47 D-fix — migration atomicity).
-**Ahead of origin/main:** 46 commits (NOT pushed).
+**HEAD:** `ee9d57b` (iter 48 D-fix-2 — race close).
+**Ahead of origin/main:** 53 commits (NOT pushed).
+
+---
+
+## Iteration 48 — WP-CORE-28 Feature 2 (Backend lifecycle resilience) COMPLETE (2026-05-24)
+
+WP-CORE-28 Iter 48 shipped via Subagent-Driven Development (SDD).
+Plan at `.planning/plans/2026-05-24-wp-core-28-iter-48-backend-lifecycle.md`.
+Spec at `todos/WP-CORE-28-extension-ux-wave1.md`.
+
+**6 commits (4 feat + 2 fix), 22 new test cases, zero baseline regression.**
+
+| Commit | Iter step | Content | Δ tests |
+|--------|-----------|---------|---------|
+| `16c7bde` | A | `computeBackoffMs(attempt, baseMs?, maxMs?)` exponential backoff (1s,2s,4s,8s,16s; clamp 30s) + 8 tests | +8 |
+| `a6346d5` | B | `shouldAttemptRestart(attempt, maxAttempts?)` cap-5 boolean + 4 tests | +4 |
+| `47876fe` | C | `formatExitReason(code, signal)` + `classifyExitForRestart(code, signal, intentional)` + `ExitDisposition` type + 10 tests | +10 |
+| `b5fa9e2` | D | `intentionalStopTarget` + `backendRestartAttempts` globals + `child.on('exit')` rewrite + `stopBackend` flag + `restartBackend` reason prompt + `handleUnexpectedExit` 3-button warning + `attemptAutoRestart` loop + `findAvailablePort` log lines | 0 |
+| `385de50` | D follow-up 1 | Quality-review fix 1: replace `backendIntentionalStop: boolean` with `intentionalStopTarget: ChildProcess \| null` per-process pattern + `.catch()` on fire-and-forget `handleUnexpectedExit` | 0 |
+| `ee9d57b` | D follow-up 2 | Quality-review fix 2: drop defensive `intentionalStopTarget = null;` reset in `startBackend` which reintroduced the original race the per-process refactor was meant to close | 0 |
+
+**SDD telemetry (this iter):**
+
+| Task | Implementer | Spec review | Quality review | Fix loops | Dispatches |
+|------|-------------|-------------|----------------|-----------|-----------|
+| 1 | 1 | 1 | 1 | 0 | 3 |
+| 2 | 1 | 1 | 1 | 0 | 3 |
+| 3 | 1 | 1 | 1 | 0 | 3 |
+| 4 | 1 | 1 | 1 | 2 (per-process refactor + reset removal; each followed by re-review) | 7 |
+| **Total** | **4** | **4** | **4** | **2** | **16 subagent dispatches** |
+
+Two quality-review iterations on Task 4 were warranted. The first
+review flagged a real race (boolean flag global vs slow-exiting
+ChildProcess); the implementer's first fix (`385de50`) correctly
+introduced a per-process `intentionalStopTarget: ChildProcess | null`
+reference + `.catch()` on the fire-and-forget call, but ALSO kept
+a defensive `= null` reset in `startBackend` that defeated the
+per-process correctness. The second review traced the scenario and
+showed the race was still open. Fix 2 (`ee9d57b`) deleted the
+reset and re-established correctness. The state machine is now:
+module init `null` → `stopBackend` sets target = the live
+ChildProcess being killed → that process's matching exit handler
+clears target = null on `target === thisProcess` consumption →
+next `stopBackend` overwrites if no match consumed.
+
+**Locked invariants added this iter:**
+
+| ID | Invariant |
+|----|-----------|
+| Iter 48 A-C | `extension/src/extension.ts` exports four pure backend-lifecycle helpers (`computeBackoffMs`, `shouldAttemptRestart`, `formatExitReason`, `classifyExitForRestart`) plus the `ExitDisposition` type, in a `// BACKEND LIFECYCLE (pure helpers — testable without vscode)` section placed between TYPES and GLOBAL STATE. |
+| Iter 48 D | Module-level `intentionalStopTarget: ChildProcess \| null` is the per-process intent marker. **DO NOT add any code path that nulls this variable except** (a) the matching `child.on('exit')` handler when `target === thisProcess`, or (b) a subsequent `stopBackend` that overwrites with a fresh ChildProcess. Adding a defensive reset (e.g., in `startBackend`) reintroduces the original race — see commit `ee9d57b` body for the trace. |
+| Iter 48 D | The `child.on('exit')` handler MUST capture `const thisProcess = backendProcess;` immediately before `backendProcess.on('exit', ...)` so the per-process comparison at exit time uses the specific ChildProcess that handler was registered for, not whatever `backendProcess` references at the time the event fires. |
+| Iter 48 D | `handleUnexpectedExit` is called as a fire-and-forget Promise from the synchronous `child.on('exit')` callback. It MUST be invoked with `.catch((err) => log(...))` so a VS Code API failure becomes observable in the Output channel rather than bubbling up as an unhandledRejection. |
+| Iter 48 D | `attemptAutoRestart` is bounded by `shouldAttemptRestart` (default 5 attempts). On exhaustion it surfaces a persistent error toast and sets status to `"error"`. The loop does NOT recurse, does NOT schedule additional attempts, and does NOT bypass the cap. |
+
+**F5 smoke status:** Programmatic gates green (compile, lint, pyright,
+pytest 729). F5 GUI smoke pending user decision; this iter's surface
+touches the load-bearing backend lifecycle (kill -9, crash dialog,
+auto-restart loop, port-collision logging) so a real F5 session is
+recommended before Iter 49 starts. The smoke checklist will be posted
+to the user when this CURRENT.md update is committed.
+
+**Baseline at iter close:** 729 passed, 31 deselected, pyright 0/0/0.
 
 ---
 
