@@ -520,6 +520,17 @@ const lastValidatedContentFingerprint = new Map<string, string>();
 // Store sources for code actions (keyed by document URI + line number)
 const violationSources = new Map<string, ViolationSource[]>();
 
+/**
+ * Per-file cache of the most recent validation's violations, keyed by
+ * document URI string, value = Map of diagnostic line number → Violation.
+ * Drives the HoverProvider without a re-fetch. LRU-bounded to 20 files;
+ * invalidated by clearSourcesForDocument (which runs on every validate).
+ */
+const validationViolationCache = new LruCache<
+  string,
+  Map<number, Violation>
+>(20);
+
 // =============================================================================
 // EXTENSION ACTIVATION
 // =============================================================================
@@ -595,6 +606,14 @@ export function activate(context: vscode.ExtensionContext) {
       "python",
       new DDDSourceCodeActionProvider(),
       { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] },
+    ),
+  );
+
+  // Register hover provider for violation peeks
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider(
+      "python",
+      new DDDViolationHoverProvider(),
     ),
   );
 
@@ -1719,13 +1738,16 @@ async function validateCode(
 
     if (data.is_violation && data.violations) {
       const diagnostics: vscode.Diagnostic[] = [];
+      const lineToViolation = new Map<number, Violation>();
 
       data.violations.forEach((violation) => {
         const diagnostic = createDiagnostic(document, violation);
         diagnostics.push(diagnostic);
+        lineToViolation.set(diagnostic.range.start.line, violation);
       });
 
       collection.set(document.uri, diagnostics);
+      validationViolationCache.set(document.uri.toString(), lineToViolation);
       log(`Found ${diagnostics.length} violation(s)`);
       updateStatusBar("violations", diagnostics.length);
     } else {
@@ -2135,6 +2157,37 @@ class DDDSourceCodeActionProvider implements vscode.CodeActionProvider {
 }
 
 /**
+ * Shows a Markdown peek for a DDD violation when the user hovers over a
+ * line that produced a diagnostic. Reads the cached violation for the
+ * hovered line from validationViolationCache (no re-fetch) and renders
+ * formatHoverMarkdown in a trusted MarkdownString so the embedded
+ * "Open SRS source" command link works.
+ */
+class DDDViolationHoverProvider implements vscode.HoverProvider {
+  provideHover(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+  ): vscode.Hover | undefined {
+    const lineToViolation = validationViolationCache.get(
+      document.uri.toString(),
+    );
+    if (!lineToViolation) {
+      return undefined;
+    }
+    const violation = lineToViolation.get(position.line);
+    if (!violation) {
+      return undefined;
+    }
+    const keyword = extractKeyword(violation.message);
+    const markdown = new vscode.MarkdownString(
+      formatHoverMarkdown(violation, keyword),
+    );
+    markdown.isTrusted = true;
+    return new vscode.Hover(markdown);
+  }
+}
+
+/**
  * Opens a source document and navigates to the relevant section.
  */
 async function openSourceCommand(filePath: string, section: string) {
@@ -2249,6 +2302,7 @@ function clearSourcesForDocument(uriString: string) {
       violationSources.delete(key);
     }
   }
+  validationViolationCache.delete(uriString);
 }
 
 /**
