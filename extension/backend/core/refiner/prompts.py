@@ -31,8 +31,10 @@ Respond with valid JSON matching the original stage's schema.
 def render_refinement_prompt(
     *, stage_name: str, previous_output_json: str, issues: List[VerifierIssue]
 ) -> str:
+    # Uppercase severity matches the contract Literal ("ERROR" / "WARN")
+    # surfaced to the LLM elsewhere; keeps the prompt consistent.
     issue_list = "\n".join(
-        f"- [{i.severity.value}] {i.location} — {i.message}"
+        f"- [{i.severity.value.upper()}] {i.location} — {i.message}"
         + (f" (suggestion: {i.suggestion})" if i.suggestion else "")
         for i in issues
     )

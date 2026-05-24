@@ -824,11 +824,20 @@ Do not invent data not present in the sentences."""
         def _to_legacy_issue(issue: Any) -> LegacyVerifierIssue:
             sev_raw = getattr(issue, "severity", "error")
             if isinstance(sev_raw, str):
-                sev = (
-                    IssueSeverity.ERROR
-                    if sev_raw.upper() == "ERROR"
-                    else IssueSeverity.WARN
-                )
+                sev_upper = sev_raw.upper()
+                if sev_upper == "ERROR":
+                    sev = IssueSeverity.ERROR
+                elif sev_upper == "WARN":
+                    sev = IssueSeverity.WARN
+                else:
+                    # Unknown string severity → default to WARN but log loud
+                    # so future contract drift surfaces in run logs instead
+                    # of silently coercing every variant.
+                    print(
+                        f"  [WARN] _to_legacy_issue: unknown severity "
+                        f"{sev_raw!r}; defaulting to WARN"
+                    )
+                    sev = IssueSeverity.WARN
             else:
                 sev = sev_raw  # already an IssueSeverity enum
             location = (
@@ -961,6 +970,18 @@ Do not invent data not present in the sentences."""
                     f"'{ctx_name}' after 5 retries; using prev_analysis as fallback."
                 )
                 results.append(prev_analysis)
+
+        # Invariant guard: docstring promises "same length as arch.contexts".
+        # Skipped-unaffected and fresh-prompt-fallback paths may break it;
+        # surface loud rather than silently shipping a short list to the
+        # synthesizer downstream.
+        if len(results) != len(arch.contexts):
+            print(
+                f"  [WARN] specialist_with_feedback: result length "
+                f"({len(results)}) differs from arch.contexts "
+                f"({len(arch.contexts)}); downstream synthesizer may see "
+                f"fewer analyses than expected."
+            )
 
         return results
 
