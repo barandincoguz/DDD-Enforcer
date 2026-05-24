@@ -405,19 +405,9 @@ def write_aggregated_configuration_atomic(
     Uses the ``tmp + fsync + os.replace`` pattern: a partial write leaves
     only the ``.tmp`` file on disk — the target is never corrupt.
     """
+    from core.io_atomic import write_text_atomic
+
     key = compose_aggregate_key(config)
-    agg_dir = runs_root / "_aggregated"
-    agg_dir.mkdir(parents=True, exist_ok=True)
-
-    target = agg_dir / f"{key}.json"
-    tmp = target.with_suffix(target.suffix + ".tmp")
-
+    target = runs_root / "_aggregated" / f"{key}.json"
     payload = config.model_dump_json(indent=2)
-
-    with open(tmp, "w", encoding="utf-8") as fh:
-        fh.write(payload)
-        fh.flush()
-        os.fsync(fh.fileno())
-
-    os.replace(tmp, target)
-    return target
+    return write_text_atomic(target, payload)

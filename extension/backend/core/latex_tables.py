@@ -468,16 +468,7 @@ def load_aggregated_configs(runs_root: Path) -> List[AggregatedConfiguration]:
 
 
 def write_table_tex_atomic(content: str, output_path: Path) -> None:
-    """Atomic write: tmp + fsync + os.replace (mirrors Tasks A + C).
+    """Atomic write: delegates to ``core.io_atomic.write_text_atomic``."""
+    from core.io_atomic import write_text_atomic
 
-    Creates parent directories as needed.
-    """
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = output_path.with_suffix(output_path.suffix + ".tmp")
-
-    with open(tmp, "w", encoding="utf-8") as fh:
-        fh.write(content)
-        fh.flush()
-        os.fsync(fh.fileno())
-
-    os.replace(tmp, output_path)
+    write_text_atomic(output_path, content)

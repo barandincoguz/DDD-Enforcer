@@ -324,16 +324,8 @@ def write_paper_run_manifest(
     Returns:
         The :class:`Path` of the written ``manifest.json`` file.
     """
+    from core.io_atomic import write_text_atomic
+
     target = runs_root / manifest.run_id / "manifest.json"
-    target.parent.mkdir(parents=True, exist_ok=True)
-
-    tmp = target.with_suffix(target.suffix + ".tmp")
     payload = manifest.model_dump_json(indent=2, exclude_none=False)
-
-    with open(tmp, "w", encoding="utf-8") as fh:
-        fh.write(payload)
-        fh.flush()
-        os.fsync(fh.fileno())
-
-    os.replace(tmp, target)
-    return target
+    return write_text_atomic(target, payload)
