@@ -20,6 +20,8 @@ import {
   STAGE_WEIGHTS,
   formatEta,
   computeEtaMs,
+  formatStageStatusBar,
+  type StageStatusBarParts,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -599,5 +601,87 @@ suite("Extension Test Suite", () => {
 
   test("computeEtaMs clamps fraction above 100 to 0 remaining", () => {
     assert.strictEqual(computeEtaMs(60000, 150), 0);
+  });
+
+  test("formatStageStatusBar renders stage + percent with spinner when active", () => {
+    const parts: StageStatusBarParts = {
+      stage: "Specialist",
+      overallPercent: 40,
+      active: true,
+    };
+    assert.strictEqual(
+      formatStageStatusBar(parts),
+      "$(sync~spin) DDD: Specialist (40%)",
+    );
+  });
+
+  test("formatStageStatusBar includes N/M sub-progress when provided", () => {
+    const parts: StageStatusBarParts = {
+      stage: "Specialist",
+      overallPercent: 40,
+      active: true,
+      sub: { current: 2, total: 5 },
+    };
+    assert.strictEqual(
+      formatStageStatusBar(parts),
+      "$(sync~spin) DDD: Specialist 2/5 (40%)",
+    );
+  });
+
+  test("formatStageStatusBar appends ETA when provided", () => {
+    const parts: StageStatusBarParts = {
+      stage: "Specialist",
+      overallPercent: 40,
+      active: true,
+      sub: { current: 2, total: 5 },
+      etaMs: 150000,
+    };
+    assert.strictEqual(
+      formatStageStatusBar(parts),
+      "$(sync~spin) DDD: Specialist 2/5 (40%) ETA 2m30s",
+    );
+  });
+
+  test("formatStageStatusBar uses check icon when not active", () => {
+    const parts: StageStatusBarParts = {
+      stage: "Synthesizer",
+      overallPercent: 100,
+      active: false,
+    };
+    assert.strictEqual(
+      formatStageStatusBar(parts),
+      "$(check) DDD: Synthesizer (100%)",
+    );
+  });
+
+  test("formatStageStatusBar omits ETA when etaMs is null or undefined", () => {
+    assert.strictEqual(
+      formatStageStatusBar({
+        stage: "Scout",
+        overallPercent: 5,
+        active: true,
+        etaMs: null,
+      }),
+      "$(sync~spin) DDD: Scout (5%)",
+    );
+    assert.strictEqual(
+      formatStageStatusBar({
+        stage: "Scout",
+        overallPercent: 5,
+        active: true,
+      }),
+      "$(sync~spin) DDD: Scout (5%)",
+    );
+  });
+
+  test("formatStageStatusBar rounds the percent to a whole number", () => {
+    assert.strictEqual(
+      formatStageStatusBar({
+        stage: "Specialist",
+        overallPercent: 37.5,
+        active: true,
+      }),
+      "$(sync~spin) DDD: Specialist (38%)",
+    );
   });
 });

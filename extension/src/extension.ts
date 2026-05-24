@@ -320,6 +320,40 @@ export function computeEtaMs(
   return Math.round(totalMs - elapsedMs);
 }
 
+/** Inputs for the status-bar text formatter. */
+export interface StageStatusBarParts {
+  /** Current pipeline stage name (e.g. "Specialist"). */
+  stage: string;
+  /** Overall completion percentage 0-100 (rounded in the output). */
+  overallPercent: number;
+  /** Whether the pipeline is still running (spinner) or done (check). */
+  active: boolean;
+  /** Optional within-stage N/M counter parsed from the detail text. */
+  sub?: { current: number; total: number };
+  /** Optional remaining-time estimate in ms; null/undefined omits the ETA. */
+  etaMs?: number | null;
+}
+
+/**
+ * Build the status-bar text for a pipeline run, e.g.
+ * `$(sync~spin) DDD: Specialist 2/5 (40%) ETA 2m30s`.
+ * Spinner icon while active, check icon when done. The N/M segment and
+ * the ETA segment are included only when their inputs are present. The
+ * percent is rounded to a whole number. Pure.
+ */
+export function formatStageStatusBar(parts: StageStatusBarParts): string {
+  const icon = parts.active ? "$(sync~spin)" : "$(check)";
+  const subSegment = parts.sub
+    ? ` ${parts.sub.current}/${parts.sub.total}`
+    : "";
+  const percent = Math.round(parts.overallPercent);
+  const etaSegment =
+    parts.etaMs !== null && parts.etaMs !== undefined
+      ? ` ETA ${formatEta(parts.etaMs)}`
+      : "";
+  return `${icon} DDD: ${parts.stage}${subSegment} (${percent}%)${etaSegment}`;
+}
+
 // =============================================================================
 // GLOBAL STATE
 // =============================================================================
