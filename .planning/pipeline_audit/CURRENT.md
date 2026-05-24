@@ -54,9 +54,9 @@ still reports **716 passed**, zero regression.
 - ~~**Minor follow-ups deferred from WP-01b/01c code review**~~ —
   ALL CLOSED in iter 46 (see iter-46 commit list above).
 
-**Baseline:** 716 passed, 31 deselected.
-**HEAD:** 99285e0.
-**Ahead of origin/main:** 27 commits (NOT pushed).
+**Baseline:** 729 passed, 31 deselected.
+**HEAD:** `8e44dfa` (post-iter-46 planning doc update).
+**Ahead of origin/main:** 35 commits (NOT pushed).
 
 ---
 
