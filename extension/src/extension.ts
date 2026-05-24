@@ -139,6 +139,63 @@ export function shouldAttemptRestart(
   return attempt < maxAttempts;
 }
 
+/** Outcome bucket for a backend exit event. */
+export type ExitDisposition = "intentional" | "crash" | "cleanExit";
+
+/**
+ * Render a human-readable description of a Node child-process exit
+ * event. Signal takes priority because a signal-kill carries more
+ * diagnostic information than the resulting exit code.
+ *
+ * Examples:
+ * - `(0, null)`        → "exited cleanly (code 0)"
+ * - `(1, null)`        → "crashed (exit code 1)"
+ * - `(null, "SIGKILL")` → "killed by signal SIGKILL"
+ * - `(null, null)`     → "exited (unknown reason)"
+ *
+ * Pure: no I/O.
+ */
+export function formatExitReason(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+): string {
+  if (signal) {
+    return `killed by signal ${signal}`;
+  }
+  if (code === null) {
+    return "exited (unknown reason)";
+  }
+  if (code === 0) {
+    return "exited cleanly (code 0)";
+  }
+  return `crashed (exit code ${code})`;
+}
+
+/**
+ * Classify a backend exit event so the lifecycle controller can decide
+ * whether to surface the crash dialog. If the controller flagged the
+ * exit as intentional (because `stopBackend` or `restartBackend` was
+ * just invoked), always return "intentional". Otherwise a non-zero
+ * code or any signal counts as a crash; code=0 + signal=null is a
+ * clean exit. Pure.
+ */
+export function classifyExitForRestart(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  intentional: boolean,
+): ExitDisposition {
+  if (intentional) {
+    return "intentional";
+  }
+  if (signal !== null) {
+    return "crash";
+  }
+  if (code !== null && code !== 0) {
+    return "crash";
+  }
+  return "cleanExit";
+}
+
 // =============================================================================
 // GLOBAL STATE
 // =============================================================================

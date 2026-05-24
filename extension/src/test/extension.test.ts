@@ -11,6 +11,9 @@ import {
   type ApiKeySource,
   computeBackoffMs,
   shouldAttemptRestart,
+  formatExitReason,
+  classifyExitForRestart,
+  type ExitDisposition,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -405,5 +408,75 @@ suite("Extension Test Suite", () => {
   test("shouldAttemptRestart honors custom maxAttempts", () => {
     assert.strictEqual(shouldAttemptRestart(2, 3), true);
     assert.strictEqual(shouldAttemptRestart(3, 3), false);
+  });
+
+  test("formatExitReason describes a clean exit (code=0, signal=null)", () => {
+    assert.strictEqual(formatExitReason(0, null), "exited cleanly (code 0)");
+  });
+
+  test("formatExitReason describes a non-zero exit", () => {
+    assert.strictEqual(
+      formatExitReason(1, null),
+      "crashed (exit code 1)",
+    );
+    assert.strictEqual(
+      formatExitReason(137, null),
+      "crashed (exit code 137)",
+    );
+  });
+
+  test("formatExitReason describes a signal kill", () => {
+    assert.strictEqual(
+      formatExitReason(null, "SIGKILL"),
+      "killed by signal SIGKILL",
+    );
+    assert.strictEqual(
+      formatExitReason(null, "SIGTERM"),
+      "killed by signal SIGTERM",
+    );
+  });
+
+  test("formatExitReason prefers signal when both are present", () => {
+    assert.strictEqual(
+      formatExitReason(1, "SIGKILL"),
+      "killed by signal SIGKILL",
+    );
+  });
+
+  test("formatExitReason handles both-null fallback", () => {
+    assert.strictEqual(formatExitReason(null, null), "exited (unknown reason)");
+  });
+
+  test("classifyExitForRestart returns intentional when stopBackend was called", () => {
+    const result: ExitDisposition = classifyExitForRestart(1, null, true);
+    assert.strictEqual(result, "intentional");
+  });
+
+  test("classifyExitForRestart returns intentional regardless of code when intentional=true", () => {
+    assert.strictEqual(classifyExitForRestart(0, null, true), "intentional");
+    assert.strictEqual(
+      classifyExitForRestart(null, "SIGKILL", true),
+      "intentional",
+    );
+  });
+
+  test("classifyExitForRestart returns crash on non-zero exit code", () => {
+    assert.strictEqual(classifyExitForRestart(1, null, false), "crash");
+    assert.strictEqual(classifyExitForRestart(137, null, false), "crash");
+  });
+
+  test("classifyExitForRestart returns crash on any signal", () => {
+    assert.strictEqual(
+      classifyExitForRestart(null, "SIGKILL", false),
+      "crash",
+    );
+    assert.strictEqual(
+      classifyExitForRestart(null, "SIGTERM", false),
+      "crash",
+    );
+  });
+
+  test("classifyExitForRestart returns cleanExit on code=0 signal=null intentional=false", () => {
+    assert.strictEqual(classifyExitForRestart(0, null, false), "cleanExit");
   });
 });
