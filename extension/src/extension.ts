@@ -200,6 +200,9 @@ export function classifyExitForRestart(
 // PIPELINE PROGRESS (pure helpers — testable without vscode)
 // =============================================================================
 
+/** globalState key under which the last run's per-stage durations (ms) are persisted. */
+export const LAST_RUN_DURATIONS_KEY = "ddd-enforcer.lastRunStageDurations";
+
 /**
  * Canonical pipeline stage order (post-P3, 6 stages). Drives the
  * overall-percent calculation. Stages not in this list contribute no
@@ -434,6 +437,12 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("ddd-enforcer.restartBackend", () =>
       restartBackend(context),
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ddd-enforcer.showOutput", () =>
+      outputChannel.show(),
     ),
   );
 
@@ -1157,6 +1166,7 @@ async function initializeDomainModel(context: vscode.ExtensionContext) {
       return new Promise<void>((resolve, reject) => {
         // Try streaming endpoint first
         generateModelWithStreaming(
+          context,
           filePaths,
           outputPath,
           progress,
@@ -1172,6 +1182,7 @@ async function initializeDomainModel(context: vscode.ExtensionContext) {
  * Generate domain model using streaming endpoint for real-time progress.
  */
 async function generateModelWithStreaming(
+  context: vscode.ExtensionContext,
   filePaths: string[],
   outputPath: string,
   progress: vscode.Progress<{ message?: string; increment?: number }>,
@@ -1194,6 +1205,12 @@ async function generateModelWithStreaming(
 
   let currentStage = "";
   let finalResult: GenerateModelResponse | null = null;
+
+  const runStartMs = Date.now();
+  const stageStartMs = new Map<string, number>();
+  const stageDurations: Record<string, number> = {};
+  const previousCommand = statusBarItem.command;
+  statusBarItem.command = "ddd-enforcer.showOutput";
 
   try {
     // Use fetch for SSE support
@@ -1244,14 +1261,34 @@ async function generateModelWithStreaming(
               const desc =
                 stageDescriptions[progressData.stage] || progressData.detail;
 
-              // Update status bar with current stage
+              // Track per-stage timing for ETA + persistence.
               if (progressData.stage !== currentStage) {
+                if (currentStage && stageStartMs.has(currentStage)) {
+                  stageDurations[currentStage] =
+                    Date.now() - (stageStartMs.get(currentStage) ?? Date.now());
+                }
                 currentStage = progressData.stage;
-                updateStatusBarWithStage(
-                  progressData.stage,
-                  progressData.status,
-                );
+                stageStartMs.set(currentStage, Date.now());
               }
+
+              // Compute overall percent: a "completed" status means the
+              // current stage is fully done; otherwise the stage is mid-flight.
+              const withinStage =
+                progressData.status === "completed" ? 100 : 50;
+              const overallPercent = computeOverallPercent(
+                progressData.stage,
+                withinStage,
+              );
+              const elapsedMs = Date.now() - runStartMs;
+              const etaMs = computeEtaMs(elapsedMs, overallPercent);
+              const sub = parseSubProgress(progressData.detail) ?? undefined;
+              updateStatusBarWithProgress(
+                progressData.stage,
+                overallPercent,
+                progressData.status !== "completed",
+                sub,
+                etaMs,
+              );
 
               // Update progress notification
               if (progressData.status === "started") {
@@ -1292,6 +1329,12 @@ async function generateModelWithStreaming(
     // Handle completion
     if (finalResult?.success) {
       updateStatusBar("ready");
+      if (currentStage && stageStartMs.has(currentStage)) {
+        stageDurations[currentStage] =
+          Date.now() - (stageStartMs.get(currentStage) ?? Date.now());
+      }
+      await context.globalState.update(LAST_RUN_DURATIONS_KEY, stageDurations);
+      statusBarItem.command = previousCommand;
 
       // Show success message with metrics
       const metricsInfo = finalResult.metrics
@@ -1329,6 +1372,7 @@ async function generateModelWithStreaming(
       resolve();
     } else {
       updateStatusBar("error");
+      statusBarItem.command = previousCommand;
       vscode.window.showErrorMessage(
         `DDD Enforcer: Failed to generate model - ${finalResult?.error || "Unknown error"}`,
       );
@@ -1336,6 +1380,7 @@ async function generateModelWithStreaming(
     }
   } catch (error) {
     // Fallback to non-streaming endpoint
+    statusBarItem.command = previousCommand;
     log(`Streaming failed, using fallback: ${error}`);
     await generateModelFallback(
       filePaths,
@@ -1409,21 +1454,40 @@ async function generateModelFallback(
 }
 
 /**
- * Update status bar to show current pipeline stage.
+ * Render live pipeline progress into the status bar using the pure
+ * formatStageStatusBar helper. `active` is false only on the terminal
+ * "completed" status of the final stage.
+ */
+function updateStatusBarWithProgress(
+  stage: string,
+  overallPercent: number,
+  active: boolean,
+  sub?: SubProgress,
+  etaMs?: number | null,
+) {
+  statusBarItem.text = formatStageStatusBar({
+    stage,
+    overallPercent,
+    active,
+    sub,
+    etaMs,
+  });
+  statusBarItem.tooltip = "DDD Enforcer: generating domain model. Click to open the Output log.";
+  statusBarItem.backgroundColor = undefined;
+}
+
+/**
+ * Backward-compatible stage-only status update. Delegates to
+ * updateStatusBarWithProgress with the stage's start-of-stage overall
+ * percent and no ETA. Retained for call sites that only know the stage.
  */
 function updateStatusBarWithStage(stage: string, status: string) {
-  const stageIcons: Record<string, string> = {
-    Scout: "$(search)",
-    Architect: "$(symbol-structure)",
-    Specialist: "$(microscope)",
-    Synthesizer: "$(tools)",
-  };
-
-  const icon = stageIcons[stage] || "$(sync~spin)";
-  const statusIcon = status === "completed" ? "$(check)" : "$(sync~spin)";
-
-  statusBarItem.text = `${icon} DDD: ${stage}`;
-  statusBarItem.tooltip = `DDD Enforcer: ${stage} - ${status}`;
+  const active = status !== "completed";
+  const overallPercent = computeOverallPercent(
+    stage,
+    status === "completed" ? 100 : 0,
+  );
+  updateStatusBarWithProgress(stage, overallPercent, active);
 }
 
 /**
