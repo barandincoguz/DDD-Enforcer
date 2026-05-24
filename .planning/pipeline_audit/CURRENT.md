@@ -49,21 +49,10 @@ still reports **716 passed**, zero regression.
 - paper.tex integration of rqN.tex \input{} blocks (human-coordinator
   task — see LaTeX_DL_468198_240419/tables/README.md for the
   candidate line numbers and TODO list).
-- **Minor follow-ups deferred from WP-CORE-30b code review:**
-  - `_to_legacy_issue` severity-fallback silent mapping
-  - `_parse_target_ctx` partial duplication with `_issue_stage`
-  - `track_api_call` test spy Pyright false positive (`# type: ignore`)
-  - `render_refinement_prompt` lowercase severity label
-  - `_specialist_with_feedback` short-result-list risk
-  - Pre-existing `token_tracker.by_stage` capitalization divergence
-- **Minor follow-ups deferred from WP-01b/01c code review:**
-  - `pipeline=None` grouping test gap in aggregate.py
-  - `compose_aggregate_key` could deduplicate the regex shared with
-    `PaperRunManifest.compose_run_id` (small util)
-  - Atomic write pattern copied 3 times (run_manifest, aggregate,
-    latex_tables); could extract a shared `_write_atomic` helper
-  - `AggregatedConfiguration.schema_version` writer-side has no
-    SUPPORTED_VERSION guard yet (consumer side does)
+- ~~**Minor follow-ups deferred from WP-CORE-30b code review**~~ —
+  ALL CLOSED in iter 46 (see iter-46 commit list above).
+- ~~**Minor follow-ups deferred from WP-01b/01c code review**~~ —
+  ALL CLOSED in iter 46 (see iter-46 commit list above).
 
 **Baseline:** 716 passed, 31 deselected.
 **HEAD:** 99285e0.
