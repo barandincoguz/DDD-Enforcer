@@ -128,6 +128,17 @@ export function computeBackoffMs(
   return Math.min(raw, maxMs);
 }
 
+/**
+ * Decide whether to attempt another auto-restart. Returns true while
+ * `attempt < maxAttempts` (default 5). Pure.
+ */
+export function shouldAttemptRestart(
+  attempt: number,
+  maxAttempts: number = 5,
+): boolean {
+  return attempt < maxAttempts;
+}
+
 // =============================================================================
 // GLOBAL STATE
 // =============================================================================

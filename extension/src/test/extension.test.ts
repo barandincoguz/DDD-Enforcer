@@ -10,6 +10,7 @@ import {
   decideMigrationOffer,
   type ApiKeySource,
   computeBackoffMs,
+  shouldAttemptRestart,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -380,5 +381,29 @@ suite("Extension Test Suite", () => {
   test("computeBackoffMs floors negative attempts at baseMs", () => {
     assert.strictEqual(computeBackoffMs(-1), 1000);
     assert.strictEqual(computeBackoffMs(-100), 1000);
+  });
+
+  test("shouldAttemptRestart allows attempts 0 through 4", () => {
+    for (const attempt of [0, 1, 2, 3, 4]) {
+      assert.strictEqual(
+        shouldAttemptRestart(attempt),
+        true,
+        `attempt ${attempt} should be allowed`,
+      );
+    }
+  });
+
+  test("shouldAttemptRestart rejects attempt 5 by default", () => {
+    assert.strictEqual(shouldAttemptRestart(5), false);
+  });
+
+  test("shouldAttemptRestart rejects attempts beyond cap", () => {
+    assert.strictEqual(shouldAttemptRestart(6), false);
+    assert.strictEqual(shouldAttemptRestart(100), false);
+  });
+
+  test("shouldAttemptRestart honors custom maxAttempts", () => {
+    assert.strictEqual(shouldAttemptRestart(2, 3), true);
+    assert.strictEqual(shouldAttemptRestart(3, 3), false);
   });
 });
