@@ -331,4 +331,13 @@ suite("Extension Test Suite", () => {
     const decisionEnv = decideMigrationOffer("env", true);
     assert.strictEqual(decisionEnv.shouldOffer, false);
   });
+
+  test("decideMigrationOffer + ApiKeySource type cover all four sources", () => {
+    const sources: ApiKeySource[] = ["settings", "env", "secret", "prompt"];
+    const allDecisions = sources.map((s) => decideMigrationOffer(s, false));
+    const offerCount = allDecisions.filter((d) => d.shouldOffer).length;
+    assert.strictEqual(offerCount, 2);
+    assert.ok(allDecisions.every((d) => typeof d.sourceLabel === "string"));
+    assert.ok(allDecisions.every((d) => d.sourceLabel.length > 0));
+  });
 });

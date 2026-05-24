@@ -599,45 +599,121 @@ export function decideMigrationOffer(
 
 /**
  * Gets the Gemini API key from settings, env var, or prompts the user.
+ *
+ * Iter 47 behavior:
+ * - Tracks where the key was sourced from (settings/env/secret/prompt).
+ * - Pre-validates the key against Gemini's public models endpoint
+ *   (cheap, no backend round-trip) before returning it.
+ * - On rejection, surfaces a kind-specific toast and returns undefined.
+ * - On success, offers migration to secret storage if the source was
+ *   the less-secure settings or env path. The user's decline is
+ *   persisted to globalState ("apiKeyMigrationDeclined") so the offer
+ *   does not repeat next session.
  */
 async function getApiKey(
   context: vscode.ExtensionContext,
 ): Promise<string | undefined> {
-  // 1. Check settings
+  // Discover the key + its source (first-hit wins, same precedence as before).
+  let apiKey: string | undefined;
+  let source: ApiKeySource | undefined;
+
   const cfg = vscode.workspace.getConfiguration("ddd-enforcer");
-  let apiKey: string | undefined = cfg.get<string>("geminiApiKey", "");
-
-  if (apiKey && apiKey.trim()) {
-    return apiKey.trim();
+  const settingsKey = cfg.get<string>("geminiApiKey", "");
+  if (settingsKey && settingsKey.trim()) {
+    apiKey = settingsKey.trim();
+    source = "settings";
   }
 
-  // 2. Check environment variable
-  apiKey = process.env.GEMINI_API_KEY || "";
-  if (apiKey && apiKey.trim()) {
-    return apiKey.trim();
+  if (!apiKey) {
+    const envKey = process.env.GEMINI_API_KEY || "";
+    if (envKey.trim()) {
+      apiKey = envKey.trim();
+      source = "env";
+    }
   }
 
-  // 3. Check secret storage
-  const storedKey = await context.secrets.get("geminiApiKey");
-  if (storedKey && storedKey.trim()) {
-    return storedKey.trim();
+  if (!apiKey) {
+    const storedKey = await context.secrets.get("geminiApiKey");
+    if (storedKey && storedKey.trim()) {
+      apiKey = storedKey.trim();
+      source = "secret";
+    }
   }
 
-  // 4. Prompt user
-  const inputKey = await vscode.window.showInputBox({
-    prompt: "Enter your Gemini API Key",
-    placeHolder: "AIza...",
-    password: true,
-    ignoreFocusOut: true,
-  });
-
-  if (inputKey && inputKey.trim()) {
-    // Save to secret storage
-    await context.secrets.store("geminiApiKey", inputKey.trim());
-    return inputKey.trim();
+  if (!apiKey) {
+    const migrationHint =
+      "You can also paste the key here; it will be saved to VS Code secret storage.";
+    const inputKey = await vscode.window.showInputBox({
+      prompt: `Enter your Gemini API Key. ${migrationHint}`,
+      placeHolder: "AIza...",
+      password: true,
+      ignoreFocusOut: true,
+    });
+    if (inputKey && inputKey.trim()) {
+      await context.secrets.store("geminiApiKey", inputKey.trim());
+      apiKey = inputKey.trim();
+      source = "prompt";
+    }
   }
 
-  return undefined;
+  if (!apiKey || !source) {
+    return undefined;
+  }
+
+  // Pre-validate the key against Gemini.
+  updateStatusBar("validatingApiKey");
+  log(`Validating Gemini API key from source: ${source}`);
+  const validation = await validateGeminiKey(apiKey);
+
+  if (!validation.ok) {
+    log(`API key validation failed: ${validation.kind}`);
+    const messages: Record<ApiKeyErrorKind, string> = {
+      invalid_key:
+        "DDD Enforcer: Gemini API key was rejected. Check the key and try again.",
+      rate_limited:
+        "DDD Enforcer: Gemini rate-limited the API key check. Try again in a few seconds.",
+      network_error:
+        "DDD Enforcer: Could not reach Gemini to validate the API key. Check your network.",
+      unknown:
+        "DDD Enforcer: Unexpected error validating the API key. See the Output channel for details.",
+    };
+    vscode.window.showErrorMessage(messages[validation.kind]);
+    return undefined;
+  }
+
+  log("Gemini API key validated.");
+
+  // Migration offer for less-secure sources.
+  const migrationDeclined =
+    context.globalState.get<boolean>("apiKeyMigrationDeclined") === true;
+  const decision = decideMigrationOffer(source, migrationDeclined);
+  if (decision.shouldOffer) {
+    const choice = await vscode.window.showInformationMessage(
+      `DDD Enforcer found your Gemini API key in ${decision.sourceLabel}. Move it to VS Code secret storage for better security?`,
+      "Move to secret storage",
+      "Not now",
+      "Don't ask again",
+    );
+    if (choice === "Move to secret storage") {
+      await context.secrets.store("geminiApiKey", apiKey);
+      if (source === "settings") {
+        await cfg.update(
+          "geminiApiKey",
+          "",
+          vscode.ConfigurationTarget.Global,
+        );
+      }
+      log(`API key migrated from ${decision.sourceLabel} to secret storage.`);
+      vscode.window.showInformationMessage(
+        "DDD Enforcer: Gemini API key moved to secret storage.",
+      );
+    } else if (choice === "Don't ask again") {
+      await context.globalState.update("apiKeyMigrationDeclined", true);
+      log("API key migration permanently declined by user.");
+    }
+  }
+
+  return apiKey;
 }
 
 // =============================================================================
@@ -1384,6 +1460,7 @@ function updateStatusBar(
     | "starting"
     | "ready"
     | "validating"
+    | "validatingApiKey"
     | "violations"
     | "error"
     | "notInitialized",
@@ -1422,6 +1499,11 @@ function updateStatusBar(
     case "validating":
       statusBarItem.text = "$(loading~spin) DDD Enforcer";
       statusBarItem.tooltip = "Validating code...";
+      statusBarItem.backgroundColor = undefined;
+      break;
+    case "validatingApiKey":
+      statusBarItem.text = "$(loading~spin) DDD Enforcer";
+      statusBarItem.tooltip = "Validating Gemini API key...";
       statusBarItem.backgroundColor = undefined;
       break;
     case "violations":
