@@ -6,8 +6,12 @@
     "**/intermediate",
     "**/node_modules",
     "**/.pytest_cache",
+    "**/.venv",
+    "extension/backend/legacy_pre_emse",
     "extension/out"
   ],
+  "venvPath": "extension/backend",
+  "venv": ".venv",
   "reportMissingImports": "error",
   "reportMissingTypeStubs": "none",
   "pythonVersion": "3.12"

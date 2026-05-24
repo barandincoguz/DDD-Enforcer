@@ -686,9 +686,9 @@ def generate_model_stream_endpoint(request: GenerateModelRequest):
     import queue
     import threading
     
-    progress_queue = queue.Queue()
-    result_holder = {"result": None, "error": None}
-    
+    progress_queue: queue.Queue = queue.Queue()
+    result_holder: Dict[str, Any] = {"result": None, "error": None}
+
     def progress_callback(progress_data: Dict[str, Any]):
         """Callback to receive progress updates from DomainArchitect."""
         progress_queue.put({"type": "progress", "data": progress_data})
@@ -887,8 +887,8 @@ def validate_code(submission: CodeSubmission):
     # START LATENCY MEASUREMENT - only actual validation logic
     start_time = time.time()
     
-    parser = app_state.get("parser")
-    llm = app_state.get("llm")
+    parser: Optional[CodeParser] = app_state.get("parser")
+    llm: Optional[LLMClient] = app_state.get("llm")
     rules = app_state.get("domain_rules")
     validation_tracker = ValidationMetricsTracker.get_instance()
 
@@ -901,6 +901,19 @@ def validate_code(submission: CodeSubmission):
                     "type": "ConfigError",
                     "message": "Domain Model is empty. Check backend logs.",
                     "suggestion": "Add inputs/srs.pdf and restart backend.",
+                }
+            ],
+        }
+
+    if parser is None or llm is None:
+        print("  ❌ ERROR: Backend not fully initialized (parser/llm missing)")
+        return {
+            "is_violation": True,
+            "violations": [
+                {
+                    "type": "ConfigError",
+                    "message": "Backend not initialized: parser/llm missing.",
+                    "suggestion": "Restart backend and re-run domain model generation.",
                 }
             ],
         }
