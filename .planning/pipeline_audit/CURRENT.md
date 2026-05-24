@@ -1,9 +1,11 @@
 # Pipeline Audit — CURRENT pointer
 
-**Last update:** 2026-05-23 22:55 GMT+3
-**Last action:** Iterations 33-42 SHIPPED — F-16, WP-CORE-20c,
-ChunkMetadata.truncated_chunks fix, WP-CORE-30b (SDD),
-ownership-deprecation, WP-01b A-F (SDD), WP-01c closure (SDD).
+**Last update:** 2026-05-24 11:40 GMT+3
+**Last action:** Iteration 43 SHIPPED (partial scope per Option A) —
+Pyright tightening for `main.py` (7 type errors fixed, .venv repair,
+pyrightconfig venv path). `continue-on-error: true` LEFT in place;
+flag drop deferred until 9 remaining production-code errors addressed.
+See §"Pyright tightening scope discovery" below.
 
 **Session totals (this autonomous block):**
 - 9 WPs shipped (F-16, WP-CORE-20c, ChunkMetadata, WP-CORE-30b,
@@ -56,8 +58,52 @@ ownership-deprecation, WP-01b A-F (SDD), WP-01c closure (SDD).
     SUPPORTED_VERSION guard yet (consumer side does)
 
 **Baseline:** 716 passed, 31 deselected.
-**HEAD:** 4ca1301.
+**HEAD:** 7a5de0e.
 **Ahead of origin/main:** 25 commits (NOT pushed).
+
+---
+
+## Pyright tightening scope discovery (iteration 43, 2026-05-24)
+
+Handoff §10 Rank 1 estimated "~10 type errors in main.py". Reality:
+
+| Surface | Count | Status |
+|---------|-------|--------|
+| `main.py` | 7 | ✅ FIXED this iteration (commit `7a5de0e`) |
+| Other production code | 9 | ⏸ DEFERRED — blocks CI gate drop |
+| Tests | ~116 | ⏸ DEFERRED — mostly MagicMock/Optional fixture noise |
+
+**Production-code error sites still open (9 total):**
+
+- `config.py:114,126` — `Type "int | None" not assignable to "int"` (env var coercion)
+- `core/AST/ast_signal_classification.py:444` — `str → CandidateType` Literal cast
+- `core/architect.py:1002` — `Unknown | str → Literal["ERROR","WARN"]` severity cast
+- `core/llm/ollama.py:168` — `List[Dict[str,str]] → Iterable[ChatCompletionMessageParam]`
+- `core/orchestration/pipeline.py:355,357` — verifier callable signature mismatch +
+  `VerifierResult vs VerifierResult | None`
+- `core/rag_pipeline.py:152` — `QueryResult → Dict[str, Any]`
+- `core/verifier/checks_deterministic.py:108` — `Unknown | None → str` key
+
+**Test-side errors (~116) categories:**
+
+- `Import "pytest" could not be resolved` (false positive — pytest now in `.venv` post-iter-43;
+  re-run may drop these)
+- `Cannot assign to attribute "return_value"/"call_count" for class "MethodType"` —
+  pyright doesn't model `unittest.mock.patch.object` mock-attribute injection
+- `Object of type "None" is not subscriptable` — test fixtures intentionally raw-test
+  None paths
+- `str → Literal[...]` arg type — test inputs deliberately violate Literal contracts
+
+**Decision (this iteration, per user Option A):** Ship the surgical `main.py`
+fix + `.venv` config alone. Keep CI flag non-blocking. Do NOT drop
+`continue-on-error: true` until at least the 9 production-code errors
+are fixed (test-side noise can be excluded via pyrightconfig if needed).
+
+**Side artifacts (NOT committed, gitignored):**
+
+- `extension/backend/.venv/` rebuilt with python3.13 (3.12 unavailable
+  on this dev machine). requirements.txt + pytest/pytest-cov/httpx
+  installed. Resolves CLAUDE.md "broken .venv" follow-up locally.
 
 **SDD telemetry this session:**
 
