@@ -15,10 +15,18 @@ from core.document_parser_readers import (
 )
 
 
+# F-8 (iter 45, 2026-05-24): defense-in-depth cap against decompression
+# bombs / billion-laughs DOCX payloads. Default 50 MB; override via
+# `DDD_MAX_SRS_BYTES` env var (int bytes). Applied at parse_file entry
+# before any third-party parser is invoked.
+DEFAULT_MAX_SRS_BYTES = 50 * 1024 * 1024
+
+
 # WP-CORE-9 / 10 / 11: re-export ingestion-layer typed errors so consumers
 # import via the parser entrypoint (mirrors EmptySRSDocumentError below).
 __all__ = [
     "EmptySRSDocumentError",
+    "OversizedSRSDocumentError",
     "MisLabeledFileError",
     "EncryptedPDFError",
     "CorruptedPDFError",
@@ -26,6 +34,7 @@ __all__ = [
     "CorruptedDOCXError",
     "EmptyDOCXError",
     "SRSDocumentParser",
+    "DEFAULT_MAX_SRS_BYTES",
 ]
 
 
@@ -36,6 +45,16 @@ class EmptySRSDocumentError(ValueError):
     the same outcome; the dedicated type lets new callers be explicit
     when they want to distinguish empty content from other value errors
     (FileNotFoundError, "Unsupported file type", etc.).
+    """
+
+
+class OversizedSRSDocumentError(ValueError):
+    """Raised by SRSDocumentParser.parse_file when an SRS exceeds the size cap.
+
+    F-8 defense-in-depth: caps input size before any third-party XML or
+    PDF parser is invoked, mitigating decompression bombs and quadratic
+    blowup attacks. Default cap = 50 MB; configurable via the
+    ``DDD_MAX_SRS_BYTES`` environment variable.
     """
 
 
@@ -84,6 +103,20 @@ class SRSDocumentParser:
     def parse_file(self, file_path: str) -> str:
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
+
+        # F-8: enforce size cap before any third-party parser touches the file.
+        cap_env = os.environ.get("DDD_MAX_SRS_BYTES")
+        try:
+            max_bytes = int(cap_env) if cap_env is not None else DEFAULT_MAX_SRS_BYTES
+        except ValueError:
+            max_bytes = DEFAULT_MAX_SRS_BYTES
+        size = os.path.getsize(file_path)
+        if size > max_bytes:
+            raise OversizedSRSDocumentError(
+                f"SRS exceeds size cap ({size} > {max_bytes} bytes): {file_path}. "
+                f"Override via DDD_MAX_SRS_BYTES env var if intentional."
+            )
+
         ext = os.path.splitext(file_path)[1].lower()
         if ext == ".pdf":
             raw = read_pdf(file_path)

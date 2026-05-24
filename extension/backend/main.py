@@ -319,6 +319,12 @@ def initialize_rag(srs_files: List[str]) -> RAGPipeline:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
+    # F-8 (iter 45): assert third-party XML parsers stay hardened against
+    # XXE. Raises XXESafetyError on regression so uvicorn refuses to boot.
+    # See development_docs/F-8-xxe-assessment.md for the full audit.
+    from core.security import assert_xxe_safe_parsers
+    assert_xxe_safe_parsers()
+
     print("[STARTUP] System initializing...")
     print(f"[DIR] Backend: {BASE_DIR}")
     print(f"[FILE] Model path: {DOMAIN_MODEL_PATH}")
