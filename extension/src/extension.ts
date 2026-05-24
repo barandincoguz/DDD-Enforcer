@@ -373,7 +373,6 @@ async function startBackend(
   }
 
   backendStarting = true;
-  intentionalStopTarget = null;
   updateStatusBar("starting");
   log("Starting backend server...");
 
