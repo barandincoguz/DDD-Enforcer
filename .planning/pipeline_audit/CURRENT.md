@@ -55,8 +55,62 @@ still reports **716 passed**, zero regression.
   ALL CLOSED in iter 46 (see iter-46 commit list above).
 
 **Baseline:** 729 passed, 31 deselected.
-**HEAD:** `8e44dfa` (post-iter-46 planning doc update).
-**Ahead of origin/main:** 35 commits (NOT pushed).
+**HEAD:** `6388075` (iter 47 D-fix — migration atomicity).
+**Ahead of origin/main:** 46 commits (NOT pushed).
+
+---
+
+## Iteration 47 — WP-CORE-28 Feature 1 (API key onboarding) COMPLETE (2026-05-24)
+
+WP-CORE-28 Iter 47 shipped via Subagent-Driven Development (SDD).
+Plan at `.planning/plans/2026-05-24-wp-core-28-iter-47-api-key-onboarding.md`.
+Spec at `todos/WP-CORE-28-extension-ux-wave1.md`.
+
+**5 commits (4 feat + 1 fix), 18 new test cases, zero baseline regression.**
+
+| Commit | Iter step | Content | Δ tests |
+|--------|-----------|---------|---------|
+| `72cc92a` | A | `classifyApiKeyError(err): ApiKeyErrorKind` pure fn + 8 mocha tests | +8 |
+| `21b667f` | B | `validateGeminiKey(key, httpProbe?)` Gemini `/v1beta/models` probe with injectable axios + 4 tests | +4 |
+| `45ed96f` | C | `decideMigrationOffer(source, declined): MigrationDecision` + `ApiKeySource` + 5 tests | +5 |
+| `e2e57cd` | D | `getApiKey` rewrite (source tracking → pre-validate → migration toast 3-button → `globalState` decline) + new `"validatingApiKey"` status bar state + 1 integration test | +1 |
+| `6388075` | D follow-up | Quality-review fix: wrap `cfg.update` in try/catch; warning toast if settings-clear fails after `secrets.store` succeeds | 0 |
+
+**SDD telemetry (this iter):**
+
+| Task | Implementer | Spec review | Quality review | Fix loops | Dispatches |
+|------|-------------|-------------|----------------|-----------|-----------|
+| A | 1 | 1 | 1 | 0 | 3 |
+| B | 1 | 1 | 1 | 0 | 3 |
+| C | 1 | 1 | 1 | 0 | 3 |
+| D | 1 | 1 | 1 | 1 (fix + re-review) | 5 |
+| **Total** | **4** | **4** | **4** | **1** | **14 subagent dispatches** |
+
+Quality reviewer caught one legitimate issue on D: the migration accept
+path called `secrets.store()` then `cfg.update()` without a try/catch.
+If `cfg.update` threw, the user saw a success toast but the settings
+entry persisted; the next `getApiKey` call's discovery-order (settings
+first) would silently re-read the stale entry, bypassing the freshly
+saved secret-storage copy. Fix commit `6388075` wraps `cfg.update` and
+surfaces a Warning toast directing the user to remove the setting
+manually when the clear fails. Success toast only fires when both
+operations succeed.
+
+**Locked invariants added this iter:**
+
+| ID | Invariant |
+|----|-----------|
+| Iter 47 A-C | `extension/src/extension.ts` exports three pure helpers (`classifyApiKeyError`, `validateGeminiKey`, `decideMigrationOffer`) plus the types `ApiKeyErrorKind`, `ApiKeyValidationResult`, `ApiKeyHttpProbe`, `ApiKeySource`, `MigrationDecision`. Tests in `extension/src/test/extension.test.ts` exercise them with an injectable-HTTP stub (no sinon) — precedent established for future Iter-48-onward pure helpers. |
+| Iter 47 D | `getApiKey` MUST pre-validate the key against `https://generativelanguage.googleapis.com/v1beta/models` (direct, no backend round-trip) before returning. On rejection, the function returns `undefined` so the existing `startBackend` error path takes over. |
+| Iter 47 D | The migration accept path is non-atomic by design (secret-storage write succeeds, settings clear may fail). The fix at `6388075` makes the failure observable to the user via a Warning toast; the spec accepted that auto-rollback (deleting the just-written secret) is not appropriate UX. |
+| Iter 47 D | `apiKeyMigrationDeclined` lives in `context.globalState` (per-extension, persists across VS Code restarts). No undo command exists; user must clear via `~/Library/Application Support/Code/User/globalStorage/ddd-enforcer.ddd-enforcer/` (macOS) or a clean VS Code profile. |
+
+**F5 smoke status:** Programmatic gates green (compile, lint, pyright,
+pytest 729). User explicitly waived the F5 GUI gate ("kontrol et ve
+devam et", 2026-05-24) — physical F5 smoke deferred to user discretion.
+Iter 48 proceeds without blocking on a manual smoke session.
+
+**Baseline at iter close:** 729 passed, 31 deselected, pyright 0/0/0.
 
 ---
 
