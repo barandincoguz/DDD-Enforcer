@@ -23,6 +23,8 @@ import {
   formatStageStatusBar,
   type StageStatusBarParts,
   LruCache,
+  truncateExcerpt,
+  boldMatchingSpan,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -758,5 +760,60 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(cache.has("a"), false);
     assert.strictEqual(cache.get("b"), 2);
     assert.strictEqual(cache.size, 1);
+  });
+
+  test("truncateExcerpt returns short text unchanged", () => {
+    assert.strictEqual(truncateExcerpt("short text", 200), "short text");
+  });
+
+  test("truncateExcerpt trims to max and appends an ellipsis", () => {
+    const long = "a".repeat(250);
+    const result = truncateExcerpt(long, 200);
+    assert.ok(result.length <= 201, "result within max + ellipsis");
+    assert.ok(result.endsWith("…"), "ends with ellipsis");
+  });
+
+  test("truncateExcerpt prefers a word boundary when trimming", () => {
+    const text = "the quick brown fox jumps over the lazy dog repeatedly";
+    const result = truncateExcerpt(text, 20);
+    assert.ok(result.endsWith("…"));
+    const beforeEllipsis = result.slice(0, -1);
+    assert.ok(
+      !/[A-Za-z]$/.test(beforeEllipsis) || beforeEllipsis.length <= 20,
+      "trimmed at or before max without splitting a trailing word awkwardly",
+    );
+  });
+
+  test("truncateExcerpt handles empty string", () => {
+    assert.strictEqual(truncateExcerpt("", 200), "");
+  });
+
+  test("boldMatchingSpan wraps the first keyword occurrence in markdown bold", () => {
+    assert.strictEqual(
+      boldMatchingSpan("the Order aggregate", "Order"),
+      "the **Order** aggregate",
+    );
+  });
+
+  test("boldMatchingSpan is case-insensitive in matching but preserves original case", () => {
+    assert.strictEqual(
+      boldMatchingSpan("The ORDER total", "order"),
+      "The **ORDER** total",
+    );
+  });
+
+  test("boldMatchingSpan returns excerpt unchanged when keyword absent or empty", () => {
+    assert.strictEqual(
+      boldMatchingSpan("no match here", "Order"),
+      "no match here",
+    );
+    assert.strictEqual(boldMatchingSpan("anything", ""), "anything");
+  });
+
+  test("boldMatchingSpan only bolds the first occurrence", () => {
+    assert.strictEqual(
+      boldMatchingSpan("Order then Order again", "Order"),
+      "**Order** then Order again",
+    );
   });
 });

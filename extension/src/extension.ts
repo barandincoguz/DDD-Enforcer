@@ -417,6 +417,44 @@ export class LruCache<K, V> {
   }
 }
 
+/**
+ * Trim `text` to at most `maxChars`, preferring to cut at the last
+ * word boundary at or before the limit, and append a single-character
+ * ellipsis (…). Returns the text unchanged when already within the
+ * limit. Pure.
+ */
+export function truncateExcerpt(text: string, maxChars: number): string {
+  if (text.length <= maxChars) {
+    return text;
+  }
+  const hardCut = text.slice(0, maxChars);
+  const lastSpace = hardCut.lastIndexOf(" ");
+  const trimmed =
+    lastSpace > 0 ? hardCut.slice(0, lastSpace) : hardCut;
+  return `${trimmed.trimEnd()}…`;
+}
+
+/**
+ * Bold the first case-insensitive occurrence of `keyword` in `excerpt`
+ * using Markdown `**…**`, preserving the original casing of the matched
+ * span. Returns the excerpt unchanged when the keyword is empty or not
+ * found. Pure.
+ */
+export function boldMatchingSpan(excerpt: string, keyword: string): string {
+  if (!keyword) {
+    return excerpt;
+  }
+  const lowerExcerpt = excerpt.toLowerCase();
+  const idx = lowerExcerpt.indexOf(keyword.toLowerCase());
+  if (idx < 0) {
+    return excerpt;
+  }
+  const before = excerpt.slice(0, idx);
+  const matched = excerpt.slice(idx, idx + keyword.length);
+  const after = excerpt.slice(idx + keyword.length);
+  return `${before}**${matched}**${after}`;
+}
+
 // =============================================================================
 // GLOBAL STATE
 // =============================================================================
