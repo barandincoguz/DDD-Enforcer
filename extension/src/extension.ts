@@ -696,21 +696,36 @@ async function getApiKey(
     );
     if (choice === "Move to secret storage") {
       await context.secrets.store("geminiApiKey", apiKey);
+      let settingsClearFailed = false;
       if (source === "settings") {
-        await cfg.update(
-          "geminiApiKey",
-          "",
-          vscode.ConfigurationTarget.Global,
+        try {
+          await cfg.update(
+            "geminiApiKey",
+            "",
+            vscode.ConfigurationTarget.Global,
+          );
+        } catch (err) {
+          settingsClearFailed = true;
+          log(
+            `API key copied to secret storage but failed to clear settings entry: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+      if (settingsClearFailed) {
+        vscode.window.showWarningMessage(
+          "DDD Enforcer: API key saved to secret storage, but could not clear the existing setting. Please remove ddd-enforcer.geminiApiKey from your settings manually.",
+        );
+      } else {
+        log(`API key migrated from ${decision.sourceLabel} to secret storage.`);
+        vscode.window.showInformationMessage(
+          "DDD Enforcer: Gemini API key moved to secret storage.",
         );
       }
-      log(`API key migrated from ${decision.sourceLabel} to secret storage.`);
-      vscode.window.showInformationMessage(
-        "DDD Enforcer: Gemini API key moved to secret storage.",
-      );
     } else if (choice === "Don't ask again") {
       await context.globalState.update("apiKeyMigrationDeclined", true);
       log("API key migration permanently declined by user.");
     }
+    // "Not now" or dismiss: no state change; the offer will re-appear on the next getApiKey call.
   }
 
   return apiKey;
