@@ -500,6 +500,60 @@ export function classifyApiKeyError(err: unknown): ApiKeyErrorKind {
   return "unknown";
 }
 
+/** Result of a Gemini API-key validation probe. */
+export type ApiKeyValidationResult =
+  | { ok: true }
+  | { ok: false; kind: ApiKeyErrorKind };
+
+/**
+ * Injectable HTTP signature: an async function taking a URL and returning
+ * `{ status, data }` on success or throwing an axios-shaped error on failure.
+ * `validateGeminiKey` defaults to a real axios.get when no injection is given;
+ * tests pass a stub to exercise both success and failure paths without
+ * touching the network.
+ */
+export type ApiKeyHttpProbe = (
+  url: string,
+) => Promise<{ status: number; data: unknown }>;
+
+/** Public Gemini endpoint that accepts a key and returns the model catalogue. */
+const GEMINI_MODELS_URL_BASE =
+  "https://generativelanguage.googleapis.com/v1beta/models";
+
+/**
+ * Probe Gemini to verify the supplied API key is accepted. Returns
+ * `{ok: true}` on HTTP 200, otherwise `{ok: false, kind}` with the
+ * classified error kind (see `classifyApiKeyError`).
+ *
+ * Rejects the empty string locally without hitting the network. Trims
+ * whitespace before sending.
+ */
+export async function validateGeminiKey(
+  apiKey: string,
+  httpProbe?: ApiKeyHttpProbe,
+): Promise<ApiKeyValidationResult> {
+  const trimmed = apiKey.trim();
+  if (!trimmed) {
+    return { ok: false, kind: "invalid_key" };
+  }
+  const probe: ApiKeyHttpProbe =
+    httpProbe ??
+    (async (url) => {
+      const resp = await axios.get(url, { timeout: 5000 });
+      return { status: resp.status, data: resp.data };
+    });
+  try {
+    const url = `${GEMINI_MODELS_URL_BASE}?key=${encodeURIComponent(trimmed)}`;
+    const { status } = await probe(url);
+    if (status === 200) {
+      return { ok: true };
+    }
+    return { ok: false, kind: "unknown" };
+  } catch (err) {
+    return { ok: false, kind: classifyApiKeyError(err) };
+  }
+}
+
 // =============================================================================
 // API KEY MANAGEMENT
 // =============================================================================

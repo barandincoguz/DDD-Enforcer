@@ -5,6 +5,8 @@ import * as fs from "fs";
 import {
   classifySaveForValidationFromContent,
   classifyApiKeyError,
+  validateGeminiKey,
+  type ApiKeyValidationResult,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -247,5 +249,55 @@ suite("Extension Test Suite", () => {
   test("classifyApiKeyError maps undefined error to unknown", () => {
     const result = classifyApiKeyError(undefined);
     assert.strictEqual(result, "unknown");
+  });
+
+  test("validateGeminiKey returns ok=true on HTTP 200", async () => {
+    const fakeHttp = async (_url: string) =>
+      ({ status: 200, data: { models: [] } } as { status: number; data: unknown });
+    const result: ApiKeyValidationResult = await validateGeminiKey(
+      "AIzaFakeButValidLooking",
+      fakeHttp,
+    );
+    assert.strictEqual(result.ok, true);
+  });
+
+  test("validateGeminiKey returns ok=false invalid_key on HTTP 400", async () => {
+    const fakeHttp = async (_url: string) => {
+      const err: any = new Error("Bad Request");
+      err.response = { status: 400 };
+      throw err;
+    };
+    const result = await validateGeminiKey("AIzaFakeBadKey", fakeHttp);
+    assert.strictEqual(result.ok, false);
+    if (!result.ok) {
+      assert.strictEqual(result.kind, "invalid_key");
+    }
+  });
+
+  test("validateGeminiKey returns ok=false network_error on ENOTFOUND", async () => {
+    const fakeHttp = async (_url: string) => {
+      const err: any = new Error("Network down");
+      err.code = "ENOTFOUND";
+      throw err;
+    };
+    const result = await validateGeminiKey("AIzaAnything", fakeHttp);
+    assert.strictEqual(result.ok, false);
+    if (!result.ok) {
+      assert.strictEqual(result.kind, "network_error");
+    }
+  });
+
+  test("validateGeminiKey rejects empty string before any HTTP call", async () => {
+    let httpCalled = false;
+    const fakeHttp = async (_url: string) => {
+      httpCalled = true;
+      return { status: 200, data: {} };
+    };
+    const result = await validateGeminiKey("", fakeHttp);
+    assert.strictEqual(httpCalled, false);
+    assert.strictEqual(result.ok, false);
+    if (!result.ok) {
+      assert.strictEqual(result.kind, "invalid_key");
+    }
   });
 });
