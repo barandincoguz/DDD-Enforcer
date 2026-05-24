@@ -43,6 +43,10 @@
       {
         "command": "ddd-enforcer.restartBackend",
         "title": "DDD Enforcer: Restart Backend Server"
+      },
+      {
+        "command": "ddd-enforcer.showRunManifests",
+        "title": "DDD Enforcer: Show Run Manifests"
       }
     ],
     "configuration": {

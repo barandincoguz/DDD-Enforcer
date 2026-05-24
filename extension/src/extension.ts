@@ -895,6 +895,12 @@ export function activate(context: vscode.ExtensionContext) {
     ),
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ddd-enforcer.showRunManifests", () =>
+      openRunManifestsWebview(context),
+    ),
+  );
+
   // Register code action provider
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
@@ -2552,6 +2558,157 @@ async function openSourceCommand(filePath: string, section: string) {
   } catch {
     vscode.window.showErrorMessage(`Could not open source file: ${filePath}`);
   }
+}
+
+// =============================================================================
+// RUN MANIFEST WEBVIEW (integration — command + discovery + watcher)
+// =============================================================================
+
+/**
+ * Resolve the workspace runs/ directory. Prefers the WORKSPACE_PATH env
+ * var (set by the extension when it spawns the backend), else the first
+ * open workspace folder. Returns undefined when neither is available.
+ */
+function resolveRunsDir(): string | undefined {
+  const fromEnv = process.env.WORKSPACE_PATH;
+  if (fromEnv && fromEnv.trim()) {
+    return path.join(fromEnv.trim(), "runs");
+  }
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (folder) {
+    return path.join(folder.uri.fsPath, "runs");
+  }
+  return undefined;
+}
+
+/**
+ * Discover PaperRunManifest files (runs/<run_id>/manifest.json), parse +
+ * summarize each, and return the summaries plus a runId→absolutePath map
+ * for detail lookups. Non-conforming JSON (legacy runs/*.manifest.json
+ * observability files, or malformed files) is filtered out by
+ * summarizeManifest returning null.
+ */
+async function discoverRunManifests(
+  runsDir: string,
+): Promise<{ summaries: RunSummary[]; pathByRunId: Map<string, string> }> {
+  const summaries: RunSummary[] = [];
+  const pathByRunId = new Map<string, string>();
+  let entries: [string, vscode.FileType][] = [];
+  try {
+    entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(runsDir));
+  } catch {
+    return { summaries, pathByRunId };
+  }
+  for (const [name, fileType] of entries) {
+    if (fileType !== vscode.FileType.Directory) {
+      continue;
+    }
+    const manifestPath = path.join(runsDir, name, "manifest.json");
+    try {
+      const bytes = await vscode.workspace.fs.readFile(
+        vscode.Uri.file(manifestPath),
+      );
+      const parsed = JSON.parse(Buffer.from(bytes).toString("utf8"));
+      const summary = summarizeManifest(parsed);
+      if (summary) {
+        summaries.push(summary);
+        pathByRunId.set(summary.runId, manifestPath);
+      }
+    } catch {
+      // Skip missing/unreadable/non-JSON manifest files silently.
+    }
+  }
+  return { summaries, pathByRunId };
+}
+
+/**
+ * Open a read-only run-manifest webview panel. Lists every conforming
+ * PaperRunManifest under the workspace runs/ directory, lets the user
+ * sort + click into a detail view, refreshes on demand, and
+ * auto-refreshes (debounced) when a manifest file changes. File-load
+ * only — no backend communication. Each invocation opens a fresh panel
+ * (MVP: no singleton reveal); the FileSystemWatcher is scoped to the
+ * panel and disposed on its close.
+ */
+async function openRunManifestsWebview(context: vscode.ExtensionContext) {
+  const runsDir = resolveRunsDir();
+  if (!runsDir) {
+    vscode.window.showWarningMessage(
+      "DDD Enforcer: open a workspace folder to view run manifests.",
+    );
+    return;
+  }
+
+  const panel = vscode.window.createWebviewPanel(
+    "dddRunManifests",
+    "DDD Enforcer — Run Manifests",
+    vscode.ViewColumn.Active,
+    { enableScripts: true, retainContextWhenHidden: true },
+  );
+
+  const nonce = generateNonce();
+  panel.webview.html = buildRunManifestsHtml(nonce, panel.webview.cspSource);
+
+  let pathByRunId = new Map<string, string>();
+
+  const pushList = async () => {
+    const result = await discoverRunManifests(runsDir);
+    pathByRunId = result.pathByRunId;
+    void panel.webview.postMessage({
+      type: "runList",
+      runs: result.summaries,
+    });
+  };
+
+  panel.webview.onDidReceiveMessage(
+    async (msg: { type: string; runId?: string }) => {
+      if (msg.type === "ready" || msg.type === "refresh") {
+        await pushList();
+      } else if (msg.type === "openDetail" && msg.runId) {
+        const manifestPath = pathByRunId.get(msg.runId);
+        if (!manifestPath) {
+          return;
+        }
+        try {
+          const bytes = await vscode.workspace.fs.readFile(
+            vscode.Uri.file(manifestPath),
+          );
+          const manifest = JSON.parse(Buffer.from(bytes).toString("utf8"));
+          void panel.webview.postMessage({ type: "runDetail", manifest });
+        } catch {
+          vscode.window.showErrorMessage(
+            `DDD Enforcer: could not read manifest for ${msg.runId}.`,
+          );
+        }
+      }
+    },
+    undefined,
+    context.subscriptions,
+  );
+
+  // Auto-refresh on manifest writes (debounced 500ms).
+  const watcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(vscode.Uri.file(runsDir), "**/manifest.json"),
+  );
+  let debounce: ReturnType<typeof setTimeout> | undefined;
+  const scheduleRefresh = () => {
+    if (debounce) {
+      clearTimeout(debounce);
+    }
+    debounce = setTimeout(() => {
+      void pushList();
+    }, 500);
+  };
+  watcher.onDidCreate(scheduleRefresh);
+  watcher.onDidChange(scheduleRefresh);
+  watcher.onDidDelete(scheduleRefresh);
+
+  panel.onDidDispose(() => {
+    if (debounce) {
+      clearTimeout(debounce);
+    }
+    watcher.dispose();
+  });
 }
 
 // =============================================================================
