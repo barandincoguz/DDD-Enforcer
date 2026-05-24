@@ -111,7 +111,7 @@ class AnalyzerConfig:
     _STAGE_CONFIG = stage_config("Validator")
     MODEL_NAME: str = _STAGE_CONFIG.model_id
     TEMPERATURE: float = _STAGE_CONFIG.temperature
-    SEED: int = _STAGE_CONFIG.seed
+    SEED: int = _STAGE_CONFIG.seed if _STAGE_CONFIG.seed is not None else 42
     RESPONSE_MIME_TYPE: str = "application/json"
     VALIDATION_RETRIES: int = 2
     RETRY_BACKOFF_SECONDS: float = 1.0
@@ -123,7 +123,7 @@ class ArchitectConfig:
     _STAGE_CONFIG = stage_config("Architect")
     MODEL_NAME: str = _STAGE_CONFIG.model_id
     TEMPERATURE: float = _STAGE_CONFIG.temperature
-    SEED: int = _STAGE_CONFIG.seed
+    SEED: int = _STAGE_CONFIG.seed if _STAGE_CONFIG.seed is not None else 42
     RESPONSE_MIME_TYPE: str = "application/json"
  
 

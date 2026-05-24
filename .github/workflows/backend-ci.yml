@@ -69,9 +69,11 @@ jobs:
           pytest -m "not integration" --cov=. --cov-report=term --cov-report=xml --cov-fail-under=60
 
       - name: Static Type Check (Pyright)
-        # Non-blocking initially; tighten to required gate once existing
-        # type errors are addressed (tracked under EMSE Phase 0 cleanup).
-        continue-on-error: true
+        # Production code is fully type-clean as of iteration 44
+        # (commit chain post-7a5de0e). tests/ is excluded from the
+        # pyright scope in pyrightconfig.json — see CURRENT.md for
+        # the rationale (heavy MagicMock + Optional-fixture noise
+        # where pyright false-positives outweigh signal).
         working-directory: ${{ github.workspace }}
         run: |
           pyright

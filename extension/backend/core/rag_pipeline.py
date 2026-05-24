@@ -18,7 +18,7 @@ import logging
 import re
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Mapping, Optional, cast
 import chromadb
 from chromadb.config import Settings
 from config import RAGConfig
@@ -149,11 +149,11 @@ class RAGPipeline:
         )
         
         # WP-CORE-25: filter via MIN_RELEVANCE_SCORE before formatting.
-        return self._filter_and_format_sources(results)
+        return self._filter_and_format_sources(cast(Mapping[str, Any], results))
 
     def _filter_and_format_sources(
         self,
-        results: Dict[str, Any],
+        results: Mapping[str, Any],
     ) -> List[Dict[str, Any]]:
         """WP-CORE-25: distance-threshold filter + source-dict formatting.
 

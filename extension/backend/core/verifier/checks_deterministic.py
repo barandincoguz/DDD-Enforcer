@@ -92,6 +92,12 @@ def check_d3_entity_names_unique_across_contexts(
     for ctx_name, entities in entities_by_context.items():
         for entity in entities:
             name = entity.get("name")
+            if not isinstance(name, str):
+                # Skip entities with missing/non-string names; duplicate-name
+                # detection is meaningless without a stable key. Schema-level
+                # required-field validation belongs in the Pydantic contract,
+                # not here.
+                continue
             if name in seen and seen[name] != ctx_name:
                 issues.append(VerifierIssue(
                     stage="specialist",

@@ -8,6 +8,7 @@
     "**/.pytest_cache",
     "**/.venv",
     "extension/backend/legacy_pre_emse",
+    "extension/backend/tests",
     "extension/out"
   ],
   "venvPath": "extension/backend",

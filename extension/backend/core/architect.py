@@ -11,12 +11,21 @@ Pipeline stages:
 4. Synthesizer - Merge analyses into final DomainModel
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, cast
+
+if TYPE_CHECKING:
+    from core.pipeline_contracts import (
+        ArchitectOutput,
+        ScoutOutput,
+        SpecialistAnalysis,
+    )
 
 from dotenv import load_dotenv
 from pydantic import ValidationError
@@ -998,8 +1007,10 @@ Do not invent data not present in the sentences."""
             sev = old_issue.severity
             # IssueSeverity enum values are "error"/"warn"; contract expects "ERROR"/"WARN"
             sev_str = sev.value.upper() if hasattr(sev, "value") else str(sev).upper()
+            if sev_str not in ("ERROR", "WARN"):
+                sev_str = "WARN"
             return ContractVerifierIssue(
-                severity=sev_str,
+                severity=cast(Literal["ERROR", "WARN"], sev_str),
                 check_id=getattr(old_issue, "issue_type", "unknown"),
                 target=getattr(old_issue, "location", ""),
                 message=old_issue.message,

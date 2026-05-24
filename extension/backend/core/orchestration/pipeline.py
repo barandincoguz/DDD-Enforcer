@@ -11,7 +11,7 @@ ArchitectGroundingError. Specialist-stage refine loop is unchanged.
 
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional, cast
 from core.schemas import DomainModel
 from core.pipeline_contracts import (
     ScoutOutput,
@@ -347,14 +347,23 @@ def run_pipeline(
                     )
                 return deps.specialist(arch, scout)
 
+        # refine_until_clean expects `core.verifier.types.VerifierResult`
+        # (dataclass), but `deps.verifier` returns
+        # `core.pipeline_contracts.VerifierResult` (Pydantic). The two have
+        # compatible duck-typed interfaces (`.ok`, `.error_count()`,
+        # `.issues`); collapsing to a single type is a separate refactor
+        # WP — for now bridge via cast at the boundary.
         try:
             refined_specialist, _cycles = refine_until_clean(
                 stage_name="specialist",
                 initial_output=specialist_output,
                 stage_runner=_re_run_specialist,
-                verifier=lambda s: deps.verifier({**snapshot, "specialist": s}),
+                verifier=cast(
+                    Callable[[Any], Any],
+                    lambda s: deps.verifier({**snapshot, "specialist": s}),
+                ),
                 max_cycles=2,
-                initial_result=initial_result,
+                initial_result=cast(Any, initial_result),
             )
             # WP-CORE-24: refiner cleared. Record cycles_used for manifest.
             # WP-CORE-30: clean path has no exhaustion → no flapping.

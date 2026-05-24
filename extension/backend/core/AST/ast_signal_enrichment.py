@@ -115,7 +115,11 @@ class SignalEnricher:
                 self._unassign(signal)
                 continue
 
-            target_idx = 0 if auto_created_context else match.index
+            if auto_created_context:
+                target_idx = 0
+            else:
+                assert match is not None  # narrowed by the guard above
+                target_idx = match.index
             self._merge_signal(contexts[target_idx], signal)
             self.diagnostics["counts"][signal.candidate_type]["merged"] += 1
             merged_signals_by_context[target_idx].setdefault(

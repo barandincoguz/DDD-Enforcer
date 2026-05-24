@@ -17,9 +17,10 @@ from __future__ import annotations
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Iterable, List, Optional, Type, cast
 
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 import openai
 from pydantic import BaseModel, ValidationError
 
@@ -165,7 +166,7 @@ class OllamaClient(LLMClient):
             try:
                 return client.chat.completions.create(
                     model=model,
-                    messages=messages,
+                    messages=cast(Iterable[ChatCompletionMessageParam], messages),
                     response_format={
                         "type": "json_schema",
                         "json_schema": {

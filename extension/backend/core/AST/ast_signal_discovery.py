@@ -115,9 +115,9 @@ def _build_class_facts(
         file_path=file_path,
         line=node.lineno,
         bases={
-            dotted_name_from_expr(base)
+            name
             for base in node.bases
-            if dotted_name_from_expr(base)
+            if (name := dotted_name_from_expr(base))
         },
         module_tokens=set(module_tokens),
         name_tokens=normalized_terms(node.name),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
-from core.AST.ast_signal_types import CandidateSignal, ClassFacts, SourceRef
+from core.AST.ast_signal_types import CandidateSignal, CandidateType, ClassFacts, SourceRef
 from core.AST.ast_signal_utils import clamp
 
 
@@ -430,7 +430,7 @@ class SignalClassifier:
 
     def _build_candidate(
         self,
-        candidate_type: str,
+        candidate_type: CandidateType,
         facts: ClassFacts,
         score: float,
         threshold: float,
