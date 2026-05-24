@@ -455,6 +455,47 @@ export function boldMatchingSpan(excerpt: string, keyword: string): string {
   return `${before}**${matched}**${after}`;
 }
 
+/**
+ * Build the Markdown body for a validation hover. Includes the violation
+ * type as a header, the message, and — when the violation has at least
+ * one source — a source block with the section/document/page, a bolded,
+ * truncated excerpt from the source summary, and an "Open SRS source"
+ * link that invokes the `ddd-enforcer.openSource` command with the same
+ * (file_path, section) arguments the Code Action uses.
+ *
+ * The returned string is intended to be wrapped in a trusted
+ * `vscode.MarkdownString` by the caller (the command link only fires
+ * when `isTrusted` is set). Pure: no vscode, no I/O.
+ */
+export function formatHoverMarkdown(
+  violation: Violation,
+  keyword: string,
+): string {
+  const lines: string[] = [];
+  lines.push(`**DDD Violation: ${violation.type}**`);
+  lines.push("");
+  lines.push(violation.message);
+
+  const source = violation.sources && violation.sources[0];
+  if (source) {
+    lines.push("");
+    lines.push(`**Source:** ${source.section} — ${source.document} (p. ${source.page})`);
+    const excerpt = boldMatchingSpan(
+      truncateExcerpt(source.summary, 200),
+      keyword,
+    );
+    lines.push("");
+    lines.push(`> ${excerpt}`);
+    const args = encodeURIComponent(
+      JSON.stringify([source.file_path, source.section]),
+    );
+    lines.push("");
+    lines.push(`[Open SRS source](command:ddd-enforcer.openSource?${args})`);
+  }
+
+  return lines.join("\n");
+}
+
 // =============================================================================
 // GLOBAL STATE
 // =============================================================================

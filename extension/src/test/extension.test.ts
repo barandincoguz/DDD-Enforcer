@@ -25,6 +25,7 @@ import {
   LruCache,
   truncateExcerpt,
   boldMatchingSpan,
+  formatHoverMarkdown,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -815,5 +816,97 @@ suite("Extension Test Suite", () => {
       boldMatchingSpan("Order then Order again", "Order"),
       "**Order** then Order again",
     );
+  });
+
+  test("formatHoverMarkdown renders type, message, source, and command link", () => {
+    const md = formatHoverMarkdown(
+      {
+        type: "V5_AGGREGATE_BOUNDARY",
+        message: "Entity Order should not be modified outside its aggregate.",
+        suggestion: "Route changes through the OrderAggregate root.",
+        sources: [
+          {
+            document: "SRS.docx",
+            section: "3.2 Order Management",
+            page: 12,
+            summary:
+              "The Order aggregate enforces its own invariants and must be the only entry point for modifications.",
+            file_path: "/abs/inputs/SRS.docx",
+            relevance_score: 0.91,
+          },
+        ],
+      },
+      "Order",
+    );
+    assert.ok(
+      md.includes("V5_AGGREGATE_BOUNDARY"),
+      "includes the violation type",
+    );
+    assert.ok(
+      md.includes("3.2 Order Management"),
+      "includes the source section",
+    );
+    assert.ok(md.includes("SRS.docx"), "includes the source document");
+    assert.ok(md.includes("p. 12") || md.includes("p.12"), "includes the page");
+    assert.ok(md.includes("**Order**"), "bolds the matched keyword in excerpt");
+    assert.ok(
+      md.includes("command:ddd-enforcer.openSource?"),
+      "includes the trusted command link",
+    );
+    assert.ok(
+      md.includes(encodeURIComponent(JSON.stringify(["/abs/inputs/SRS.docx", "3.2 Order Management"]))),
+      "command args match the openSource Code Action contract",
+    );
+  });
+
+  test("formatHoverMarkdown omits the source block when there are no sources", () => {
+    const md = formatHoverMarkdown(
+      {
+        type: "V1_SYNONYM",
+        message: "Use the canonical term 'Customer' instead of 'Client'.",
+        suggestion: "Rename Client to Customer.",
+        sources: [],
+      },
+      "Client",
+    );
+    assert.ok(md.includes("V1_SYNONYM"));
+    assert.ok(!md.includes("command:ddd-enforcer.openSource"), "no command link without a source");
+    assert.ok(!md.includes("Source:"), "no source header without a source");
+  });
+
+  test("formatHoverMarkdown handles an undefined sources field", () => {
+    const md = formatHoverMarkdown(
+      {
+        type: "V2_BANNED",
+        message: "The term 'Manager' is banned in the domain model.",
+        suggestion: "Use a role-specific name.",
+      },
+      "Manager",
+    );
+    assert.ok(md.includes("V2_BANNED"));
+    assert.ok(!md.includes("command:ddd-enforcer.openSource"));
+  });
+
+  test("formatHoverMarkdown truncates a long excerpt", () => {
+    const longSummary = "x ".repeat(300); // 600 chars
+    const md = formatHoverMarkdown(
+      {
+        type: "V5",
+        message: "msg",
+        suggestion: "s",
+        sources: [
+          {
+            document: "SRS.docx",
+            section: "S",
+            page: 1,
+            summary: longSummary,
+            file_path: "/p",
+            relevance_score: 0.5,
+          },
+        ],
+      },
+      "nomatch",
+    );
+    assert.ok(md.includes("…"), "long excerpt is truncated with an ellipsis");
   });
 });
