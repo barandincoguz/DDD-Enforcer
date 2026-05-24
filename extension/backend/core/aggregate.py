@@ -380,15 +380,15 @@ def aggregate_configuration(
 
 def compose_aggregate_key(config: AggregatedConfiguration) -> str:
     """Filesystem-safe slug: ``f"{pipeline or 'pipelineNone'}_{model_id}_{srs_label}"``
-    sanitized with the same regex as :func:`core.run_manifest.compose_run_id`.
+    sanitized via :func:`core.run_manifest.sanitize_path_segment` (shared
+    helper so composite keys here stay character-set-aligned with
+    ``compose_run_id``).
     """
-
-    def _sanitize(s: str) -> str:
-        return re.sub(r'[./\s:<>"|?*\\]', "_", s)
+    from core.run_manifest import sanitize_path_segment
 
     pipeline_str = config.pipeline if config.pipeline is not None else "pipelineNone"
     parts = [pipeline_str, config.model_id, config.srs_label]
-    return "_".join(_sanitize(p) for p in parts)
+    return "_".join(sanitize_path_segment(p) for p in parts)
 
 
 # ---------------------------------------------------------------------------

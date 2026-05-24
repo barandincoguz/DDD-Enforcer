@@ -110,6 +110,21 @@ def sha256_of_code_tree(root: Path) -> str:
     return h.hexdigest()
 
 
+_RUN_ID_UNSAFE_CHARS = re.compile(r'[./\s:<>"|?*\\]')
+
+
+def sanitize_path_segment(s: str) -> str:
+    """Replace path-unsafe characters with ``_``.
+
+    Targets the union of POSIX-unfriendly (``/``, whitespace, ``.``) and
+    Windows-forbidden (``:``, ``<``, ``>``, ``"``, ``|``, ``?``, ``*``,
+    ``\\``) characters. Used by :func:`compose_run_id` and
+    :func:`core.aggregate.compose_aggregate_key` to keep their composite
+    keys safe as directory / file names on both OS families.
+    """
+    return _RUN_ID_UNSAFE_CHARS.sub("_", s)
+
+
 def compose_run_id(
     pipeline: str,
     model_id: str,
@@ -119,10 +134,9 @@ def compose_run_id(
 ) -> str:
     """Build a filesystem-safe composite run identifier.
 
-    Sanitizes each component by replacing the following characters with ``_``:
-    ``/``, ``.``, whitespace, ``:``, ``<``, ``>``, ``"``, ``|``, ``?``, ``*``,
-    ``\\``.  The resulting ``run_id`` is safe for both POSIX and Windows path
-    semantics (the latter forbids the last seven characters in directory names).
+    Sanitizes each component via :func:`sanitize_path_segment` so the
+    resulting ``run_id`` is safe for both POSIX and Windows path
+    semantics.
 
     Args:
         pipeline:      Pipeline tag, e.g. ``"P1"``.
@@ -135,12 +149,8 @@ def compose_run_id(
         A path-safe string with no ``/``, ``.``, whitespace, ``:``, ``<``,
         ``>``, ``"``, ``|``, ``?``, ``*``, or ``\\`` characters.
     """
-
-    def _sanitize(s: str) -> str:
-        return re.sub(r'[./\s:<>"|?*\\]', "_", s)
-
     parts = [pipeline, model_id, srs, timestamp_utc, seed]
-    return "_".join(_sanitize(p) for p in parts)
+    return "_".join(sanitize_path_segment(p) for p in parts)
 
 
 # ---------------------------------------------------------------------------
