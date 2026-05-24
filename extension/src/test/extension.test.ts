@@ -22,6 +22,7 @@ import {
   computeEtaMs,
   formatStageStatusBar,
   type StageStatusBarParts,
+  LruCache,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -683,5 +684,79 @@ suite("Extension Test Suite", () => {
       }),
       "$(sync~spin) DDD: Specialist (38%)",
     );
+  });
+
+  // ==========================================================================
+  // VALIDATION HOVER TESTS (Iter 50)
+  // ==========================================================================
+
+  test("LruCache stores and retrieves values", () => {
+    const cache = new LruCache<string, number>(3);
+    cache.set("a", 1);
+    cache.set("b", 2);
+    assert.strictEqual(cache.get("a"), 1);
+    assert.strictEqual(cache.get("b"), 2);
+    assert.strictEqual(cache.get("missing"), undefined);
+  });
+
+  test("LruCache reports size and has()", () => {
+    const cache = new LruCache<string, number>(3);
+    assert.strictEqual(cache.size, 0);
+    cache.set("a", 1);
+    assert.strictEqual(cache.size, 1);
+    assert.strictEqual(cache.has("a"), true);
+    assert.strictEqual(cache.has("b"), false);
+  });
+
+  test("LruCache evicts the least-recently-used entry at capacity", () => {
+    const cache = new LruCache<string, number>(2);
+    cache.set("a", 1);
+    cache.set("b", 2);
+    cache.set("c", 3); // evicts "a" (LRU)
+    assert.strictEqual(cache.has("a"), false);
+    assert.strictEqual(cache.get("b"), 2);
+    assert.strictEqual(cache.get("c"), 3);
+    assert.strictEqual(cache.size, 2);
+  });
+
+  test("LruCache get() promotes recency so the touched entry survives eviction", () => {
+    const cache = new LruCache<string, number>(2);
+    cache.set("a", 1);
+    cache.set("b", 2);
+    cache.get("a"); // touch "a" → "b" is now LRU
+    cache.set("c", 3); // evicts "b", not "a"
+    assert.strictEqual(cache.has("a"), true);
+    assert.strictEqual(cache.has("b"), false);
+    assert.strictEqual(cache.has("c"), true);
+  });
+
+  test("LruCache set() on an existing key updates value and promotes recency", () => {
+    const cache = new LruCache<string, number>(2);
+    cache.set("a", 1);
+    cache.set("b", 2);
+    cache.set("a", 99); // update + promote "a"
+    cache.set("c", 3); // evicts "b"
+    assert.strictEqual(cache.get("a"), 99);
+    assert.strictEqual(cache.has("b"), false);
+    assert.strictEqual(cache.has("c"), true);
+  });
+
+  test("LruCache delete() removes an entry (invalidation)", () => {
+    const cache = new LruCache<string, number>(3);
+    cache.set("a", 1);
+    cache.set("b", 2);
+    assert.strictEqual(cache.delete("a"), true);
+    assert.strictEqual(cache.has("a"), false);
+    assert.strictEqual(cache.delete("a"), false);
+    assert.strictEqual(cache.size, 1);
+  });
+
+  test("LruCache capacity of 1 keeps only the newest entry", () => {
+    const cache = new LruCache<string, number>(1);
+    cache.set("a", 1);
+    cache.set("b", 2);
+    assert.strictEqual(cache.has("a"), false);
+    assert.strictEqual(cache.get("b"), 2);
+    assert.strictEqual(cache.size, 1);
   });
 });
