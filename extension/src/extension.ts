@@ -1743,6 +1743,10 @@ async function validateCode(
       data.violations.forEach((violation) => {
         const diagnostic = createDiagnostic(document, violation);
         diagnostics.push(diagnostic);
+        // Cache by diagnostic line for the hover provider. If two
+        // violations land on the same line, the last one wins (the hover
+        // shows one violation per line); the DiagnosticCollection still
+        // holds all of them.
         lineToViolation.set(diagnostic.range.start.line, violation);
       });
 
@@ -2188,10 +2192,51 @@ class DDDViolationHoverProvider implements vscode.HoverProvider {
 }
 
 /**
+ * Returns true when `filePath` resolves to a location inside one of the
+ * currently-open workspace folders. Used to gate opening backend-supplied
+ * source paths: in-workspace paths open silently, out-of-workspace paths
+ * require explicit user confirmation (defense-in-depth against a
+ * compromised backend or a hallucinated path).
+ */
+function isPathInsideWorkspace(filePath: string): boolean {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    return false;
+  }
+  const resolved = path.resolve(filePath);
+  return folders.some((folder) => {
+    const folderPath = path.resolve(folder.uri.fsPath);
+    const rel = path.relative(folderPath, resolved);
+    // Inside the folder when the relative path doesn't climb out (no "..")
+    // and isn't an absolute path on another root.
+    return (
+      rel === "" ||
+      (!rel.startsWith("..") && !path.isAbsolute(rel))
+    );
+  });
+}
+
+/**
  * Opens a source document and navigates to the relevant section.
+ * In-workspace paths (the common case — SRS files under the workspace
+ * inputs/) open silently. Out-of-workspace paths require an explicit
+ * modal confirmation before opening (defense-in-depth: the file_path
+ * originates from a backend-supplied RAG response).
  */
 async function openSourceCommand(filePath: string, section: string) {
   try {
+    if (!isPathInsideWorkspace(filePath)) {
+      const choice = await vscode.window.showWarningMessage(
+        `DDD Enforcer wants to open a file outside your workspace:\n${filePath}\n\nOpen it?`,
+        { modal: true },
+        "Open",
+      );
+      if (choice !== "Open") {
+        log(`Declined to open out-of-workspace source path: ${filePath}`);
+        return;
+      }
+    }
+
     const uri = vscode.Uri.file(filePath);
     const doc = await vscode.workspace.openTextDocument(uri);
     const editor = await vscode.window.showTextDocument(doc, {
