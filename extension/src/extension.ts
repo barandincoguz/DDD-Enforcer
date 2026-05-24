@@ -497,6 +497,124 @@ export function formatHoverMarkdown(
 }
 
 // =============================================================================
+// RUN MANIFEST WEBVIEW (pure helpers — testable without vscode)
+// =============================================================================
+
+/** One DDD violation as recorded in a PaperRunManifest (mirror of the backend schema). */
+export interface ManifestViolation {
+  violation_type: string;
+  location: string;
+  severity: "ERROR" | "WARN";
+  message: string;
+  srs_path?: string | null;
+  suggestion?: string | null;
+}
+
+/** Mirror of extension/backend/core/run_manifest.py:PaperRunManifest (schema_version "1.0"). */
+export interface PaperRunManifest {
+  run_id: string;
+  timestamp_utc: string;
+  pipeline: "P1" | "P2" | "P3" | null;
+  model_id: string;
+  provider: "gemini" | "ollama";
+  srs_path: string;
+  srs_sha256: string;
+  code_root: string | null;
+  code_sha256: string | null;
+  violations: ManifestViolation[];
+  latency_seconds: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cost_usd: number;
+  judge_verdict_path: string | null;
+  audit_overrides_path: string | null;
+  seed_manifest_path: string | null;
+  schema_version: string;
+}
+
+/** The seven list-view columns for one run. */
+export interface RunSummary {
+  runId: string;
+  pipeline: string; // "—" when null
+  modelId: string;
+  srsLabel: string; // basename of srs_path
+  timestamp: string;
+  costUsd: number;
+  violationCount: number;
+}
+
+/** A column key for RunSummary sorting. */
+export type RunSummaryColumn = keyof RunSummary;
+
+/**
+ * Extract the basename of a path that may use POSIX (/) or Windows (\)
+ * separators. Pure (does not touch the filesystem).
+ */
+function basenameOf(p: string): string {
+  const norm = p.replace(/\\/g, "/");
+  const idx = norm.lastIndexOf("/");
+  return idx >= 0 ? norm.slice(idx + 1) : norm;
+}
+
+/**
+ * Build a RunSummary from a parsed manifest object. Returns null when the
+ * input is not a conforming PaperRunManifest (no string `run_id`), so
+ * legacy/foreign JSON files under runs/ are silently filtered out. A
+ * missing `violations` array counts as zero. Pure.
+ */
+export function summarizeManifest(raw: unknown): RunSummary | null {
+  if (typeof raw !== "object" || raw === null) {
+    return null;
+  }
+  const m = raw as Partial<PaperRunManifest>;
+  if (typeof m.run_id !== "string") {
+    return null;
+  }
+  return {
+    runId: m.run_id,
+    pipeline: m.pipeline ?? "—",
+    modelId: typeof m.model_id === "string" ? m.model_id : "",
+    srsLabel: typeof m.srs_path === "string" ? basenameOf(m.srs_path) : "",
+    timestamp: typeof m.timestamp_utc === "string" ? m.timestamp_utc : "",
+    costUsd: typeof m.cost_usd === "number" ? m.cost_usd : 0,
+    violationCount: Array.isArray(m.violations) ? m.violations.length : 0,
+  };
+}
+
+/**
+ * Return a NEW array of summaries sorted by `column`. Numeric columns
+ * compare numerically; everything else compares case-insensitive strings.
+ * Does not mutate the input. Pure.
+ */
+export function sortRunSummaries(
+  rows: RunSummary[],
+  column: RunSummaryColumn,
+  direction: "asc" | "desc",
+): RunSummary[] {
+  const numericColumns: ReadonlySet<RunSummaryColumn> = new Set([
+    "costUsd",
+    "violationCount",
+  ]);
+  const sign = direction === "asc" ? 1 : -1;
+  const copy = [...rows];
+  copy.sort((a, b) => {
+    if (numericColumns.has(column)) {
+      return (Number(a[column]) - Number(b[column])) * sign;
+    }
+    const av = String(a[column]).toLowerCase();
+    const bv = String(b[column]).toLowerCase();
+    if (av < bv) {
+      return -1 * sign;
+    }
+    if (av > bv) {
+      return 1 * sign;
+    }
+    return 0;
+  });
+  return copy;
+}
+
+// =============================================================================
 // GLOBAL STATE
 // =============================================================================
 

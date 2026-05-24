@@ -26,6 +26,10 @@ import {
   truncateExcerpt,
   boldMatchingSpan,
   formatHoverMarkdown,
+  summarizeManifest,
+  sortRunSummaries,
+  type RunSummary,
+  type PaperRunManifest,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -908,5 +912,126 @@ suite("Extension Test Suite", () => {
       "nomatch",
     );
     assert.ok(md.includes("…"), "long excerpt is truncated with an ellipsis");
+  });
+
+  // ==========================================================================
+  // RUN MANIFEST WEBVIEW TESTS (WP-CORE-32)
+  // ==========================================================================
+
+  const sampleManifest: PaperRunManifest = {
+    run_id: "gemini-3.1-pro__ecommerce__seed7__20260520-1642",
+    timestamp_utc: "2026-05-20T16:42:42Z",
+    pipeline: null,
+    model_id: "gemini-3.1-pro-preview",
+    provider: "gemini",
+    srs_path: "/abs/workspace/inputs/SRS.docx",
+    srs_sha256: "a".repeat(64),
+    code_root: "/abs/workspace",
+    code_sha256: "b".repeat(64),
+    violations: [
+      {
+        violation_type: "ubiquitous_language_drift",
+        location: "orders/service.py:42",
+        severity: "ERROR",
+        message: "Use 'Customer' not 'Client'.",
+      },
+      {
+        violation_type: "aggregate_boundary",
+        location: "orders/model.py:10",
+        severity: "WARN",
+        message: "Modify Order via its aggregate root.",
+      },
+    ],
+    latency_seconds: 12.5,
+    prompt_tokens: 1000,
+    completion_tokens: 500,
+    cost_usd: 0.0123,
+    judge_verdict_path: null,
+    audit_overrides_path: null,
+    seed_manifest_path: null,
+    schema_version: "1.0",
+  };
+
+  test("summarizeManifest extracts the seven list columns", () => {
+    const summary = summarizeManifest(sampleManifest);
+    assert.ok(summary, "returns a summary for a valid manifest");
+    if (summary) {
+      assert.strictEqual(summary.runId, sampleManifest.run_id);
+      assert.strictEqual(summary.pipeline, "—"); // null pipeline rendered as em-dash
+      assert.strictEqual(summary.modelId, "gemini-3.1-pro-preview");
+      assert.strictEqual(summary.srsLabel, "SRS.docx"); // basename of srs_path
+      assert.strictEqual(summary.timestamp, "2026-05-20T16:42:42Z");
+      assert.strictEqual(summary.costUsd, 0.0123);
+      assert.strictEqual(summary.violationCount, 2);
+    }
+  });
+
+  test("summarizeManifest renders a non-null pipeline verbatim", () => {
+    const summary = summarizeManifest({ ...sampleManifest, pipeline: "P3" });
+    assert.ok(summary);
+    if (summary) {
+      assert.strictEqual(summary.pipeline, "P3");
+    }
+  });
+
+  test("summarizeManifest derives srsLabel from a posix or windows path", () => {
+    const posix = summarizeManifest({
+      ...sampleManifest,
+      srs_path: "/a/b/c/Banking.pdf",
+    });
+    assert.strictEqual(posix?.srsLabel, "Banking.pdf");
+    const win = summarizeManifest({
+      ...sampleManifest,
+      srs_path: "C:\\runs\\Health.txt",
+    });
+    assert.strictEqual(win?.srsLabel, "Health.txt");
+  });
+
+  test("summarizeManifest returns null for non-conforming JSON (no run_id)", () => {
+    assert.strictEqual(summarizeManifest({ foo: "bar" } as unknown), null);
+    assert.strictEqual(summarizeManifest(null as unknown), null);
+    assert.strictEqual(summarizeManifest(42 as unknown), null);
+  });
+
+  test("summarizeManifest tolerates a missing violations array", () => {
+    const noViol = summarizeManifest({
+      ...sampleManifest,
+      violations: undefined as unknown as [],
+    });
+    assert.ok(noViol);
+    if (noViol) {
+      assert.strictEqual(noViol.violationCount, 0);
+    }
+  });
+
+  test("sortRunSummaries sorts by cost ascending and descending", () => {
+    const rows: RunSummary[] = [
+      { runId: "a", pipeline: "—", modelId: "m", srsLabel: "s", timestamp: "t1", costUsd: 0.5, violationCount: 1 },
+      { runId: "b", pipeline: "—", modelId: "m", srsLabel: "s", timestamp: "t2", costUsd: 0.1, violationCount: 3 },
+      { runId: "c", pipeline: "—", modelId: "m", srsLabel: "s", timestamp: "t3", costUsd: 0.9, violationCount: 2 },
+    ];
+    const asc = sortRunSummaries(rows, "costUsd", "asc");
+    assert.deepStrictEqual(asc.map((r) => r.runId), ["b", "a", "c"]);
+    const desc = sortRunSummaries(rows, "costUsd", "desc");
+    assert.deepStrictEqual(desc.map((r) => r.runId), ["c", "a", "b"]);
+  });
+
+  test("sortRunSummaries sorts strings case-insensitively", () => {
+    const rows: RunSummary[] = [
+      { runId: "Zeta", pipeline: "—", modelId: "m", srsLabel: "s", timestamp: "t", costUsd: 0, violationCount: 0 },
+      { runId: "alpha", pipeline: "—", modelId: "m", srsLabel: "s", timestamp: "t", costUsd: 0, violationCount: 0 },
+    ];
+    const asc = sortRunSummaries(rows, "runId", "asc");
+    assert.deepStrictEqual(asc.map((r) => r.runId), ["alpha", "Zeta"]);
+  });
+
+  test("sortRunSummaries does not mutate the input array", () => {
+    const rows: RunSummary[] = [
+      { runId: "a", pipeline: "—", modelId: "m", srsLabel: "s", timestamp: "t", costUsd: 0.5, violationCount: 1 },
+      { runId: "b", pipeline: "—", modelId: "m", srsLabel: "s", timestamp: "t", costUsd: 0.1, violationCount: 3 },
+    ];
+    const before = rows.map((r) => r.runId);
+    sortRunSummaries(rows, "costUsd", "asc");
+    assert.deepStrictEqual(rows.map((r) => r.runId), before);
   });
 });
