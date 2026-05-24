@@ -638,6 +638,10 @@ export function generateNonce(): string {
  * and posts `openDetail` / `refresh` messages back to the extension. The
  * extension posts `runList` (RunSummary[]) and `runDetail` (full manifest)
  * messages in. Pure (returns a string).
+ *
+ * The client-side esc() helper escapes &<>"' so interpolated values are
+ * safe in both text and attribute contexts; run_id is additionally
+ * sanitized server-side by sanitize_path_segment.
  */
 export function buildRunManifestsHtml(
   nonce: string,
@@ -692,7 +696,8 @@ export function buildRunManifestsHtml(
 
   function esc(s) {
     return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
   function sortRuns(rows, col, dir) {

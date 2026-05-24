@@ -1079,4 +1079,13 @@ suite("Extension Test Suite", () => {
     assert.ok(html.includes("id=\"runs-table\"") || html.includes("id='runs-table'"), "has the runs table element");
     assert.ok(html.includes("id=\"detail\"") || html.includes("id='detail'"), "has the detail pane element");
   });
+
+  test("buildRunManifestsHtml esc() escapes quotes for attribute-context safety", () => {
+    const html = buildRunManifestsHtml("N", "vscode-webview://abc");
+    // The client-side esc() must neutralize " and ' so an interpolated
+    // runId cannot break out of the data-run="..." attribute (defense in
+    // depth — run_id is also sanitized server-side by sanitize_path_segment).
+    assert.ok(html.includes("&quot;"), "esc replaces double quotes");
+    assert.ok(html.includes("&#39;"), "esc replaces single quotes");
+  });
 });
