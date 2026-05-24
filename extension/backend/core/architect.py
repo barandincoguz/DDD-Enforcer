@@ -790,10 +790,20 @@ Do not invent data not present in the sentences."""
         # Convention: target (or location) starts with "specialist:" and may
         # carry a sub-path: "specialist:<ctx_name>.<field>".
         # ------------------------------------------------------------------
+        # _issue_stage is module-private by convention but the cross-module
+        # use here is deliberate: it is the single source of truth for
+        # mapping a VerifierIssue (legacy OR contract) to its originating
+        # stage prefix. Reusing it keeps the prefix-match logic from
+        # diverging — earlier versions of _parse_target_ctx re-implemented
+        # the getattr(target/location) + prefix-check pattern in two places.
+        from core.orchestration.pipeline import _issue_stage
+
         def _parse_target_ctx(issue: Any) -> Optional[str]:
             """Return the context name embedded in a specialist: target, or None."""
+            if _issue_stage(issue) != "specialist":
+                return None
             raw = getattr(issue, "target", None) or getattr(issue, "location", "") or ""
-            if not isinstance(raw, str) or not raw.startswith("specialist:"):
+            if not isinstance(raw, str):
                 return None
             # Drop the "specialist:" prefix, then take the portion before the
             # first dot to isolate the context name.
