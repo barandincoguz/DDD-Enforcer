@@ -278,6 +278,48 @@ export function parseSubProgress(
   return { current, total };
 }
 
+/**
+ * Render an elapsed/remaining millisecond duration as a compact human
+ * string: "45s", "2m30s", "1h05m". Sub-second values round up to the
+ * nearest second (so a tiny positive ETA never shows "0s"). Pure.
+ */
+export function formatEta(ms: number): string {
+  const totalSeconds = Math.ceil(Math.max(0, ms) / 1000);
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) {
+    const seconds = totalSeconds % 60;
+    return `${totalMinutes}m${seconds.toString().padStart(2, "0")}s`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h${minutes.toString().padStart(2, "0")}m`;
+}
+
+/**
+ * Estimate remaining milliseconds from the elapsed time and the overall
+ * completion percentage (0-100). Extrapolates a total run time
+ * (`elapsed / fraction`) and subtracts elapsed. Returns null when no
+ * progress has been made yet (percent <= 0), since no estimate is
+ * possible. Percent >= 100 returns 0. Pure.
+ */
+export function computeEtaMs(
+  elapsedMs: number,
+  overallPercent: number,
+): number | null {
+  if (overallPercent <= 0) {
+    return null;
+  }
+  if (overallPercent >= 100) {
+    return 0;
+  }
+  const fraction = overallPercent / 100;
+  const totalMs = elapsedMs / fraction;
+  return Math.round(totalMs - elapsedMs);
+}
+
 // =============================================================================
 // GLOBAL STATE
 // =============================================================================

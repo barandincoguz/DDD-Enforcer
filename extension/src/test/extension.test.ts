@@ -18,6 +18,8 @@ import {
   parseSubProgress,
   STAGE_ORDER,
   STAGE_WEIGHTS,
+  formatEta,
+  computeEtaMs,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -556,5 +558,46 @@ suite("Extension Test Suite", () => {
         `${stage} has a weight but is not in STAGE_ORDER`,
       );
     }
+  });
+
+  test("formatEta renders seconds under a minute", () => {
+    assert.strictEqual(formatEta(0), "0s");
+    assert.strictEqual(formatEta(1000), "1s");
+    assert.strictEqual(formatEta(45000), "45s");
+    assert.strictEqual(formatEta(59000), "59s");
+  });
+
+  test("formatEta renders minutes and seconds", () => {
+    assert.strictEqual(formatEta(60000), "1m00s");
+    assert.strictEqual(formatEta(90000), "1m30s");
+    assert.strictEqual(formatEta(150000), "2m30s");
+  });
+
+  test("formatEta renders hours, minutes", () => {
+    assert.strictEqual(formatEta(3600000), "1h00m");
+    assert.strictEqual(formatEta(3900000), "1h05m");
+  });
+
+  test("formatEta rounds sub-second up to whole seconds", () => {
+    assert.strictEqual(formatEta(500), "1s");
+    assert.strictEqual(formatEta(1500), "2s");
+  });
+
+  test("computeEtaMs returns null before any progress (fraction 0)", () => {
+    assert.strictEqual(computeEtaMs(10000, 0), null);
+    assert.strictEqual(computeEtaMs(10000, -5), null);
+  });
+
+  test("computeEtaMs extrapolates remaining time from elapsed and fraction", () => {
+    assert.strictEqual(computeEtaMs(10000, 25), 30000);
+    assert.strictEqual(computeEtaMs(30000, 50), 30000);
+  });
+
+  test("computeEtaMs returns 0 at 100% complete", () => {
+    assert.strictEqual(computeEtaMs(60000, 100), 0);
+  });
+
+  test("computeEtaMs clamps fraction above 100 to 0 remaining", () => {
+    assert.strictEqual(computeEtaMs(60000, 150), 0);
   });
 });
