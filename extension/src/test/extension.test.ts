@@ -369,6 +369,21 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(decisionEnv.shouldOffer, false);
   });
 
+  test("decideMigrationOffer suppresses env offer once env migration is done (T3)", () => {
+    const decision = decideMigrationOffer("env", false, true);
+    assert.strictEqual(decision.shouldOffer, false);
+  });
+
+  test("decideMigrationOffer still offers env when env migration not done (T3)", () => {
+    const decision = decideMigrationOffer("env", false, false);
+    assert.strictEqual(decision.shouldOffer, true);
+  });
+
+  test("decideMigrationOffer leaves settings unaffected by env migration flag (T3)", () => {
+    const decision = decideMigrationOffer("settings", false, true);
+    assert.strictEqual(decision.shouldOffer, true);
+  });
+
   test("decideMigrationOffer + ApiKeySource type cover all four sources", () => {
     const sources: ApiKeySource[] = ["settings", "env", "secret", "prompt"];
     const allDecisions = sources.map((s) => decideMigrationOffer(s, false));

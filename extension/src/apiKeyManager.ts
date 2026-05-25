@@ -123,6 +123,7 @@ export interface MigrationDecision {
 export function decideMigrationOffer(
   source: ApiKeySource,
   migrationDeclined: boolean,
+  envMigrationDone: boolean = false,
 ): MigrationDecision {
   const labels: Record<ApiKeySource, string> = {
     settings: "VS Code settings",
@@ -131,6 +132,9 @@ export function decideMigrationOffer(
     prompt: "user prompt",
   };
   if (migrationDeclined) {
+    return { shouldOffer: false, sourceLabel: labels[source] };
+  }
+  if (source === "env" && envMigrationDone) {
     return { shouldOffer: false, sourceLabel: labels[source] };
   }
   if (source === "settings" || source === "env") {
@@ -231,10 +235,16 @@ export async function getApiKey(
   // Migration offer for less-secure sources.
   const migrationDeclined =
     context.globalState.get<boolean>("apiKeyMigrationDeclined") === true;
-  const decision = decideMigrationOffer(source, migrationDeclined);
+  const envMigrationDone =
+    context.globalState.get<boolean>("apiKeyEnvMigrationDone") === true;
+  const decision = decideMigrationOffer(source, migrationDeclined, envMigrationDone);
   if (decision.shouldOffer) {
+    const envNote =
+      source === "env"
+        ? " Note: unset GEMINI_API_KEY afterward so secret storage takes precedence."
+        : "";
     const choice = await vscode.window.showInformationMessage(
-      `DDD Enforcer found your Gemini API key in ${decision.sourceLabel}. Move it to VS Code secret storage for better security?`,
+      `DDD Enforcer found your Gemini API key in ${decision.sourceLabel}. Move it to VS Code secret storage for better security?${envNote}`,
       "Move to secret storage",
       "Not now",
       "Don't ask again",
@@ -268,6 +278,12 @@ export async function getApiKey(
           "DDD Enforcer: API key saved to secret storage, but could not clear the existing setting. Please remove ddd-enforcer.geminiApiKey from your settings manually.",
         );
       } else {
+        if (source === "env") {
+          await context.globalState.update("apiKeyEnvMigrationDone", true);
+          log(
+            "Env-sourced API key migrated to secret storage; suppressing future env migration offers. Unset GEMINI_API_KEY to let secret storage take over.",
+          );
+        }
         log(`API key migrated from ${decision.sourceLabel} to secret storage.`);
         vscode.window.showInformationMessage(
           "DDD Enforcer: Gemini API key moved to secret storage.",
