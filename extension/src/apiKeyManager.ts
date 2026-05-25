@@ -36,6 +36,9 @@ export function classifyApiKeyError(err: unknown): ApiKeyErrorKind {
     "ECONNABORTED",
     "ECONNREFUSED",
     "ETIMEDOUT",
+    "ERR_NETWORK",
+    "ERR_BAD_RESPONSE",
+    "EAI_AGAIN",
   ]);
   if (e.code && networkCodes.has(e.code)) {
     return "network_error";

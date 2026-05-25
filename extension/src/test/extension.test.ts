@@ -270,6 +270,16 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(result, "network_error");
   });
 
+  test("classifyApiKeyError maps ERR_NETWORK to network_error (T4)", () => {
+    const result = classifyApiKeyError({ code: "ERR_NETWORK" });
+    assert.strictEqual(result, "network_error");
+  });
+
+  test("classifyApiKeyError maps EAI_AGAIN to network_error (T4)", () => {
+    const result = classifyApiKeyError({ code: "EAI_AGAIN" });
+    assert.strictEqual(result, "network_error");
+  });
+
   test("classifyApiKeyError maps unrecognized error to unknown", () => {
     const result = classifyApiKeyError({ response: { status: 500 } });
     assert.strictEqual(result, "unknown");
