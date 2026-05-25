@@ -21,7 +21,7 @@
 - Modify: `extension/src/extension.ts` (re-export the new symbols)
 - Test: `extension/src/test/extension.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `extension/src/test/extension.test.ts` inside the top-level `suite(...)` (after the existing SAVE-TRIGGER block, before the API KEY block). First extend the import from `"../extension"` with `tokenizeIndentation` and `type LogicalLine`.
 
@@ -77,12 +77,12 @@ Add to `extension/src/test/extension.test.ts` inside the top-level `suite(...)` 
   });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npm run compile`
 Expected: FAIL — `error TS2305: Module '"../extension"' has no exported member 'tokenizeIndentation'` (and `LogicalLine`).
 
-- [ ] **Step 3: Implement Phase 2 in `semanticFingerprint.ts`**
+- [x] **Step 3: Implement Phase 2 in `semanticFingerprint.ts`**
 
 Add near the top of `extension/src/semanticFingerprint.ts` (after the file header comment, before `getValidationFingerprint`):
 
@@ -146,12 +146,12 @@ export {
 } from "./semanticFingerprint";
 ```
 
-- [ ] **Step 4: Run to verify it passes**
+- [x] **Step 4: Run to verify it passes**
 
 Run: `npm run compile && npm run lint && npm test 2>&1 | grep -E "tokenizeIndentation|passing|failing"`
 Expected: the 4 `tokenizeIndentation` tests show `✔`; suite reports `132 passing` (128 prior + 4); exit 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add extension/src/semanticFingerprint.ts extension/src/extension.ts extension/src/test/extension.test.ts
@@ -169,7 +169,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Modify: `extension/src/extension.ts` (add `extractLogicalLines` to the re-export block)
 - Test: `extension/src/test/extension.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Extend the `"../extension"` import with `extractLogicalLines`. Add this block after the Phase 2 tests:
 
@@ -240,12 +240,12 @@ Extend the `"../extension"` import with `extractLogicalLines`. Add this block af
   });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npm run compile`
 Expected: FAIL — `error TS2305: Module '"../extension"' has no exported member 'extractLogicalLines'`.
 
-- [ ] **Step 3: Implement Phase 1 in `semanticFingerprint.ts`**
+- [x] **Step 3: Implement Phase 1 in `semanticFingerprint.ts`**
 
 Add this function (and the small `isWordChar` helper) to `extension/src/semanticFingerprint.ts`, above `normalizePythonSemantics`:
 
@@ -481,12 +481,12 @@ export function extractLogicalLines(src: string): LogicalLine[] {
 
 Add `extractLogicalLines` to the `export { ... } from "./semanticFingerprint";` block in `extension/src/extension.ts` (alongside `tokenizeIndentation`, `type LogicalLine` added in Task 1).
 
-- [ ] **Step 4: Run to verify it passes**
+- [x] **Step 4: Run to verify it passes**
 
 Run: `npm run compile && npm run lint && npm test 2>&1 | grep -E "extractLogicalLines|passing|failing"`
 Expected: the 9 `extractLogicalLines` tests show `✔`; suite reports `141 passing` (132 + 9); exit 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add extension/src/semanticFingerprint.ts extension/src/extension.ts extension/src/test/extension.test.ts
@@ -503,7 +503,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Modify: `extension/src/semanticFingerprint.ts` (rewrite `normalizePythonSemantics` body)
 - Test: `extension/src/test/extension.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add after the existing SAVE-TRIGGER block (these exercise the composed function via the public API):
 
@@ -541,12 +541,12 @@ Add after the existing SAVE-TRIGGER block (these exercise the composed function 
   });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npm run compile && npm test 2>&1 | grep -E "Dedenting|reindent|state leak|failing"`
 Expected: FAIL — `Dedenting a statement out of a block triggers validation (T10)` fails (current `normalizePythonSemantics` strips indentation, so `before`/`after` collide and `shouldValidate` is `false`).
 
-- [ ] **Step 3: Rewrite `normalizePythonSemantics` to compose the phases**
+- [x] **Step 3: Rewrite `normalizePythonSemantics` to compose the phases**
 
 Replace the entire body of `normalizePythonSemantics` in `extension/src/semanticFingerprint.ts` (keep the signature and the doc comment intact, update the comment to describe the two-phase approach):
 
@@ -566,12 +566,12 @@ export function normalizePythonSemantics(content: string): string {
 
 Delete the old character-stripping loop body entirely (the previous implementation that walked `inSingle`/`inDouble`/`inTripleSingle`/`inTripleDouble` and stripped all whitespace). Ensure no now-unused locals remain (lint will flag them).
 
-- [ ] **Step 4: Run to verify it passes**
+- [x] **Step 4: Run to verify it passes**
 
 Run: `npm run compile && npm run lint && npm test 2>&1 | grep -E "passing|failing"`
 Expected: `145 passing` (141 + 4); `0 failing`; exit 0. In particular the four original SAVE-TRIGGER tests (no-op / blank-line / comment-only skip, semantic-change validate) remain green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add extension/src/semanticFingerprint.ts extension/src/test/extension.test.ts
@@ -587,21 +587,21 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: `docs/superpowers/specs/2026-05-25-fingerprint-indent-string-hardening-design.md` (flip Status to Implemented)
 
-- [ ] **Step 1: Full gate**
+- [x] **Step 1: Full gate**
 
 Run: `npm run compile && npm run lint && npm test 2>&1 | tail -4`
 Expected: compile 0, lint 0, `145 passing`, exit 0.
 
-- [ ] **Step 2: Confirm scope is clean**
+- [x] **Step 2: Confirm scope is clean**
 
 Run: `git diff --name-only b934033..HEAD -- extension/src | sort -u`
 Expected: only `extension/src/extension.ts`, `extension/src/semanticFingerprint.ts`, `extension/src/test/extension.test.ts` (plus the unrelated Task-1..3 files already listed). No file outside `semanticFingerprint.ts`/`extension.ts`/test touched by this plan.
 
-- [ ] **Step 3: Mark the spec Implemented**
+- [x] **Step 3: Mark the spec Implemented**
 
 In `docs/superpowers/specs/2026-05-25-fingerprint-indent-string-hardening-design.md`, change `**Status:** Approved design — pending spec review → writing-plans.` to `**Status:** Implemented (see plan 2026-05-25-fingerprint-indent-string-hardening.md).`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/specs/2026-05-25-fingerprint-indent-string-hardening-design.md
