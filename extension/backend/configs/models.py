@@ -127,6 +127,7 @@ STAGE_TO_GROUP: Dict[str, str] = {
     "Architect":   "domain_extraction",
     "Specialist":  "domain_extraction",
     "Synthesizer": "domain_extraction",
+    "Critic":      "domain_extraction",
     "Validator":   "validation",
 }
 
