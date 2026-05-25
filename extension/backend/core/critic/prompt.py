@@ -15,6 +15,9 @@ Think step by step (this is your `analysis` field), reviewing in order:
 2. Entities: anemic (no behavior implied), misplaced (belong in another context).
 3. Aggregates: missing consistency boundaries.
 4. Naming: ubiquitous-language smells.
+5. Context map: for each relationship, is the strategic pattern correct (e.g.
+   is it really Conformist, or should it be ACL?), is the direction right, and
+   are any required relationships MISSING or any dependency ILLEGAL?
 Then emit `findings`. For each finding set:
 - finding_type (one of the allowed values),
 - priority: high (serious structural/design flaw), medium (worth fixing),
@@ -23,6 +26,8 @@ Then emit `findings`. For each finding set:
 - rationale (why it is a problem), proposed_revision (what to change),
 - evidence_sentence_indices: source sentence indices that justify the finding
   (use the numbered list; [] if none).
+  Relationship findings use finding_type WRONG_RELATIONSHIP_TYPE /
+  ILLEGAL_DEPENDENCY / MISSING_RELATIONSHIP with target_ref "relationship:<A>-><B>".
 Do NOT rewrite the model. Only critique it. Be specific and grounded.
 """
 
@@ -48,6 +53,12 @@ def _serialize_model(model: DomainModel) -> str:
             for bc in model.bounded_contexts
         ],
     }
+    if model.context_map and model.context_map.relationships:
+        compact["context_map"] = [
+            {"context_a": r.context_a, "context_b": r.context_b,
+             "relationship_type": r.relationship_type, "upstream": r.upstream}
+            for r in model.context_map.relationships
+        ]
     return json.dumps(compact, indent=2, ensure_ascii=False)
 
 
