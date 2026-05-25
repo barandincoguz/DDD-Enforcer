@@ -90,6 +90,8 @@ export {
   getValidationFingerprint,
   classifySaveForValidation,
   classifySaveForValidationFromContent,
+  tokenizeIndentation,
+  type LogicalLine,
 } from "./semanticFingerprint";
 
 import {

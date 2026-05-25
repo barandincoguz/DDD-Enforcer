@@ -9,6 +9,51 @@
  */
 
 /**
+ * Fingerprint control markers. Chosen as low-codepoint control characters
+ * that effectively never appear in Python source, so they cannot be confused
+ * with real code or string content.
+ */
+const INDENT_MARK = "\x02";
+const DEDENT_MARK = "\x03";
+const LINE_SEP = "\x1f";
+
+/** One logical (newline-joined, continuation-aware) source line. */
+export interface LogicalLine {
+  /** Tab-expanded leading-whitespace width measured at the logical-line start. */
+  indentWidth: number;
+  /** Comment-stripped, whitespace-collapsed code; string literals kept verbatim. */
+  content: string;
+}
+
+/**
+ * Phase 2: turn logical lines into a fingerprint string by encoding block
+ * structure as INDENT/DEDENT markers relative to an indent stack. Width is
+ * compared relatively, so a global reindent (e.g. 4-space to 2-space) yields
+ * the same output while moving a statement across a block boundary does not.
+ * Inconsistent dedents (Python IndentationError) snap to the nearest level so
+ * the function stays total. Pure.
+ */
+export function tokenizeIndentation(lines: LogicalLine[]): string {
+  const parts: string[] = [];
+  const stack: number[] = [0];
+  for (const line of lines) {
+    const top = stack[stack.length - 1];
+    if (line.indentWidth > top) {
+      stack.push(line.indentWidth);
+      parts.push(INDENT_MARK);
+    } else if (line.indentWidth < top) {
+      while (stack.length > 1 && stack[stack.length - 1] > line.indentWidth) {
+        stack.pop();
+        parts.push(DEDENT_MARK);
+      }
+    }
+    parts.push(line.content);
+    parts.push(LINE_SEP);
+  }
+  return parts.join("");
+}
+
+/**
  * Creates a stable semantic fingerprint for validation decisions.
  * Ignores comments and whitespace outside string literals.
  */

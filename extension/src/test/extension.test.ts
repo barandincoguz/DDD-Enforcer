@@ -37,6 +37,8 @@ import {
   buildRunManifestsHtml,
   DDDViolationHoverProvider,
   validationViolationCache,
+  tokenizeIndentation,
+  type LogicalLine,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -235,6 +237,56 @@ suite("Extension Test Suite", () => {
       "class Order:\n    def confirm(self):\n        return False\n";
     const decision = classifySaveForValidationFromContent(before, after);
     assert.strictEqual(decision.shouldValidate, true);
+  });
+
+  // ==========================================================================
+  // FINGERPRINT — PHASE 2: INDENT TOKENIZATION (T10)
+  // ==========================================================================
+
+  const IND = ""; // INDENT marker
+  const DED = ""; // DEDENT marker
+
+  test("tokenizeIndentation emits no markers for flat same-indent lines", () => {
+    const out = tokenizeIndentation([
+      { indentWidth: 0, content: "a" },
+      { indentWidth: 0, content: "b" },
+    ]);
+    assert.ok(!out.includes(IND), "no INDENT");
+    assert.ok(!out.includes(DED), "no DEDENT");
+  });
+
+  test("tokenizeIndentation emits one INDENT then one DEDENT for a nested block", () => {
+    const out = tokenizeIndentation([
+      { indentWidth: 0, content: "if x:" },
+      { indentWidth: 4, content: "a()" },
+      { indentWidth: 0, content: "b()" },
+    ]);
+    assert.strictEqual((out.match(//g) || []).length, 1, "one INDENT");
+    assert.strictEqual((out.match(//g) || []).length, 1, "one DEDENT");
+  });
+
+  test("tokenizeIndentation emits two DEDENT markers for a two-level pop", () => {
+    const out = tokenizeIndentation([
+      { indentWidth: 0, content: "a" },
+      { indentWidth: 4, content: "b" },
+      { indentWidth: 8, content: "c" },
+      { indentWidth: 0, content: "d" },
+    ]);
+    assert.strictEqual((out.match(//g) || []).length, 2, "two DEDENT");
+  });
+
+  test("tokenizeIndentation is invariant to indent width (reindent is non-semantic)", () => {
+    const wide = tokenizeIndentation([
+      { indentWidth: 0, content: "if x:" },
+      { indentWidth: 4, content: "a" },
+      { indentWidth: 8, content: "b" },
+    ]);
+    const narrow = tokenizeIndentation([
+      { indentWidth: 0, content: "if x:" },
+      { indentWidth: 2, content: "a" },
+      { indentWidth: 4, content: "b" },
+    ]);
+    assert.strictEqual(wide, narrow);
   });
 
   // ==========================================================================
