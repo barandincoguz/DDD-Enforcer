@@ -373,6 +373,39 @@ class ProjectMetadata(BaseModel):
     )
 
 
+class CritiqueFinding(BaseModel):
+    """One DDD design-quality finding emitted by the Critic (persisted form)."""
+    finding_type: Literal[
+        "CONTEXT_SHOULD_MERGE", "CONTEXT_SHOULD_SPLIT", "BOUNDARY_SMELL",
+        "ANEMIC_ENTITY", "ANEMIC_MODEL", "MISSING_AGGREGATE",
+        "MISPLACED_ENTITY", "NAMING_SMELL", "LOW_CONFIDENCE", "OTHER",
+    ]
+    priority: Literal["high", "medium", "low"]
+    target_ref: str = Field(description="e.g. 'context:Ordering' | 'entity:Ordering.Order'")
+    rationale: str
+    proposed_revision: str
+    evidence_sentence_indices: List[int] = Field(default_factory=list)
+
+
+class CriticLoopTrace(BaseModel):
+    """Per-document trace of the critique loop."""
+    cycles_used: int
+    best_cycle: int
+    outcome: Literal["converged", "exhausted", "flapped", "failed"]
+    score_per_cycle: List[float] = Field(default_factory=list)
+    findings_count_per_cycle: List[int] = Field(default_factory=list)
+
+
+class CriticReport(BaseModel):
+    """Best cycle's critique + loop trace, attached to the DomainModel."""
+    model_id: str
+    findings: List[CritiqueFinding] = Field(default_factory=list)
+    score: float = 0.0
+    malformed_findings: int = 0
+    loop: CriticLoopTrace
+    error: Optional[str] = None
+
+
 class DomainModel(BaseModel):
     """Complete domain model for a project."""
     project_name: str = Field(description="Name of the project")
@@ -382,6 +415,10 @@ class DomainModel(BaseModel):
     )
     global_rules: Optional[GlobalRules] = Field(
         description="Project-wide architectural rules"
+    )
+    critic_report: Optional["CriticReport"] = Field(
+        default=None,
+        description="Holistic Critic loop output (best cycle). None when the loop did not run.",
     )
 
     @field_validator("bounded_contexts")
