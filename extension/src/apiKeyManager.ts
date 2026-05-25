@@ -82,11 +82,14 @@ export async function validateGeminiKey(
   const probe: ApiKeyHttpProbe =
     httpProbe ??
     (async (url) => {
-      const resp = await axios.get(url, { timeout: 5000 });
+      const resp = await axios.get(url, {
+        timeout: 5000,
+        headers: { "x-goog-api-key": trimmed },
+      });
       return { status: resp.status, data: resp.data };
     });
   try {
-    const url = `${GEMINI_MODELS_URL_BASE}?key=${encodeURIComponent(trimmed)}`;
+    const url = GEMINI_MODELS_URL_BASE; // key now in header, not query
     const { status } = await probe(url);
     if (status === 200) {
       return { ok: true };
