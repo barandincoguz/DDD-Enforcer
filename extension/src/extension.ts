@@ -58,6 +58,7 @@ export {
   LruCache,
   truncateExcerpt,
   boldMatchingSpan,
+  escapeInlineMarkdown,
   formatHoverMarkdown,
 } from "./ui/hoverProvider";
 

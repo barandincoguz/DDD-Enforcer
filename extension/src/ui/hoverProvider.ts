@@ -16,8 +16,8 @@ export class LruCache<K, V> {
   private readonly store = new Map<K, V>();
 
   constructor(private readonly capacity: number) {
-    if (capacity < 1) {
-      throw new Error("LruCache capacity must be >= 1");
+    if (!Number.isFinite(capacity) || capacity < 1) {
+      throw new Error("LruCache capacity must be a finite number >= 1");
     }
   }
 
@@ -76,6 +76,17 @@ export function truncateExcerpt(text: string, maxChars: number): string {
 }
 
 /**
+ * Escape the Markdown control characters that could let an LLM-derived
+ * string break out of inline text — backslash, backtick, angle brackets,
+ * and square brackets (the latter two enable HTML / link injection).
+ * Defense-in-depth for hover fields rendered in a trusted MarkdownString.
+ * Pure.
+ */
+export function escapeInlineMarkdown(s: string): string {
+  return s.replace(/[\\`<>\[\]]/g, "\\$&");
+}
+
+/**
  * Bold the first case-insensitive occurrence of `keyword` in `excerpt`
  * using Markdown `**…**`, preserving the original casing of the matched
  * span. Returns the excerpt unchanged when the keyword is empty or not
@@ -113,16 +124,18 @@ export function formatHoverMarkdown(
   keyword: string,
 ): string {
   const lines: string[] = [];
-  lines.push(`**DDD Violation: ${violation.type}**`);
+  lines.push(`**DDD Violation: ${escapeInlineMarkdown(violation.type)}**`);
   lines.push("");
-  lines.push(violation.message);
+  lines.push(escapeInlineMarkdown(violation.message));
 
   const source = violation.sources && violation.sources[0];
   if (source) {
     lines.push("");
-    lines.push(`**Source:** ${source.section} — ${source.document} (p. ${source.page})`);
+    lines.push(
+      `**Source:** ${escapeInlineMarkdown(source.section)} — ${escapeInlineMarkdown(source.document)} (p. ${source.page})`,
+    );
     const excerpt = boldMatchingSpan(
-      truncateExcerpt(source.summary, 200),
+      escapeInlineMarkdown(truncateExcerpt(source.summary, 200)),
       keyword,
     );
     lines.push("");

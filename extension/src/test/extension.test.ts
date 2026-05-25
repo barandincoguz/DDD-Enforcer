@@ -27,6 +27,7 @@ import {
   LruCache,
   truncateExcerpt,
   boldMatchingSpan,
+  escapeInlineMarkdown,
   formatHoverMarkdown,
   summarizeManifest,
   sortRunSummaries,
@@ -817,6 +818,10 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(cache.size, 1);
   });
 
+  test("LruCache rejects a NaN capacity (T13)", () => {
+    assert.throws(() => new LruCache<string, number>(NaN));
+  });
+
   test("truncateExcerpt returns short text unchanged", () => {
     assert.strictEqual(truncateExcerpt("short text", 200), "short text");
   });
@@ -870,6 +875,13 @@ suite("Extension Test Suite", () => {
       boldMatchingSpan("Order then Order again", "Order"),
       "**Order** then Order again",
     );
+  });
+
+  test("escapeInlineMarkdown escapes a command-link injection payload (T13)", () => {
+    const escaped = escapeInlineMarkdown("[x](command:evil)");
+    assert.ok(!escaped.includes("[x]"), "opening bracket is escaped");
+    assert.ok(escaped.includes("\\["), "escapes the [ character");
+    assert.ok(escaped.includes("\\]"), "escapes the ] character");
   });
 
   test("formatHoverMarkdown renders type, message, source, and command link", () => {
