@@ -1018,6 +1018,23 @@ Do not invent data not present in the sentences."""
 
         return critic_fn
 
+    def _build_context_mapper_fn(self):
+        """Return a context-mapper callable, or None when DDD_CONTEXT_MAP is
+        disabled. ON by default; set DDD_CONTEXT_MAP to 0/false/no/off to opt
+        out. Uses the generation client + the ContextMapper stage config (G1)."""
+        if os.getenv("DDD_CONTEXT_MAP", "1").strip().lower() in ("0", "false", "no", "off"):
+            return None
+
+        from core.context_mapper import run_context_mapper
+        cm_cfg = stage_config("ContextMapper")
+
+        def context_mapper_fn(model, scout, feedback):
+            return run_context_mapper(
+                model, scout, feedback, client=self.client, stage_cfg=cm_cfg,
+            )
+
+        return context_mapper_fn
+
     def analyze_document(
         self,
         text: str,
@@ -1206,6 +1223,7 @@ Do not invent data not present in the sentences."""
             verifier=verifier_fn,
             specialist_with_feedback=specialist_with_feedback_fn,
             critic=self._build_critic_fn(),
+            context_mapper=self._build_context_mapper_fn(),
         )
         return run_pipeline(
             srs_text=text,
