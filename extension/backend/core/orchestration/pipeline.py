@@ -11,8 +11,23 @@ ArchitectGroundingError. Specialist-stage refine loop is unchanged.
 
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterator, List, Optional, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    cast,
+)
 from core.schemas import DomainModel
+
+if TYPE_CHECKING:
+    # Type-only import for the CriticFn alias's return annotation. Kept under
+    # TYPE_CHECKING so this module takes no runtime dependency on the critic
+    # package (Task 7) — the alias references CriticReport as a string.
+    from core.schemas import CriticReport
 from core.pipeline_contracts import (
     ScoutOutput,
     ArchitectOutput,
@@ -75,6 +90,9 @@ SpecialistWithFeedbackFn = Callable[
 ]
 SynthesizerFn = Callable[[List[SpecialistAnalysis]], DomainModel]
 VerifierFn = Callable[[Dict[str, Any]], VerifierResult]
+# Holistic Critic: per-cycle critique callable. CriticReport stays a string
+# forward-ref so this module takes no new top-level import (Task 7).
+CriticFn = Callable[[DomainModel, ScoutOutput, list], "CriticReport"]
 
 
 # WP-CORE-7 D-2 (Codex C-1): derive stage from VerifierIssue target/location
@@ -234,6 +252,9 @@ class PipelineDeps:
     # the concrete LLM caller can craft a targeted re-prompt.  Defaults to
     # None so every existing PipelineDeps construction site is unaffected.
     specialist_with_feedback: Optional[SpecialistWithFeedbackFn] = None
+    # Holistic Critic: optional per-cycle critique callable. When set,
+    # run_pipeline dispatches to run_critique_loop; None → single-pass behavior.
+    critic: Optional["CriticFn"] = None
 
 
 def run_pipeline(
@@ -242,39 +263,42 @@ def run_pipeline(
     deps: PipelineDeps,
     srs_path: Optional[str] = None,
 ) -> DomainModel:
-    """Run the 5-stage pipeline with typed envelopes throughout.
-
-    Raises PipelineError subclasses on failure; otherwise returns a
-    validated DomainModel.
-
-    Args:
-        srs_text: SRS document text fed to the Scout stage.
-        deps: Injected stage callables (Scout, Architect, Architect-with-
-            feedback, Specialist, Synthesizer, Verifier).
-        srs_path: Optional source path label for error messages. WP-CORE-5b
-            threads this through `SynthesizerEmptyModelError.srs_path`;
-            WP-CORE-7 also threads it through `ArchitectGroundingError`.
-            Defaults to "<unknown>" inside the errors if omitted.
-
-    WP-CORE-7 dispatch order (D-5):
-        1. Scout once.
-        2. Architect loop (outer): on architect-stage verifier ERRORs,
-           re-invoke `architect_with_feedback` ONCE; on persistent failure
-           raise ArchitectGroundingError.
-        3. Inside each architect attempt: specialist + specialist refine loop
-           (existing WP-CORE-1..6 behavior).
-        4. Post-loop: pre-call guard, synthesizer, post-call check (unchanged).
-    """
-    # WP-CORE-20b: wrap each stage call in `_optional_stage(...)` so
-    # `_stage_var` is set during invocation; downstream
-    # `record_llm_call` / `record_json_parse_failure` now resolve to the
-    # correct manifest bucket instead of silently dropping.
+    """Run the pipeline. With deps.critic set, drive the bounded critique loop;
+    otherwise a single generation pass (historical behavior)."""
     with _optional_stage("scout"):
         scout: ScoutOutput = deps.scout(srs_text)
 
+    if deps.critic is None:
+        model, _arch, _specialist = _generate_once(scout, deps, srs_path)
+        return model
+
+    from core.critic.loop import run_critique_loop
+    return run_critique_loop(scout, deps, srs_path)
+
+
+def _generate_once(
+    scout: ScoutOutput,
+    deps: PipelineDeps,
+    srs_path: Optional[str],
+    *,
+    architect_feedback: Optional[List[Any]] = None,
+) -> tuple[DomainModel, ArchitectOutput, List[SpecialistAnalysis]]:
+    """One full generation pass: Architect (rerun loop) → Specialist (refine)
+    → Synthesizer. Returns the model plus the final ArchitectOutput and
+    refined SpecialistAnalysis list (the critique loop reuses these). When
+    `architect_feedback` is provided, it seeds the FIRST architect call.
+
+    WP-CORE-7 dispatch order (D-5):
+        1. Architect loop (outer): on architect-stage verifier ERRORs,
+           re-invoke `architect_with_feedback` ONCE; on persistent failure
+           raise ArchitectGroundingError.
+        2. Inside each architect attempt: specialist + specialist refine loop
+           (existing WP-CORE-1..6 behavior).
+        3. Post-loop: pre-call guard, synthesizer, post-call check (unchanged).
+    """
     architect_attempts = 0
     architect_max_cycles = 1
-    architect_feedback: Optional[List[Any]] = None
+    architect_feedback_local: Optional[List[Any]] = architect_feedback
     refined_specialist: Optional[List[SpecialistAnalysis]] = None
 
     while True:
@@ -285,12 +309,12 @@ def run_pipeline(
         # fidelity).  First attempt stays extend=False so a fresh record
         # is created.
         with _optional_stage(
-            "architect", extend=(architect_feedback is not None)
+            "architect", extend=(architect_attempts > 0)
         ):
-            if architect_feedback is None:
+            if architect_feedback_local is None:
                 arch: ArchitectOutput = deps.architect(scout)
             else:
-                arch = deps.architect_with_feedback(scout, architect_feedback)
+                arch = deps.architect_with_feedback(scout, architect_feedback_local)
 
         # Stage 3
         with _optional_stage("specialist"):
@@ -318,7 +342,7 @@ def run_pipeline(
         if initial_result.error_count() > 0 and arch_issues:
             if architect_attempts < architect_max_cycles:
                 architect_attempts += 1
-                architect_feedback = arch_issues
+                architect_feedback_local = arch_issues
                 _log_architect_rerun(arch_issues, architect_attempts)
                 continue
             _log_architect_fail(arch_issues, architect_attempts, srs_path)
@@ -388,7 +412,7 @@ def run_pipeline(
             if late_arch_issues:
                 if architect_attempts < architect_max_cycles:
                     architect_attempts += 1
-                    architect_feedback = late_arch_issues
+                    architect_feedback_local = late_arch_issues
                     _log_architect_rerun(late_arch_issues, architect_attempts)
                     continue
                 _log_architect_fail(late_arch_issues, architect_attempts, srs_path)
@@ -450,4 +474,7 @@ def run_pipeline(
             input_summary="synthesizer returned 0 bounded contexts (bypassed Pydantic)",
             srs_path=srs_path or "<unknown>",
         )
-    return model
+    # `arch` (narrowed ArchitectOutput) and `refined_specialist` (narrowed
+    # non-empty by the guard above) are both bound here; the critique loop
+    # reuses them in Task 8.
+    return model, arch, refined_specialist
