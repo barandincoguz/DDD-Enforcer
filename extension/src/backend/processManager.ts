@@ -80,10 +80,8 @@ export function classifyExitForRestart(
   if (signal !== null) {
     return "crash";
   }
-  if (code !== null && code !== 0) {
-    return "crash";
-  }
-  return "cleanExit";
+  // signal === null past this point; only exit code 0 is a clean exit.
+  return code === 0 ? "cleanExit" : "crash";
 }
 
 /**
