@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     # Type-only import for the CriticFn alias's return annotation. Kept under
     # TYPE_CHECKING so this module takes no runtime dependency on the critic
     # package (Task 7) — the alias references CriticReport as a string.
-    from core.schemas import CriticReport
+    from core.schemas import CriticReport, ContextMap
 from core.pipeline_contracts import (
     ScoutOutput,
     ArchitectOutput,
@@ -93,6 +93,9 @@ VerifierFn = Callable[[Dict[str, Any]], VerifierResult]
 # Holistic Critic: per-cycle critique callable. CriticReport stays a string
 # forward-ref so this module takes no new top-level import (Task 7).
 CriticFn = Callable[[DomainModel, ScoutOutput, list], "CriticReport"]
+# Context-Mapper: produce a strategic context map. feedback=None -> fresh map;
+# a list of CritiqueFindings -> Critic-driven re-map.
+ContextMapperFn = Callable[[DomainModel, ScoutOutput, Optional[list]], "ContextMap"]
 
 
 # WP-CORE-7 D-2 (Codex C-1): derive stage from VerifierIssue target/location
@@ -255,6 +258,46 @@ class PipelineDeps:
     # Holistic Critic: optional per-cycle critique callable. When set,
     # run_pipeline dispatches to run_critique_loop; None → single-pass behavior.
     critic: Optional["CriticFn"] = None
+    context_mapper: Optional["ContextMapperFn"] = None
+
+
+def _apply_context_map(
+    model: DomainModel,
+    deps: "PipelineDeps",
+    scout: ScoutOutput,
+    *,
+    feedback: Optional[List[Any]] = None,
+) -> DomainModel:
+    """Attach a strategic context map + re-derive allowed_dependencies.
+
+    PURE: returns a deep copy; never mutates `model` (the critique loop's
+    best_model may alias it). No-op (returns `model` unchanged) when no
+    context_mapper is wired. On ContextMapperError the text-scan baseline
+    allowed_dependencies is kept and the failure is recorded on context_map."""
+    if deps.context_mapper is None:
+        return model
+    from core.context_mapper import derive_allowed_dependencies
+    from core.context_mapper.errors import ContextMapperError
+    from core.schemas import ContextMap
+
+    new_model = model.model_copy(deep=True)
+    with _optional_stage("context_mapper"):
+        try:
+            cmap = deps.context_mapper(new_model, scout, feedback)
+        except ContextMapperError as exc:
+            print(f"  ⚠️  context-mapper failed: {exc}; keeping baseline allowed_dependencies")
+            new_model.context_map = ContextMap(model_id="unknown", error=exc.reason)
+            return new_model
+
+    valid_names = {bc.context_name for bc in new_model.bounded_contexts}
+    derived, warnings = derive_allowed_dependencies(cmap, valid_names)
+    cmap.warnings.extend(warnings)
+    new_model.context_map = cmap
+    for bc in new_model.bounded_contexts:
+        dep_list = derived.get(bc.context_name)
+        if dep_list is not None:
+            bc.allowed_dependencies = sorted(dep_list) if dep_list else None
+    return new_model
 
 
 def run_pipeline(
@@ -477,4 +520,5 @@ def _generate_once(
     # `arch` (narrowed ArchitectOutput) and `refined_specialist` (narrowed
     # non-empty by the guard above) are both bound here; the critique loop
     # reuses them in Task 8.
+    model = _apply_context_map(model, deps, scout)
     return model, arch, refined_specialist
