@@ -2,12 +2,14 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import axios from "axios";
 import {
   classifySaveForValidationFromContent,
   classifyApiKeyError,
   validateGeminiKey,
   type ApiKeyValidationResult,
   decideMigrationOffer,
+  getApiKey,
   type ApiKeySource,
   computeBackoffMs,
   shouldAttemptRestart,
@@ -32,6 +34,8 @@ import {
   type PaperRunManifest,
   generateNonce,
   buildRunManifestsHtml,
+  DDDViolationHoverProvider,
+  validationViolationCache,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -916,6 +920,38 @@ suite("Extension Test Suite", () => {
     assert.ok(md.includes("…"), "long excerpt is truncated with an ellipsis");
   });
 
+  test("DDDViolationHoverProvider restricts trusted commands to openSource allowlist", () => {
+    const provider = new DDDViolationHoverProvider();
+
+    const dummyUri = vscode.Uri.parse("file:///dummy/file.py");
+    const dummyDoc = {
+      uri: dummyUri,
+    } as vscode.TextDocument;
+
+    const violationMap = new Map<number, any>();
+    violationMap.set(5, {
+      type: "V1_SYNONYM",
+      message: "Violation message",
+      suggestion: "Suggestion",
+      sources: []
+    });
+    validationViolationCache.set(dummyUri.toString(), violationMap);
+
+    const position = new vscode.Position(5, 0);
+    const hover = provider.provideHover(dummyDoc, position);
+
+    assert.ok(hover, "should return a hover");
+    const markdown = hover.contents[0] as vscode.MarkdownString;
+    assert.ok(markdown, "hover contents should contain a MarkdownString");
+
+    // This assertion checks that isTrusted is enabled. In some VS Code versions, the getter on the extension host
+    // always coerces and returns a boolean (true). If it returns an object, we verify the specific allowlist.
+    assert.ok(markdown.isTrusted, "markdown should be trusted");
+    if (typeof markdown.isTrusted === "object") {
+      assert.deepStrictEqual(markdown.isTrusted, { enabledCommands: ["ddd-enforcer.openSource"] });
+    }
+  });
+
   // ==========================================================================
   // RUN MANIFEST WEBVIEW TESTS (WP-CORE-32)
   // ==========================================================================
@@ -1087,5 +1123,92 @@ suite("Extension Test Suite", () => {
     // depth — run_id is also sanitized server-side by sanitize_path_segment).
     assert.ok(html.includes("&quot;"), "esc replaces double quotes");
     assert.ok(html.includes("&#39;"), "esc replaces single quotes");
+  });
+
+  // ==========================================================================
+  // API KEY MANAGER T1 SECURITY INVARIANT TESTS
+  // ==========================================================================
+
+  test("getApiKey stores prompted key only AFTER successful validation (T1)", async () => {
+    // 1. Stub vscode.window.showInputBox
+    const originalShowInputBox = vscode.window.showInputBox;
+    let inputKeyReturnValue: string | undefined = undefined;
+    let showInputBoxCalled = false;
+    (vscode.window as any).showInputBox = async (options: any) => {
+      showInputBoxCalled = true;
+      return inputKeyReturnValue;
+    };
+
+    // 2. Stub axios.get to intercept Gemini validation
+    const originalAxiosGet = axios.get;
+    let mockAxiosResult: { status: number; data: any } | Error = { status: 200, data: {} };
+    axios.get = async (url: string, config?: any) => {
+      if (mockAxiosResult instanceof Error) {
+        throw mockAxiosResult;
+      }
+      return mockAxiosResult as any;
+    };
+
+    // 3. Mock VS Code ExtensionContext and secret storage
+    const mockSecrets = new Map<string, string>();
+    let storeCallCount = 0;
+    const mockContext = {
+      secrets: {
+        get: async (key: string) => mockSecrets.get(key),
+        store: async (key: string, value: string) => {
+          storeCallCount++;
+          mockSecrets.set(key, value);
+        },
+        delete: async (key: string) => {
+          mockSecrets.delete(key);
+        },
+      },
+      globalState: {
+        get: (key: string) => undefined,
+        update: async (key: string, value: any) => {},
+      }
+    } as unknown as vscode.ExtensionContext;
+
+    // Temporarily clear any setting/env key to force the prompt flow
+    const config = vscode.workspace.getConfiguration("ddd-enforcer");
+    const originalSetting = config.get<string>("geminiApiKey");
+    await config.update("geminiApiKey", "", vscode.ConfigurationTarget.Global);
+    const originalEnv = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+
+    try {
+      // Scenario A: Input key is invalid (probe rejects it)
+      inputKeyReturnValue = "AIzaInvalidFakeKey";
+      const err: any = new Error("Invalid Key Mocked");
+      err.response = { status: 400 };
+      mockAxiosResult = err;
+
+      const resultA = await getApiKey(mockContext);
+      
+      assert.strictEqual(resultA, undefined, "should return undefined on rejected key");
+      assert.strictEqual(storeCallCount, 0, "should NOT write to secret storage when key is rejected");
+      assert.strictEqual(mockSecrets.has("geminiApiKey"), false, "key must not exist in secret storage");
+
+      // Scenario B: Input key is valid (probe accepts it)
+      inputKeyReturnValue = "AIzaValidFakeKey";
+      mockAxiosResult = { status: 200, data: { models: [] } };
+
+      const resultB = await getApiKey(mockContext);
+
+      assert.strictEqual(resultB, "AIzaValidFakeKey", "should return the validated key");
+      assert.strictEqual(storeCallCount, 1, "should write to secret storage exactly once when key is accepted");
+      assert.strictEqual(mockSecrets.get("geminiApiKey"), "AIzaValidFakeKey", "validated key must be in secret storage");
+
+    } finally {
+      // Restore stubs and original environment
+      vscode.window.showInputBox = originalShowInputBox;
+      axios.get = originalAxiosGet;
+      if (originalSetting !== undefined) {
+        await config.update("geminiApiKey", originalSetting, vscode.ConfigurationTarget.Global);
+      }
+      if (originalEnv !== undefined) {
+        process.env.GEMINI_API_KEY = originalEnv;
+      }
+    }
   });
 });

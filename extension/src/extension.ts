@@ -16,780 +16,146 @@ import { ChildProcess, spawn } from "child_process";
 import axios from "axios";
 
 // =============================================================================
-// TYPES
+// MODULAR EXPORTS AND IMPORTS (Refactored from Monolithic structure)
 // =============================================================================
 
-/** Source reference for a violation from the RAG pipeline */
-interface ViolationSource {
-  document: string;
-  section: string;
-  page: number;
-  summary: string;
-  file_path: string;
-  relevance_score: number;
-}
+export {
+  ViolationSource,
+  Violation,
+  ValidationMetrics,
+  ValidationResponse,
+  HealthResponse,
+  PipelineProgress,
+  SSEEvent,
+  GenerateModelResponse,
+  CombinedMetrics,
+} from "./types";
 
-/** Single DDD violation detected in code */
-interface Violation {
-  type: string;
-  message: string;
-  suggestion: string;
-  sources?: ViolationSource[];
-}
+export {
+  ExitDisposition,
+  computeBackoffMs,
+  shouldAttemptRestart,
+  formatExitReason,
+  classifyExitForRestart,
+  isPortAvailable,
+  findAvailablePort,
+} from "./backend/processManager";
 
-/** Metrics from validation */
-interface ValidationMetrics {
-  validation_time_ms: number;
-  code_file_tokens: number;
-  llm_input_tokens: number;
-  llm_output_tokens: number;
-  llm_total_tokens: number;
-  cost_usd: number;
-  api_calls: number;
-}
+export {
+  LAST_RUN_DURATIONS_KEY,
+  STAGE_ORDER,
+  STAGE_WEIGHTS,
+  SubProgress,
+  computeOverallPercent,
+  parseSubProgress,
+  formatEta,
+  computeEtaMs,
+  StageStatusBarParts,
+  formatStageStatusBar,
+} from "./utils/progress";
 
-/** Response from the backend validation endpoint */
-interface ValidationResponse {
-  is_violation: boolean;
-  violations: Violation[];
-  metrics?: ValidationMetrics;
-}
+export {
+  LruCache,
+  truncateExcerpt,
+  boldMatchingSpan,
+  formatHoverMarkdown,
+} from "./ui/hoverProvider";
 
-/** Response from the backend health endpoint */
-interface HealthResponse {
-  status: string;
-  domain_model_loaded: boolean;
-  rag_initialized: boolean;
-}
+export {
+  ManifestViolation,
+  PaperRunManifest,
+  RunSummary,
+  RunSummaryColumn,
+  summarizeManifest,
+  sortRunSummaries,
+  generateNonce,
+  buildRunManifestsHtml,
+} from "./ui/runManifestsWebview";
 
-/** Response from the generate-model endpoint */
-interface GenerateModelResponse {
-  success: boolean;
-  error?: string;
-  model_path?: string;
-  project_name?: string;
-  bounded_contexts_count?: number;
-  metrics?: CombinedMetrics;
-}
+export {
+  ApiKeyErrorKind,
+  ApiKeyValidationResult,
+  ApiKeyHttpProbe,
+  ApiKeySource,
+  MigrationDecision,
+  validateGeminiKey,
+  decideMigrationOffer,
+  getApiKey,
+  classifyApiKeyError,
+} from "./apiKeyManager";
 
-/** Progress update from streaming endpoint */
-interface PipelineProgress {
-  stage: string;
-  status: "started" | "in_progress" | "completed" | "error";
-  detail: string;
-  progress: number;
-}
+export {
+  normalizePythonSemantics,
+  getValidationFingerprint,
+  classifySaveForValidation,
+  classifySaveForValidationFromContent,
+} from "./semanticFingerprint";
 
-/** SSE event from streaming endpoint */
-interface SSEEvent {
-  type: "progress" | "complete" | "error" | "heartbeat";
-  data?: PipelineProgress | GenerateModelResponse;
-  error?: string;
-}
+import {
+  ViolationSource,
+  Violation,
+  ValidationMetrics,
+  ValidationResponse,
+  HealthResponse,
+  PipelineProgress,
+  SSEEvent,
+  GenerateModelResponse,
+  CombinedMetrics,
+} from "./types";
 
-/** Token usage metrics */
-interface CombinedMetrics {
-  total_tokens: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_cost_usd: number;
-  api_calls: number;
-  by_stage: Record<
-    string,
-    {
-      tokens: number;
-      input_tokens: number;
-      output_tokens: number;
-      cost_usd: number;
-      api_calls: number;
-    }
-  >;
-}
+import {
+  ExitDisposition,
+  computeBackoffMs,
+  shouldAttemptRestart,
+  formatExitReason,
+  classifyExitForRestart,
+  isPortAvailable,
+  findAvailablePort,
+} from "./backend/processManager";
 
-// =============================================================================
-// BACKEND LIFECYCLE (pure helpers — testable without vscode)
-// =============================================================================
+import {
+  LAST_RUN_DURATIONS_KEY,
+  STAGE_ORDER,
+  STAGE_WEIGHTS,
+  SubProgress,
+  computeOverallPercent,
+  parseSubProgress,
+  formatEta,
+  computeEtaMs,
+  StageStatusBarParts,
+  formatStageStatusBar,
+} from "./utils/progress";
 
-/**
- * Return exponential backoff delay in milliseconds for a given attempt
- * number. Attempt 0 returns `baseMs`; each subsequent attempt doubles
- * the delay, capped at `maxMs`. Negative attempts are floored at `baseMs`.
- * Pure: no I/O, no time/Date access.
- */
-export function computeBackoffMs(
-  attempt: number,
-  baseMs: number = 1000,
-  maxMs: number = 30000,
-): number {
-  if (attempt <= 0) {
-    return baseMs;
-  }
-  const raw = baseMs * Math.pow(2, attempt);
-  return Math.min(raw, maxMs);
-}
+import {
+  LruCache,
+  truncateExcerpt,
+  boldMatchingSpan,
+  formatHoverMarkdown,
+} from "./ui/hoverProvider";
 
-/**
- * Decide whether to attempt another auto-restart. Returns true while
- * `attempt < maxAttempts` (default 5). Pure.
- */
-export function shouldAttemptRestart(
-  attempt: number,
-  maxAttempts: number = 5,
-): boolean {
-  return attempt < maxAttempts;
-}
+import {
+  ManifestViolation,
+  PaperRunManifest,
+  RunSummary,
+  RunSummaryColumn,
+  summarizeManifest,
+  sortRunSummaries,
+  generateNonce,
+  buildRunManifestsHtml,
+} from "./ui/runManifestsWebview";
 
-/** Outcome bucket for a backend exit event. */
-export type ExitDisposition = "intentional" | "crash" | "cleanExit";
+import {
+  getApiKey,
+  validateGeminiKey,
+  decideMigrationOffer,
+} from "./apiKeyManager";
 
-/**
- * Render a human-readable description of a Node child-process exit
- * event. Signal takes priority because a signal-kill carries more
- * diagnostic information than the resulting exit code.
- *
- * Examples:
- * - `(0, null)`        → "exited cleanly (code 0)"
- * - `(1, null)`        → "crashed (exit code 1)"
- * - `(null, "SIGKILL")` → "killed by signal SIGKILL"
- * - `(null, null)`     → "exited (unknown reason)"
- *
- * Pure: no I/O.
- */
-export function formatExitReason(
-  code: number | null,
-  signal: NodeJS.Signals | null,
-): string {
-  if (signal) {
-    return `killed by signal ${signal}`;
-  }
-  if (code === null) {
-    return "exited (unknown reason)";
-  }
-  if (code === 0) {
-    return "exited cleanly (code 0)";
-  }
-  return `crashed (exit code ${code})`;
-}
-
-/**
- * Classify a backend exit event so the lifecycle controller can decide
- * whether to surface the crash dialog. If the controller flagged the
- * exit as intentional (because `stopBackend` or `restartBackend` was
- * just invoked), always return "intentional". Otherwise a non-zero
- * code or any signal counts as a crash; code=0 + signal=null is a
- * clean exit. Pure.
- */
-export function classifyExitForRestart(
-  code: number | null,
-  signal: NodeJS.Signals | null,
-  intentional: boolean,
-): ExitDisposition {
-  if (intentional) {
-    return "intentional";
-  }
-  if (signal !== null) {
-    return "crash";
-  }
-  if (code !== null && code !== 0) {
-    return "crash";
-  }
-  return "cleanExit";
-}
-
-// =============================================================================
-// PIPELINE PROGRESS (pure helpers — testable without vscode)
-// =============================================================================
-
-/** globalState key under which the last run's per-stage durations (ms) are persisted. */
-export const LAST_RUN_DURATIONS_KEY = "ddd-enforcer.lastRunStageDurations";
-
-/**
- * Canonical pipeline stage order (post-P3, 6 stages). Drives the
- * overall-percent calculation. Stages not in this list contribute no
- * weight and are treated as position-unknown.
- */
-export const STAGE_ORDER: readonly string[] = [
-  "Scout",
-  "Architect",
-  "Specialist",
-  "Verifier",
-  "Refiner",
-  "Synthesizer",
-];
-
-/**
- * Per-stage weight (percent of the overall pipeline). Sums to 100.
- * Specialist dominates because per-context analysis is the bulk of
- * the work. Source: WP-CORE-28 Feature 3 spec.
- */
-export const STAGE_WEIGHTS: Readonly<Record<string, number>> = {
-  Scout: 10,
-  Architect: 15,
-  Specialist: 50,
-  Verifier: 5,
-  Refiner: 10,
-  Synthesizer: 10,
-};
-
-/** A within-stage progress counter (e.g. context 2 of 5). */
-export type SubProgress = { current: number; total: number };
-
-/**
- * Compute the overall pipeline completion percentage (0-100) given the
- * current stage and how far through that stage we are (0-100). Sums the
- * weights of all stages before the current one, then adds the current
- * stage's weight scaled by the within-stage fraction. Unknown stages
- * (not in STAGE_ORDER) contribute 0 and return 0. The within-stage
- * fraction is clamped to [0,100]. Pure.
- */
-export function computeOverallPercent(
-  stage: string,
-  withinStagePercent: number,
-): number {
-  const index = STAGE_ORDER.indexOf(stage);
-  if (index < 0) {
-    return 0;
-  }
-  const clamped = Math.max(0, Math.min(100, withinStagePercent));
-  let priorSum = 0;
-  for (let i = 0; i < index; i++) {
-    priorSum += STAGE_WEIGHTS[STAGE_ORDER[i]] ?? 0;
-  }
-  const currentWeight = STAGE_WEIGHTS[stage] ?? 0;
-  return priorSum + (currentWeight * clamped) / 100;
-}
-
-/**
- * Opportunistically extract an `N/M` sub-progress counter from a free-text
- * detail string (e.g. "Analyzing context 2/5"). Returns `{current, total}`
- * only when both are positive integers with total > 0. Returns null when
- * no valid ratio is found. Pure.
- *
- * `detail` is trusted to be pipeline progress text (e.g. "Analyzing
- * context 2/5"), never a date — a date like "2024/05/24" would
- * mis-match as {2024, 5}, but the backend never emits dates here.
- */
-export function parseSubProgress(
-  detail: string,
-): SubProgress | null {
-  const match = detail.match(/(\d+)\s*\/\s*(\d+)/);
-  if (!match) {
-    return null;
-  }
-  const current = parseInt(match[1], 10);
-  const total = parseInt(match[2], 10);
-  if (!Number.isFinite(current) || !Number.isFinite(total) || total <= 0) {
-    return null;
-  }
-  return { current, total };
-}
-
-/**
- * Render an elapsed/remaining millisecond duration as a compact human
- * string: "45s", "2m30s", "1h05m". Sub-second values round up to the
- * nearest second (so a tiny positive ETA never shows "0s"). Pure.
- */
-export function formatEta(ms: number): string {
-  const totalSeconds = Math.ceil(Math.max(0, ms) / 1000);
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
-  }
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  if (totalMinutes < 60) {
-    const seconds = totalSeconds % 60;
-    return `${totalMinutes}m${seconds.toString().padStart(2, "0")}s`;
-  }
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours}h${minutes.toString().padStart(2, "0")}m`;
-}
-
-/**
- * Estimate remaining milliseconds from the elapsed time and the overall
- * completion percentage (0-100). Extrapolates a total run time
- * (`elapsed / fraction`) and subtracts elapsed. Returns null when no
- * progress has been made yet (percent <= 0), since no estimate is
- * possible. Percent >= 100 returns 0. Pure.
- */
-export function computeEtaMs(
-  elapsedMs: number,
-  overallPercent: number,
-): number | null {
-  if (overallPercent <= 0) {
-    return null;
-  }
-  if (overallPercent >= 100) {
-    return 0;
-  }
-  const fraction = overallPercent / 100;
-  const totalMs = elapsedMs / fraction;
-  return Math.round(totalMs - elapsedMs);
-}
-
-/** Inputs for the status-bar text formatter. */
-export interface StageStatusBarParts {
-  /** Current pipeline stage name (e.g. "Specialist"). */
-  stage: string;
-  /** Overall completion percentage 0-100 (rounded in the output). */
-  overallPercent: number;
-  /** Whether the pipeline is still running (spinner) or done (check). */
-  active: boolean;
-  /** Optional within-stage N/M counter parsed from the detail text. */
-  sub?: SubProgress;
-  /** Optional remaining-time estimate in ms; null/undefined omits the ETA. */
-  etaMs?: number | null;
-}
-
-/**
- * Build the status-bar text for a pipeline run, e.g.
- * `$(sync~spin) DDD: Specialist 2/5 (40%) ETA 2m30s`.
- * Spinner icon while active, check icon when done. The N/M segment and
- * the ETA segment are included only when their inputs are present. The
- * percent is rounded to a whole number. Pure.
- */
-export function formatStageStatusBar(parts: StageStatusBarParts): string {
-  const icon = parts.active ? "$(sync~spin)" : "$(check)";
-  const subSegment = parts.sub
-    ? ` ${parts.sub.current}/${parts.sub.total}`
-    : "";
-  const percent = Math.round(parts.overallPercent);
-  const etaSegment =
-    parts.etaMs !== null && parts.etaMs !== undefined
-      ? ` ETA ${formatEta(parts.etaMs)}`
-      : "";
-  return `${icon} DDD: ${parts.stage}${subSegment} (${percent}%)${etaSegment}`;
-}
-
-// =============================================================================
-// VALIDATION HOVER (pure helpers — testable without vscode)
-// =============================================================================
-
-/**
- * A minimal capacity-bounded cache with least-recently-used eviction.
- * Backed by a Map, which preserves insertion order; `get` and `set`
- * re-insert the touched key so the iteration order tracks recency
- * (oldest first). When `set` would exceed `capacity`, the oldest key is
- * evicted. Pure: no I/O, no vscode. `capacity` must be >= 1.
- */
-export class LruCache<K, V> {
-  private readonly store = new Map<K, V>();
-
-  constructor(private readonly capacity: number) {
-    if (capacity < 1) {
-      throw new Error("LruCache capacity must be >= 1");
-    }
-  }
-
-  get size(): number {
-    return this.store.size;
-  }
-
-  has(key: K): boolean {
-    return this.store.has(key);
-  }
-
-  get(key: K): V | undefined {
-    if (!this.store.has(key)) {
-      return undefined;
-    }
-    const value = this.store.get(key) as V;
-    // Promote recency: re-insert so this key becomes most-recent.
-    this.store.delete(key);
-    this.store.set(key, value);
-    return value;
-  }
-
-  set(key: K, value: V): void {
-    // Re-insert to promote recency (and update value).
-    if (this.store.has(key)) {
-      this.store.delete(key);
-    }
-    this.store.set(key, value);
-    // Evict oldest while over capacity.
-    while (this.store.size > this.capacity) {
-      const oldest = this.store.keys().next().value as K;
-      this.store.delete(oldest);
-    }
-  }
-
-  delete(key: K): boolean {
-    return this.store.delete(key);
-  }
-}
-
-/**
- * Trim `text` to at most `maxChars`, preferring to cut at the last
- * word boundary at or before the limit, and append a single-character
- * ellipsis (…). Returns the text unchanged when already within the
- * limit. Pure.
- */
-export function truncateExcerpt(text: string, maxChars: number): string {
-  if (text.length <= maxChars) {
-    return text;
-  }
-  const hardCut = text.slice(0, maxChars);
-  const lastSpace = hardCut.lastIndexOf(" ");
-  const trimmed =
-    lastSpace > 0 ? hardCut.slice(0, lastSpace) : hardCut;
-  return `${trimmed.trimEnd()}…`;
-}
-
-/**
- * Bold the first case-insensitive occurrence of `keyword` in `excerpt`
- * using Markdown `**…**`, preserving the original casing of the matched
- * span. Returns the excerpt unchanged when the keyword is empty or not
- * found. Pure.
- */
-export function boldMatchingSpan(excerpt: string, keyword: string): string {
-  if (!keyword) {
-    return excerpt;
-  }
-  const lowerExcerpt = excerpt.toLowerCase();
-  const idx = lowerExcerpt.indexOf(keyword.toLowerCase());
-  if (idx < 0) {
-    return excerpt;
-  }
-  const before = excerpt.slice(0, idx);
-  const matched = excerpt.slice(idx, idx + keyword.length);
-  const after = excerpt.slice(idx + keyword.length);
-  return `${before}**${matched}**${after}`;
-}
-
-/**
- * Build the Markdown body for a validation hover. Includes the violation
- * type as a header, the message, and — when the violation has at least
- * one source — a source block with the section/document/page, a bolded,
- * truncated excerpt from the source summary, and an "Open SRS source"
- * link that invokes the `ddd-enforcer.openSource` command with the same
- * (file_path, section) arguments the Code Action uses.
- *
- * The returned string is intended to be wrapped in a trusted
- * `vscode.MarkdownString` by the caller (the command link only fires
- * when `isTrusted` is set). Pure: no vscode, no I/O.
- */
-export function formatHoverMarkdown(
-  violation: Violation,
-  keyword: string,
-): string {
-  const lines: string[] = [];
-  lines.push(`**DDD Violation: ${violation.type}**`);
-  lines.push("");
-  lines.push(violation.message);
-
-  const source = violation.sources && violation.sources[0];
-  if (source) {
-    lines.push("");
-    lines.push(`**Source:** ${source.section} — ${source.document} (p. ${source.page})`);
-    const excerpt = boldMatchingSpan(
-      truncateExcerpt(source.summary, 200),
-      keyword,
-    );
-    lines.push("");
-    lines.push(`> ${excerpt}`);
-    const args = encodeURIComponent(
-      JSON.stringify([source.file_path, source.section]),
-    );
-    lines.push("");
-    lines.push(`[Open SRS source](command:ddd-enforcer.openSource?${args})`);
-  }
-
-  return lines.join("\n");
-}
-
-// =============================================================================
-// RUN MANIFEST WEBVIEW (pure helpers — testable without vscode)
-// =============================================================================
-
-/** One DDD violation as recorded in a PaperRunManifest (mirror of the backend schema). */
-export interface ManifestViolation {
-  violation_type: string;
-  location: string;
-  severity: "ERROR" | "WARN";
-  message: string;
-  srs_path?: string | null;
-  suggestion?: string | null;
-}
-
-/** Mirror of extension/backend/core/run_manifest.py:PaperRunManifest (schema_version "1.0"). */
-export interface PaperRunManifest {
-  run_id: string;
-  timestamp_utc: string;
-  pipeline: "P1" | "P2" | "P3" | null;
-  model_id: string;
-  provider: "gemini" | "ollama";
-  srs_path: string;
-  srs_sha256: string;
-  code_root: string | null;
-  code_sha256: string | null;
-  violations: ManifestViolation[];
-  latency_seconds: number;
-  prompt_tokens: number;
-  completion_tokens: number;
-  cost_usd: number;
-  judge_verdict_path: string | null;
-  audit_overrides_path: string | null;
-  seed_manifest_path: string | null;
-  schema_version: string;
-}
-
-/** The seven list-view columns for one run. */
-export interface RunSummary {
-  runId: string;
-  pipeline: string; // "—" when null
-  modelId: string;
-  srsLabel: string; // basename of srs_path
-  timestamp: string;
-  costUsd: number;
-  violationCount: number;
-}
-
-/** A column key for RunSummary sorting. */
-export type RunSummaryColumn = keyof RunSummary;
-
-/**
- * Extract the basename of a path that may use POSIX (/) or Windows (\)
- * separators. Pure (does not touch the filesystem).
- */
-function basenameOf(p: string): string {
-  const norm = p.replace(/\\/g, "/");
-  const idx = norm.lastIndexOf("/");
-  return idx >= 0 ? norm.slice(idx + 1) : norm;
-}
-
-/**
- * Build a RunSummary from a parsed manifest object. Returns null when the
- * input is not a conforming PaperRunManifest (no string `run_id`), so
- * legacy/foreign JSON files under runs/ are silently filtered out. A
- * missing `violations` array counts as zero. Pure.
- */
-export function summarizeManifest(raw: unknown): RunSummary | null {
-  if (typeof raw !== "object" || raw === null) {
-    return null;
-  }
-  const m = raw as Partial<PaperRunManifest>;
-  if (typeof m.run_id !== "string") {
-    return null;
-  }
-  return {
-    runId: m.run_id,
-    pipeline: m.pipeline ?? "—",
-    modelId: typeof m.model_id === "string" ? m.model_id : "",
-    srsLabel: typeof m.srs_path === "string" ? basenameOf(m.srs_path) : "",
-    timestamp: typeof m.timestamp_utc === "string" ? m.timestamp_utc : "",
-    costUsd: typeof m.cost_usd === "number" ? m.cost_usd : 0,
-    violationCount: Array.isArray(m.violations) ? m.violations.length : 0,
-  };
-}
-
-/**
- * Return a NEW array of summaries sorted by `column`. Numeric columns
- * compare numerically; everything else compares case-insensitive strings.
- * Does not mutate the input. Pure.
- */
-export function sortRunSummaries(
-  rows: RunSummary[],
-  column: RunSummaryColumn,
-  direction: "asc" | "desc",
-): RunSummary[] {
-  const numericColumns: ReadonlySet<RunSummaryColumn> = new Set([
-    "costUsd",
-    "violationCount",
-  ]);
-  const sign = direction === "asc" ? 1 : -1;
-  const copy = [...rows];
-  copy.sort((a, b) => {
-    if (numericColumns.has(column)) {
-      return (Number(a[column]) - Number(b[column])) * sign;
-    }
-    const av = String(a[column]).toLowerCase();
-    const bv = String(b[column]).toLowerCase();
-    if (av < bv) {
-      return -1 * sign;
-    }
-    if (av > bv) {
-      return 1 * sign;
-    }
-    return 0;
-  });
-  return copy;
-}
-
-/**
- * Generate a 32-character alphanumeric nonce for the webview CSP.
- * Pure-enough for testing (uses Math.random; not used for cryptographic
- * secrecy — only to satisfy VS Code's inline-script CSP requirement).
- */
-export function generateNonce(): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let nonce = "";
-  for (let i = 0; i < 32; i++) {
-    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return nonce;
-}
-
-/**
- * Build the complete inline HTML document for the run-manifest webview.
- * Locks the CSP to `default-src 'none'`, allows only the nonce'd inline
- * script and `cspSource`-scoped inline styles, and contains no external
- * URLs (no network). The script acquires the VS Code API, renders the
- * summaries table (sortable headers post a re-sort handled client-side),
- * and posts `openDetail` / `refresh` messages back to the extension. The
- * extension posts `runList` (RunSummary[]) and `runDetail` (full manifest)
- * messages in. Pure (returns a string).
- *
- * The client-side esc() helper escapes &<>"' so interpolated values are
- * safe in both text and attribute contexts; run_id is additionally
- * sanitized server-side by sanitize_path_segment.
- */
-export function buildRunManifestsHtml(
-  nonce: string,
-  cspSource: string,
-): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DDD Enforcer — Run Manifests</title>
-<style>
-  body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 0 12px; }
-  h2 { margin: 12px 0 4px; }
-  table { border-collapse: collapse; width: 100%; margin-top: 8px; }
-  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--vscode-panel-border); font-size: 12px; }
-  th { cursor: pointer; user-select: none; }
-  th:hover { color: var(--vscode-textLink-foreground); }
-  tr.run-row { cursor: pointer; }
-  tr.run-row:hover { background: var(--vscode-list-hoverBackground); }
-  #empty { color: var(--vscode-descriptionForeground); margin-top: 16px; }
-  #detail { margin-top: 16px; border-top: 2px solid var(--vscode-panel-border); padding-top: 8px; display: none; }
-  .sev-ERROR { color: var(--vscode-errorForeground); font-weight: bold; }
-  .sev-WARN { color: var(--vscode-editorWarning-foreground); }
-  pre { white-space: pre-wrap; word-break: break-word; background: var(--vscode-textCodeBlock-background); padding: 8px; }
-  button { margin-top: 8px; }
-</style>
-</head>
-<body>
-<h2>Run Manifests</h2>
-<button id="refresh">Refresh</button>
-<div id="empty" style="display:none;">No run manifests found under <code>runs/</code>. Run the pipeline first.</div>
-<table id="runs-table" style="display:none;">
-  <thead><tr>
-    <th data-col="runId">Run ID</th>
-    <th data-col="pipeline">Pipeline</th>
-    <th data-col="modelId">Model</th>
-    <th data-col="srsLabel">SRS</th>
-    <th data-col="timestamp">Timestamp</th>
-    <th data-col="costUsd">Cost (USD)</th>
-    <th data-col="violationCount">Violations</th>
-  </tr></thead>
-  <tbody id="runs-body"></tbody>
-</table>
-<div id="detail"></div>
-<script nonce="${nonce}">
-  const vscode = acquireVsCodeApi();
-  let runs = [];
-  let sortCol = "timestamp";
-  let sortDir = "desc";
-
-  function esc(s) {
-    return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  }
-
-  function sortRuns(rows, col, dir) {
-    const numeric = col === "costUsd" || col === "violationCount";
-    const sign = dir === "asc" ? 1 : -1;
-    return [...rows].sort((a, b) => {
-      if (numeric) { return (Number(a[col]) - Number(b[col])) * sign; }
-      const av = String(a[col]).toLowerCase();
-      const bv = String(b[col]).toLowerCase();
-      return av < bv ? -1 * sign : av > bv ? 1 * sign : 0;
-    });
-  }
-
-  function renderList() {
-    const table = document.getElementById("runs-table");
-    const empty = document.getElementById("empty");
-    const body = document.getElementById("runs-body");
-    if (!runs.length) {
-      table.style.display = "none";
-      empty.style.display = "block";
-      body.innerHTML = "";
-      return;
-    }
-    empty.style.display = "none";
-    table.style.display = "table";
-    const sorted = sortRuns(runs, sortCol, sortDir);
-    body.innerHTML = sorted.map((r) =>
-      '<tr class="run-row" data-run="' + esc(r.runId) + '">' +
-      "<td>" + esc(r.runId) + "</td>" +
-      "<td>" + esc(r.pipeline) + "</td>" +
-      "<td>" + esc(r.modelId) + "</td>" +
-      "<td>" + esc(r.srsLabel) + "</td>" +
-      "<td>" + esc(r.timestamp) + "</td>" +
-      "<td>" + esc(Number(r.costUsd).toFixed(4)) + "</td>" +
-      "<td>" + esc(r.violationCount) + "</td>" +
-      "</tr>"
-    ).join("");
-    body.querySelectorAll("tr.run-row").forEach((row) => {
-      row.addEventListener("click", () => {
-        vscode.postMessage({ type: "openDetail", runId: row.getAttribute("data-run") });
-      });
-    });
-  }
-
-  function renderDetail(manifest) {
-    const detail = document.getElementById("detail");
-    detail.style.display = "block";
-    const violations = (manifest.violations || []).map((v) =>
-      '<li><span class="sev-' + esc(v.severity) + '">[' + esc(v.severity) + "]</span> " +
-      esc(v.violation_type) + " — " + esc(v.location) + "<br/>" + esc(v.message) + "</li>"
-    ).join("");
-    detail.innerHTML =
-      "<h2>" + esc(manifest.run_id) + "</h2>" +
-      "<p><b>Model:</b> " + esc(manifest.model_id) + " (" + esc(manifest.provider) + ")" +
-      " &nbsp; <b>Pipeline:</b> " + esc(manifest.pipeline || "—") +
-      " &nbsp; <b>Timestamp:</b> " + esc(manifest.timestamp_utc) + "</p>" +
-      "<p><b>Metrics:</b> latency " + esc(manifest.latency_seconds) + "s, " +
-      "prompt " + esc(manifest.prompt_tokens) + " + completion " + esc(manifest.completion_tokens) +
-      " = " + esc(Number(manifest.prompt_tokens) + Number(manifest.completion_tokens)) + " tokens, " +
-      "cost $" + esc(Number(manifest.cost_usd).toFixed(6)) + "</p>" +
-      "<p><b>Provenance:</b><br/>srs: " + esc(manifest.srs_path) + "<br/>" +
-      "srs_sha256: " + esc(manifest.srs_sha256) + "<br/>" +
-      "code_root: " + esc(manifest.code_root || "—") + "<br/>" +
-      "code_sha256: " + esc(manifest.code_sha256 || "—") + "</p>" +
-      "<h3>Violations (" + ((manifest.violations || []).length) + ")</h3>" +
-      "<ul>" + violations + "</ul>";
-  }
-
-  document.querySelectorAll("th[data-col]").forEach((th) => {
-    th.addEventListener("click", () => {
-      const col = th.getAttribute("data-col");
-      if (sortCol === col) { sortDir = sortDir === "asc" ? "desc" : "asc"; }
-      else { sortCol = col; sortDir = "asc"; }
-      renderList();
-    });
-  });
-
-  document.getElementById("refresh").addEventListener("click", () => {
-    vscode.postMessage({ type: "refresh" });
-  });
-
-  window.addEventListener("message", (event) => {
-    const msg = event.data;
-    if (msg.type === "runList") { runs = msg.runs || []; renderList(); }
-    else if (msg.type === "runDetail") { renderDetail(msg.manifest); }
-  });
-
-  vscode.postMessage({ type: "ready" });
-</script>
-</body>
-</html>`;
-}
+import {
+  normalizePythonSemantics,
+  getValidationFingerprint,
+  classifySaveForValidation,
+  classifySaveForValidationFromContent,
+} from "./semanticFingerprint";
 
 // =============================================================================
 // GLOBAL STATE
@@ -821,7 +187,7 @@ const violationSources = new Map<string, ViolationSource[]>();
  * Drives the HoverProvider without a re-fetch. LRU-bounded to 20 files;
  * invalidated by clearSourcesForDocument (which runs on every validate).
  */
-const validationViolationCache = new LruCache<
+export const validationViolationCache = new LruCache<
   string,
   Map<number, Violation>
 >(20);
@@ -1015,7 +381,7 @@ async function startBackend(
     }
 
     // Find available port
-    backendPort = await findAvailablePort();
+    backendPort = await findAvailablePort(log);
     log(`Using port: ${backendPort}`);
 
     // Get paths
@@ -1275,286 +641,10 @@ async function attemptAutoRestart(
   updateStatusBar("error");
 }
 
-// =============================================================================
-// API KEY VALIDATION (pure functions — testable without vscode)
-// =============================================================================
 
-/** Stable error kinds for the Gemini API-key pre-validation probe. */
-export type ApiKeyErrorKind =
-  | "invalid_key"
-  | "rate_limited"
-  | "network_error"
-  | "unknown";
+// API key discovery, validation, and migration are handled by src/apiKeyManager.ts
 
-/**
- * Classify an axios/network error from the API-key probe into a stable
- * kind so the UI layer can render a clear message. Pure: no I/O, no
- * vscode calls.
- *
- * Treated as `invalid_key`: HTTP 400/401/403 (Gemini rejects malformed
- * or unauthorized keys with these statuses).
- *
- * Treated as `rate_limited`: HTTP 429.
- *
- * Treated as `network_error`: axios connection codes ENOTFOUND,
- * ECONNABORTED, ECONNREFUSED, ETIMEDOUT.
- *
- * Everything else (including undefined input) maps to `unknown`.
- */
-export function classifyApiKeyError(err: unknown): ApiKeyErrorKind {
-  if (err === undefined || err === null) {
-    return "unknown";
-  }
-  const e = err as { response?: { status?: number }; code?: string };
-  const status = e.response?.status;
-  if (status === 400 || status === 401 || status === 403) {
-    return "invalid_key";
-  }
-  if (status === 429) {
-    return "rate_limited";
-  }
-  const networkCodes = new Set([
-    "ENOTFOUND",
-    "ECONNABORTED",
-    "ECONNREFUSED",
-    "ETIMEDOUT",
-  ]);
-  if (e.code && networkCodes.has(e.code)) {
-    return "network_error";
-  }
-  return "unknown";
-}
 
-/** Result of a Gemini API-key validation probe. */
-export type ApiKeyValidationResult =
-  | { ok: true }
-  | { ok: false; kind: ApiKeyErrorKind };
-
-/**
- * Injectable HTTP signature: an async function taking a URL and returning
- * `{ status, data }` on success or throwing an axios-shaped error on failure.
- * `validateGeminiKey` defaults to a real axios.get when no injection is given;
- * tests pass a stub to exercise both success and failure paths without
- * touching the network.
- */
-export type ApiKeyHttpProbe = (
-  url: string,
-) => Promise<{ status: number; data: unknown }>;
-
-/** Public Gemini endpoint that accepts a key and returns the model catalogue. */
-const GEMINI_MODELS_URL_BASE =
-  "https://generativelanguage.googleapis.com/v1beta/models";
-
-/**
- * Probe Gemini to verify the supplied API key is accepted. Returns
- * `{ok: true}` on HTTP 200, otherwise `{ok: false, kind}` with the
- * classified error kind (see `classifyApiKeyError`).
- *
- * Rejects the empty string locally without hitting the network. Trims
- * whitespace before sending.
- */
-export async function validateGeminiKey(
-  apiKey: string,
-  httpProbe?: ApiKeyHttpProbe,
-): Promise<ApiKeyValidationResult> {
-  const trimmed = apiKey.trim();
-  if (!trimmed) {
-    return { ok: false, kind: "invalid_key" };
-  }
-  const probe: ApiKeyHttpProbe =
-    httpProbe ??
-    (async (url) => {
-      const resp = await axios.get(url, { timeout: 5000 });
-      return { status: resp.status, data: resp.data };
-    });
-  try {
-    const url = `${GEMINI_MODELS_URL_BASE}?key=${encodeURIComponent(trimmed)}`;
-    const { status } = await probe(url);
-    if (status === 200) {
-      return { ok: true };
-    }
-    return { ok: false, kind: "unknown" };
-  } catch (err) {
-    return { ok: false, kind: classifyApiKeyError(err) };
-  }
-}
-
-/** Where a Gemini API key was found. */
-export type ApiKeySource = "settings" | "env" | "secret" | "prompt";
-
-/** Decision returned by `decideMigrationOffer`. */
-export interface MigrationDecision {
-  /** Whether to surface the "move to secret storage?" toast. */
-  shouldOffer: boolean;
-  /** Human-readable label describing where the key came from (for the toast text). */
-  sourceLabel: string;
-}
-
-/**
- * Decide whether to surface the migration-to-secret-storage offer for a
- * key sourced from `source`. The user's prior decline (persisted to
- * `globalState` by the caller) suppresses the offer permanently.
- *
- * - `settings` / `env`: less-secure sources → offer migration (unless previously declined)
- * - `secret`: already in secret storage → no offer
- * - `prompt`: just typed in by the user → was stored in secret storage as part of the prompt flow → no offer
- */
-export function decideMigrationOffer(
-  source: ApiKeySource,
-  migrationDeclined: boolean,
-): MigrationDecision {
-  const labels: Record<ApiKeySource, string> = {
-    settings: "VS Code settings",
-    env: "GEMINI_API_KEY environment variable",
-    secret: "VS Code secret storage",
-    prompt: "user prompt",
-  };
-  if (migrationDeclined) {
-    return { shouldOffer: false, sourceLabel: labels[source] };
-  }
-  if (source === "settings" || source === "env") {
-    return { shouldOffer: true, sourceLabel: labels[source] };
-  }
-  return { shouldOffer: false, sourceLabel: labels[source] };
-}
-
-// =============================================================================
-// API KEY MANAGEMENT
-// =============================================================================
-
-/**
- * Gets the Gemini API key from settings, env var, or prompts the user.
- *
- * Iter 47 behavior:
- * - Tracks where the key was sourced from (settings/env/secret/prompt).
- * - Pre-validates the key against Gemini's public models endpoint
- *   (cheap, no backend round-trip) before returning it.
- * - On rejection, surfaces a kind-specific toast and returns undefined.
- * - On success, offers migration to secret storage if the source was
- *   the less-secure settings or env path. The user's decline is
- *   persisted to globalState ("apiKeyMigrationDeclined") so the offer
- *   does not repeat next session.
- */
-async function getApiKey(
-  context: vscode.ExtensionContext,
-): Promise<string | undefined> {
-  // Discover the key + its source (first-hit wins, same precedence as before).
-  let apiKey: string | undefined;
-  let source: ApiKeySource | undefined;
-
-  const cfg = vscode.workspace.getConfiguration("ddd-enforcer");
-  const settingsKey = cfg.get<string>("geminiApiKey", "");
-  if (settingsKey && settingsKey.trim()) {
-    apiKey = settingsKey.trim();
-    source = "settings";
-  }
-
-  if (!apiKey) {
-    const envKey = process.env.GEMINI_API_KEY || "";
-    if (envKey.trim()) {
-      apiKey = envKey.trim();
-      source = "env";
-    }
-  }
-
-  if (!apiKey) {
-    const storedKey = await context.secrets.get("geminiApiKey");
-    if (storedKey && storedKey.trim()) {
-      apiKey = storedKey.trim();
-      source = "secret";
-    }
-  }
-
-  if (!apiKey) {
-    const migrationHint =
-      "You can also paste the key here; it will be saved to VS Code secret storage.";
-    const inputKey = await vscode.window.showInputBox({
-      prompt: `Enter your Gemini API Key. ${migrationHint}`,
-      placeHolder: "AIza...",
-      password: true,
-      ignoreFocusOut: true,
-    });
-    if (inputKey && inputKey.trim()) {
-      await context.secrets.store("geminiApiKey", inputKey.trim());
-      apiKey = inputKey.trim();
-      source = "prompt";
-    }
-  }
-
-  if (!apiKey || !source) {
-    return undefined;
-  }
-
-  // Pre-validate the key against Gemini.
-  updateStatusBar("validatingApiKey");
-  log(`Validating Gemini API key from source: ${source}`);
-  const validation = await validateGeminiKey(apiKey);
-
-  if (!validation.ok) {
-    log(`API key validation failed: ${validation.kind}`);
-    const messages: Record<ApiKeyErrorKind, string> = {
-      invalid_key:
-        "DDD Enforcer: Gemini API key was rejected. Check the key and try again.",
-      rate_limited:
-        "DDD Enforcer: Gemini rate-limited the API key check. Try again in a few seconds.",
-      network_error:
-        "DDD Enforcer: Could not reach Gemini to validate the API key. Check your network.",
-      unknown:
-        "DDD Enforcer: Unexpected error validating the API key. See the Output channel for details.",
-    };
-    vscode.window.showErrorMessage(messages[validation.kind]);
-    return undefined;
-  }
-
-  log("Gemini API key validated.");
-
-  // Migration offer for less-secure sources.
-  const migrationDeclined =
-    context.globalState.get<boolean>("apiKeyMigrationDeclined") === true;
-  const decision = decideMigrationOffer(source, migrationDeclined);
-  if (decision.shouldOffer) {
-    const choice = await vscode.window.showInformationMessage(
-      `DDD Enforcer found your Gemini API key in ${decision.sourceLabel}. Move it to VS Code secret storage for better security?`,
-      "Move to secret storage",
-      "Not now",
-      "Don't ask again",
-    );
-    if (choice === "Move to secret storage") {
-      await context.secrets.store("geminiApiKey", apiKey);
-      let settingsClearFailed = false;
-      if (source === "settings") {
-        try {
-          await cfg.update(
-            "geminiApiKey",
-            "",
-            vscode.ConfigurationTarget.Global,
-          );
-        } catch (err) {
-          settingsClearFailed = true;
-          log(
-            `API key copied to secret storage but failed to clear settings entry: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        }
-      }
-      if (settingsClearFailed) {
-        vscode.window.showWarningMessage(
-          "DDD Enforcer: API key saved to secret storage, but could not clear the existing setting. Please remove ddd-enforcer.geminiApiKey from your settings manually.",
-        );
-      } else {
-        log(`API key migrated from ${decision.sourceLabel} to secret storage.`);
-        vscode.window.showInformationMessage(
-          "DDD Enforcer: Gemini API key moved to secret storage.",
-        );
-      }
-    } else if (choice === "Don't ask again") {
-      await context.globalState.update("apiKeyMigrationDeclined", true);
-      log("API key migration permanently declined by user.");
-    }
-    // "Not now" or dismiss: no state change; the offer will re-appear on the next getApiKey call.
-  }
-
-  return apiKey;
-}
 
 // =============================================================================
 // DOMAIN MODEL INITIALIZATION
@@ -2091,161 +1181,9 @@ function shouldValidateOnSave(document: vscode.TextDocument): {
   return classifySaveForValidation(lastFingerprint, document.getText());
 }
 
-/**
- * Creates a stable semantic fingerprint for validation decisions.
- * Ignores comments and whitespace outside string literals.
- */
-function getValidationFingerprint(content: string): string {
-  return normalizePythonSemantics(content);
-}
 
-/**
- * Test helper: compare two file snapshots and return validate/skip decision.
- */
-export function classifySaveForValidation(
-  previousFingerprint: string | undefined,
-  currentContent: string,
-): { shouldValidate: boolean; reason: string } {
-  const curr = getValidationFingerprint(currentContent);
+// Semantic fingerprinting helpers are imported from src/semanticFingerprint.ts
 
-  if (previousFingerprint === undefined) {
-    return { shouldValidate: true, reason: "first semantic snapshot" };
-  }
-  if (previousFingerprint === curr) {
-    return { shouldValidate: false, reason: "non-semantic change" };
-  }
-  return { shouldValidate: true, reason: "semantic code change" };
-}
-
-/**
- * Test helper: compare raw text snapshots directly.
- */
-export function classifySaveForValidationFromContent(
-  previousContent: string | undefined,
-  currentContent: string,
-): { shouldValidate: boolean; reason: string } {
-  const prev = previousContent
-    ? getValidationFingerprint(previousContent)
-    : undefined;
-  return classifySaveForValidation(prev, currentContent);
-}
-
-/**
- * Lightweight Python semantic normalization:
- * - removes comments outside strings
- * - removes whitespace outside strings
- * - preserves string literal content
- */
-function normalizePythonSemantics(content: string): string {
-  let result = "";
-  let i = 0;
-  let inSingle = false;
-  let inDouble = false;
-  let inTripleSingle = false;
-  let inTripleDouble = false;
-  let escaped = false;
-
-  const isWhitespace = (ch: string) => /\s/.test(ch);
-
-  while (i < content.length) {
-    const ch = content[i];
-    const next3 = content.slice(i, i + 3);
-
-    if (inTripleSingle) {
-      result += ch;
-      if (next3 === "'''") {
-        result += "''";
-        i += 3;
-        inTripleSingle = false;
-        continue;
-      }
-      i += 1;
-      continue;
-    }
-
-    if (inTripleDouble) {
-      result += ch;
-      if (next3 === '"""') {
-        result += '""';
-        i += 3;
-        inTripleDouble = false;
-        continue;
-      }
-      i += 1;
-      continue;
-    }
-
-    if (inSingle) {
-      result += ch;
-      if (!escaped && ch === "'") {
-        inSingle = false;
-      }
-      escaped = !escaped && ch === "\\";
-      i += 1;
-      continue;
-    }
-
-    if (inDouble) {
-      result += ch;
-      if (!escaped && ch === '"') {
-        inDouble = false;
-      }
-      escaped = !escaped && ch === "\\";
-      i += 1;
-      continue;
-    }
-
-    // Outside string literals
-    if (next3 === "'''") {
-      inTripleSingle = true;
-      result += "'''";
-      i += 3;
-      continue;
-    }
-
-    if (next3 === '"""') {
-      inTripleDouble = true;
-      result += '"""';
-      i += 3;
-      continue;
-    }
-
-    if (ch === "'") {
-      inSingle = true;
-      escaped = false;
-      result += ch;
-      i += 1;
-      continue;
-    }
-
-    if (ch === '"') {
-      inDouble = true;
-      escaped = false;
-      result += ch;
-      i += 1;
-      continue;
-    }
-
-    // Strip comments outside strings
-    if (ch === "#") {
-      while (i < content.length && content[i] !== "\n") {
-        i += 1;
-      }
-      continue;
-    }
-
-    // Strip whitespace outside strings
-    if (isWhitespace(ch)) {
-      i += 1;
-      continue;
-    }
-
-    result += ch;
-    i += 1;
-  }
-
-  return result;
-}
 
 /**
  * Creates a diagnostic for a single violation.
@@ -2345,7 +1283,7 @@ async function showStatus() {
 /**
  * Updates the status bar with current state.
  */
-function updateStatusBar(
+export function updateStatusBar(
   state:
     | "inactive"
     | "starting"
@@ -2357,6 +1295,9 @@ function updateStatusBar(
     | "notInitialized",
   count?: number,
 ) {
+  if (!statusBarItem) {
+    return;
+  }
   const cfg = vscode.workspace.getConfiguration("ddd-enforcer");
   if (!cfg.get<boolean>("showStatusBar", true)) {
     statusBarItem.hide();
@@ -2468,7 +1409,7 @@ class DDDSourceCodeActionProvider implements vscode.CodeActionProvider {
  * formatHoverMarkdown in a trusted MarkdownString so the embedded
  * "Open SRS source" command link works.
  */
-class DDDViolationHoverProvider implements vscode.HoverProvider {
+export class DDDViolationHoverProvider implements vscode.HoverProvider {
   provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,
@@ -2487,7 +1428,7 @@ class DDDViolationHoverProvider implements vscode.HoverProvider {
     const markdown = new vscode.MarkdownString(
       formatHoverMarkdown(violation, keyword),
     );
-    markdown.isTrusted = true;
+    markdown.isTrusted = { enabledCommands: ["ddd-enforcer.openSource"] };
     return new vscode.Hover(markdown);
   }
 }
@@ -2745,50 +1686,9 @@ function getBackendPath(context: vscode.ExtensionContext): string {
   return path.join(context.extensionPath, "..", "backend");
 }
 
-/**
- * Finds an available port starting from the configured port.
- */
-async function findAvailablePort(): Promise<number> {
-  const cfg = vscode.workspace.getConfiguration("ddd-enforcer");
-  const preferredPort = cfg.get<number>("backendPort", 8000);
 
-  // Try the preferred port first
-  if (await isPortAvailable(preferredPort)) {
-    return preferredPort;
-  }
+// Port scanning helpers are imported from src/backend/processManager.ts
 
-  log(
-    `Preferred port ${preferredPort} is in use. Scanning for an available port in the next 99 candidates...`,
-  );
-  for (let port = preferredPort + 1; port < preferredPort + 100; port++) {
-    if (await isPortAvailable(port)) {
-      log(`Selected port ${port} (preferred port ${preferredPort} was unavailable).`);
-      return port;
-    }
-  }
-
-  log(
-    `WARNING: no available port found in ${preferredPort}..${preferredPort + 99}. Falling back to preferred port ${preferredPort} (backend startup is likely to fail).`,
-  );
-  return preferredPort;
-}
-
-/**
- * Checks if a port is available.
- */
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-
-    server.once("error", () => resolve(false));
-    server.once("listening", () => {
-      server.close();
-      resolve(true);
-    });
-
-    server.listen(port, "127.0.0.1");
-  });
-}
 
 /**
  * Clears stored sources for a document.
@@ -2913,7 +1813,11 @@ function shouldSkipValidation(
 /**
  * Logs a message to the output channel.
  */
-function log(message: string) {
+export function log(message: string) {
+  if (!outputChannel) {
+    console.log(message);
+    return;
+  }
   const timestamp = new Date().toLocaleTimeString();
   outputChannel.appendLine(`[${timestamp}] ${message}`);
 }
