@@ -408,6 +408,12 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(computeBackoffMs(-100), 1000);
   });
 
+  test("computeBackoffMs returns baseMs for NaN and non-finite attempts (T9)", () => {
+    assert.strictEqual(computeBackoffMs(NaN), 1000);
+    assert.strictEqual(computeBackoffMs(Infinity), 1000);
+    assert.strictEqual(computeBackoffMs(-Infinity), 1000);
+  });
+
   test("shouldAttemptRestart allows attempts 0 through 4", () => {
     for (const attempt of [0, 1, 2, 3, 4]) {
       assert.strictEqual(

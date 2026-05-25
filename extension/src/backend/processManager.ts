@@ -20,7 +20,7 @@ export function computeBackoffMs(
   baseMs: number = 1000,
   maxMs: number = 30000,
 ): number {
-  if (attempt <= 0) {
+  if (!Number.isFinite(attempt) || attempt <= 0) {
     return baseMs;
   }
   const raw = baseMs * Math.pow(2, attempt);
