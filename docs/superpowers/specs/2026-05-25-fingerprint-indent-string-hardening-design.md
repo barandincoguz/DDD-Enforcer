@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-25
 **Topic:** Rewrite `extension/src/semanticFingerprint.ts` `normalizePythonSemantics` so the save-trigger validation fingerprint (T10) preserves Python indentation semantics and (T11) hardens the hand-rolled string-state parser.
-**Status:** Approved design — pending spec review → writing-plans.
+**Status:** Implemented — commits f4c39a0 (Phase 2), 10e1cce (Phase 1), ed37c6e (compose). See plan `2026-05-25-fingerprint-indent-string-hardening.md`.
 **Approach:** Two-phase (string-aware logical-line extractor → indent-depth tokenizer). Chosen over single-pass-interleaved and minimal-patch for testability and clean boundaries.
 
 ---
