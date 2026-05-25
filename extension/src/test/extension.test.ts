@@ -1250,8 +1250,11 @@ suite("Extension Test Suite", () => {
       err.response = { status: 400 };
       mockAxiosResult = err;
 
-      const resultA = await getApiKey(mockContext);
-      
+      const resultA = await getApiKey(mockContext, {
+        log: () => {},
+        updateStatusBar: () => {},
+      });
+
       assert.strictEqual(resultA, undefined, "should return undefined on rejected key");
       assert.strictEqual(storeCallCount, 0, "should NOT write to secret storage when key is rejected");
       assert.strictEqual(mockSecrets.has("geminiApiKey"), false, "key must not exist in secret storage");
@@ -1260,7 +1263,10 @@ suite("Extension Test Suite", () => {
       inputKeyReturnValue = "AIzaValidFakeKey";
       mockAxiosResult = { status: 200, data: { models: [] } };
 
-      const resultB = await getApiKey(mockContext);
+      const resultB = await getApiKey(mockContext, {
+        log: () => {},
+        updateStatusBar: () => {},
+      });
 
       assert.strictEqual(resultB, "AIzaValidFakeKey", "should return the validated key");
       assert.strictEqual(storeCallCount, 1, "should write to secret storage exactly once when key is accepted");

@@ -370,7 +370,7 @@ async function startBackend(
 
   try {
     // Get API key
-    const apiKey = await getApiKey(context);
+    const apiKey = await getApiKey(context, { log, updateStatusBar });
     if (!apiKey) {
       vscode.window.showErrorMessage(
         "DDD Enforcer: Gemini API Key is required. Please configure it in settings or provide when prompted.",

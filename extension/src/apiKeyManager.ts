@@ -5,7 +5,6 @@
 
 import * as vscode from "vscode";
 import axios from "axios";
-import { log, updateStatusBar } from "./extension";
 
 /** Stable error kinds for the Gemini API-key pre-validation probe. */
 export type ApiKeyErrorKind =
@@ -155,8 +154,19 @@ export function decideMigrationOffer(
  *   persisted to globalState ("apiKeyMigrationDeclined") so the offer
  *   does not repeat next session.
  */
+/**
+ * Dependencies injected into `getApiKey` to avoid a circular import
+ * back into the extension entrypoint. The extension passes its own
+ * `log` and `updateStatusBar` implementations.
+ */
+export interface ApiKeyDeps {
+  log: (msg: string) => void;
+  updateStatusBar: (state: "validatingApiKey") => void;
+}
+
 export async function getApiKey(
   context: vscode.ExtensionContext,
+  deps: ApiKeyDeps,
 ): Promise<string | undefined> {
   // Discover the key + its source (first-hit wins, same precedence as before).
   let apiKey: string | undefined;
@@ -205,12 +215,12 @@ export async function getApiKey(
   }
 
   // Pre-validate the key against Gemini.
-  updateStatusBar("validatingApiKey");
-  log(`Validating Gemini API key from source: ${source}`);
+  deps.updateStatusBar("validatingApiKey");
+  deps.log(`Validating Gemini API key from source: ${source}`);
   const validation = await validateGeminiKey(apiKey);
 
   if (!validation.ok) {
-    log(`API key validation failed: ${validation.kind}`);
+    deps.log(`API key validation failed: ${validation.kind}`);
     const messages: Record<ApiKeyErrorKind, string> = {
       invalid_key:
         "DDD Enforcer: Gemini API key was rejected. Check the key and try again.",
@@ -225,7 +235,7 @@ export async function getApiKey(
     return undefined;
   }
 
-  log("Gemini API key validated.");
+  deps.log("Gemini API key validated.");
 
   // Persist a prompted key only after it validates (prevents lockout on a bad key).
   if (source === "prompt") {
@@ -269,7 +279,7 @@ export async function getApiKey(
             await cfg.update("geminiApiKey", undefined, t);
           } catch (err) {
             settingsClearFailed = true;
-            log(`API key copied to secret storage but failed to clear settings target ${t}: ${err instanceof Error ? err.message : String(err)}`);
+            deps.log(`API key copied to secret storage but failed to clear settings target ${t}: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
       }
@@ -280,18 +290,18 @@ export async function getApiKey(
       } else {
         if (source === "env") {
           await context.globalState.update("apiKeyEnvMigrationDone", true);
-          log(
+          deps.log(
             "Env-sourced API key migrated to secret storage; suppressing future env migration offers. Unset GEMINI_API_KEY to let secret storage take over.",
           );
         }
-        log(`API key migrated from ${decision.sourceLabel} to secret storage.`);
+        deps.log(`API key migrated from ${decision.sourceLabel} to secret storage.`);
         vscode.window.showInformationMessage(
           "DDD Enforcer: Gemini API key moved to secret storage.",
         );
       }
     } else if (choice === "Don't ask again") {
       await context.globalState.update("apiKeyMigrationDeclined", true);
-      log("API key migration permanently declined by user.");
+      deps.log("API key migration permanently declined by user.");
     }
   }
 
