@@ -107,3 +107,73 @@ def test_failure_is_non_fatal_returns_best_so_far():
     assert model.critic_report.loop.outcome == "failed"
     assert model.critic_report.error is not None
     assert isinstance(model, DomainModel)
+
+
+def _high_finding_at(target_ref: str):
+    """A high-priority CONTENT finding with a caller-chosen target_ref so each
+    cycle yields a distinct findings_signature (no flap)."""
+    return CritiqueFinding(finding_type="ANEMIC_ENTITY", priority="high",
+                           target_ref=target_ref, rationale="r", proposed_revision="p")
+
+
+def test_exhausted_when_findings_persist_with_distinct_signatures(monkeypatch):
+    """High finding every cycle but a DIFFERENT signature each time so the loop
+    never flaps; it should run to the cycle cap and report 'exhausted'."""
+    monkeypatch.setenv("DDD_CRITIC_MAX_CYCLES", "3")
+    deps = _base_deps()
+    targets = ["entity:Ord.Order", "entity:Ord.Line", "entity:Ord.Item"]
+    calls = [0]
+
+    def critic(model, scout, history):
+        ref = targets[min(calls[0], len(targets) - 1)]
+        calls[0] += 1
+        return _report([_high_finding_at(ref)])
+
+    deps.critic = critic
+    model = run_critique_loop(_scout(), deps, srs_path="x")
+    assert model.critic_report.loop.outcome == "exhausted"
+    assert model.critic_report.loop.cycles_used == 3
+
+
+def test_content_revision_improves_sets_best_cycle(monkeypatch):
+    """Cycle 0 has 2 highs (score 6); cycle 1 has 1 high (score 3) with a
+    non-flapping signature -> best_cycle becomes 1 with score 3.0. Exercises
+    the content-only regeneration branch (specialist_with_feedback + synth)."""
+    monkeypatch.setenv("DDD_CRITIC_MAX_CYCLES", "3")
+    deps = _base_deps()
+    calls = [0]
+
+    def critic(model, scout, history):
+        calls[0] += 1
+        if calls[0] == 1:
+            return _report([_high_finding_at("entity:Ord.Order"),
+                            _high_finding_at("entity:Ord.Line")])
+        if calls[0] == 2:
+            return _report([_high_finding_at("entity:Ord.Item")])
+        # cycle 2: distinct signature, same score 3 (won't beat cycle 1)
+        return _report([_high_finding_at("entity:Ord.Sku")])
+
+    deps.critic = critic
+    model = run_critique_loop(_scout(), deps, srs_path="x")
+    assert model.critic_report.loop.best_cycle == 1
+    assert model.critic_report.score == 3.0
+
+
+def test_regeneration_failure_is_non_fatal(monkeypatch):
+    """FIX 1 regression: a generation error (SynthesizerEmptyModelError, a
+    PipelineError) raised during a revision cycle must NOT escape — the loop
+    returns best-so-far with outcome='failed' and an error recorded."""
+    from core.orchestration.errors import SynthesizerEmptyModelError
+    monkeypatch.setenv("DDD_CRITIC_MAX_CYCLES", "3")
+    deps = _base_deps()
+
+    def specialist_with_feedback(arch, scout, prev, issues):
+        raise SynthesizerEmptyModelError(input_summary="boom", srs_path="x")
+
+    deps.specialist_with_feedback = specialist_with_feedback
+    deps.critic = lambda model, scout, history: _report([_high_finding()])
+
+    model = run_critique_loop(_scout(), deps, srs_path="x")
+    assert isinstance(model, DomainModel)
+    assert model.critic_report.loop.outcome == "failed"
+    assert model.critic_report.error is not None

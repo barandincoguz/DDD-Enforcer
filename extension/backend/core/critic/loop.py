@@ -10,8 +10,9 @@ returns best-so-far)."""
 import os
 from typing import Any, List, Optional, Tuple
 from core.schemas import CritiqueFinding, CriticReport, CriticLoopTrace, DomainModel
-from core.pipeline_contracts import ScoutOutput, ArchitectOutput, SpecialistAnalysis
+from core.pipeline_contracts import ScoutOutput
 from core.critic.errors import CriticError
+from core.orchestration.errors import PipelineError
 from core.critic.types import CritiqueCycleMemory
 from core.critic.routing import (
     partition_findings, adapt_structural_to_issues, adapt_content_to_issues,
@@ -94,7 +95,13 @@ def run_critique_loop(
                 )
                 new_model = deps.synthesizer(specialist)
             new_report = deps.critic(new_model, scout, history)
-        except CriticError as exc:
+        except (CriticError, PipelineError) as exc:
+            # Non-fatal: a revision-cycle critic failure (CriticError) OR a
+            # regeneration failure (PipelineError subclasses such as
+            # ArchitectGroundingError / SynthesizerEmptyModelError /
+            # RefinementExhaustedError raised by _generate_once / synthesizer
+            # / specialist_with_feedback) falls back to the best model so far.
+            # Cycle-0 generation failure stays fatal (no prior good model).
             return _finalize_failed(best_model, exc, cycles_used=cycle + 1,
                                     score_trace=score_trace, count_trace=count_trace,
                                     best_report=best_report, best_cycle=best_cycle)
@@ -129,19 +136,17 @@ def run_critique_loop(
 
 
 def _finalize_failed(
-    model: DomainModel, exc: CriticError, *, cycles_used: int,
+    model: DomainModel, exc: Exception, *, cycles_used: int,
     score_trace: List[float], count_trace: List[int],
     best_report: Optional[CriticReport] = None, best_cycle: int = 0,
 ) -> DomainModel:
-    report = best_report or CriticReport(
-        model_id="unknown", findings=[],
-        loop=CriticLoopTrace(cycles_used=cycles_used, best_cycle=best_cycle, outcome="failed"),
-    )
-    report.score = critique_score(report.findings)
-    report.error = str(exc)
-    report.loop = CriticLoopTrace(
+    loop = CriticLoopTrace(
         cycles_used=cycles_used, best_cycle=best_cycle, outcome="failed",
         score_per_cycle=score_trace, findings_count_per_cycle=count_trace,
     )
+    report = best_report or CriticReport(model_id="unknown", findings=[], loop=loop)
+    report.score = critique_score(report.findings)
+    report.error = str(exc)
+    report.loop = loop
     model.critic_report = report
     return model
