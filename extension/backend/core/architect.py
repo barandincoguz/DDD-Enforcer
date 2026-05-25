@@ -999,6 +999,24 @@ Do not invent data not present in the sentences."""
     # MAIN PIPELINE
     # =========================================================================
 
+    def _build_critic_fn(self):
+        """Return a per-cycle critic callable for the critique loop, or None
+        when DDD_CRITIC_LOOP is not enabled. Uses the generation client +
+        the Critic stage config (G1)."""
+        if os.getenv("DDD_CRITIC_LOOP", "") not in ("1", "true", "True"):
+            return None
+
+        from core.critic.critic import run_critic
+        critic_cfg = stage_config("Critic")
+
+        def critic_fn(model, scout, history):
+            return run_critic(
+                model, scout, history,
+                client=self.client, stage_cfg=critic_cfg,
+            )
+
+        return critic_fn
+
     def analyze_document(
         self,
         text: str,
@@ -1186,6 +1204,7 @@ Do not invent data not present in the sentences."""
             synthesizer=synthesizer_fn,
             verifier=verifier_fn,
             specialist_with_feedback=specialist_with_feedback_fn,
+            critic=self._build_critic_fn(),
         )
         return run_pipeline(
             srs_text=text,
