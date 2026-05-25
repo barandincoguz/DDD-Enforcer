@@ -39,6 +39,7 @@ import {
   validationViolationCache,
   tokenizeIndentation,
   type LogicalLine,
+  extractLogicalLines,
 } from "../extension";
 
 suite("Extension Test Suite", () => {
@@ -287,6 +288,69 @@ suite("Extension Test Suite", () => {
       { indentWidth: 4, content: "b" },
     ]);
     assert.strictEqual(wide, narrow);
+  });
+
+  // ==========================================================================
+  // FINGERPRINT — PHASE 1: LOGICAL-LINE EXTRACTION (T11)
+  // ==========================================================================
+
+  test("extractLogicalLines strips a code comment but keeps '#' inside a string", () => {
+    const lines = extractLogicalLines('a = 1  # tail\nb = "# not a comment"\n');
+    assert.strictEqual(lines.length, 2);
+    assert.strictEqual(lines[0].content, "a=1");
+    assert.strictEqual(lines[1].content, 'b="# not a comment"');
+  });
+
+  test("extractLogicalLines collapses operator spacing but keeps token boundaries", () => {
+    const lines = extractLogicalLines("a   =   1\ndel   x\n");
+    assert.strictEqual(lines[0].content, "a=1");
+    assert.strictEqual(lines[1].content, "del x");
+  });
+
+  test("extractLogicalLines keeps an escaped delimiter inside a triple string", () => {
+    const src = 'x = """He said \\"hi\\""""\ny = 2\n';
+    const lines = extractLogicalLines(src);
+    assert.strictEqual(lines.length, 2, "string closes exactly once; y is its own line");
+    assert.strictEqual(lines[1].content, "y=2");
+  });
+
+  test("extractLogicalLines does not let lone quotes inside a triple string close it early", () => {
+    const src = "x = '''a'b'c'''\ny = 2\n";
+    const lines = extractLogicalLines(src);
+    assert.strictEqual(lines.length, 2);
+    assert.strictEqual(lines[1].content, "y=2");
+  });
+
+  test("extractLogicalLines handles a Python 3.12 f-string that reuses the quote inside braces", () => {
+    const src = 'x = f"a {b.split(" ")} c"\ny = 2\n';
+    const lines = extractLogicalLines(src);
+    assert.strictEqual(lines.length, 2, "f-string closes only at the final quote");
+    assert.strictEqual(lines[1].content, "y=2");
+  });
+
+  test("extractLogicalLines joins a backslash line continuation into one logical line", () => {
+    const lines = extractLogicalLines("a = 1 + \\\n    2\n");
+    assert.strictEqual(lines.length, 1);
+    assert.strictEqual(lines[0].content, "a=1+2");
+  });
+
+  test("extractLogicalLines drops blank and comment-only lines", () => {
+    const lines = extractLogicalLines("a = 1\n\n   # just a comment\nb = 2\n");
+    assert.strictEqual(lines.length, 2);
+    assert.strictEqual(lines[0].content, "a=1");
+    assert.strictEqual(lines[1].content, "b=2");
+  });
+
+  test("extractLogicalLines preserves whitespace inside a string literal", () => {
+    const lines = extractLogicalLines('s = "a   b"\n');
+    assert.strictEqual(lines[0].content, 's="a   b"');
+  });
+
+  test("extractLogicalLines records indent width and does not treat 'if' as an f-string prefix", () => {
+    const lines = extractLogicalLines('if"x":\n    pass\n');
+    assert.strictEqual(lines[0].indentWidth, 0);
+    assert.strictEqual(lines[1].indentWidth, 4);
+    assert.strictEqual(lines[1].content, "pass");
   });
 
   // ==========================================================================

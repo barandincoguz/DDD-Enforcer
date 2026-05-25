@@ -91,6 +91,7 @@ export {
   classifySaveForValidation,
   classifySaveForValidationFromContent,
   tokenizeIndentation,
+  extractLogicalLines,
   type LogicalLine,
 } from "./semanticFingerprint";
 
