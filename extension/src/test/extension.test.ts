@@ -385,6 +385,20 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(lines[1].content, "pass");
   });
 
+  test("extractLogicalLines treats a lone CR as a line terminator (universal newlines)", () => {
+    const lines = extractLogicalLines("a\rb\r");
+    assert.strictEqual(lines.length, 2);
+    assert.strictEqual(lines[0].content, "a");
+    assert.strictEqual(lines[1].content, "b");
+  });
+
+  test("extractLogicalLines treats CRLF as a single line terminator", () => {
+    const lines = extractLogicalLines("a\r\nb\r\n");
+    assert.strictEqual(lines.length, 2);
+    assert.strictEqual(lines[0].content, "a");
+    assert.strictEqual(lines[1].content, "b");
+  });
+
   // ==========================================================================
   // API KEY VALIDATION TESTS (Iter 47)
   // ==========================================================================

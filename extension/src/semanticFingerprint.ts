@@ -159,6 +159,12 @@ export function extractLogicalLines(src: string): LogicalLine[] {
           continue;
         }
         if (ch === "\r") {
+          // CRLF: swallow CR and let the LF terminate; a lone CR is itself a line break.
+          if (src[i + 1] === "\n") {
+            i++;
+            continue;
+          }
+          finishLine();
           i++;
           continue;
         }
@@ -177,14 +183,17 @@ export function extractLogicalLines(src: string): LogicalLine[] {
         // fall through to content handling for this same char (no i++)
       }
 
-      if (
-        ch === "\\" &&
-        (src[i + 1] === "\n" || (src[i + 1] === "\r" && src[i + 2] === "\n"))
-      ) {
-        i += src[i + 1] === "\r" ? 3 : 2;
+      if (ch === "\\" && (src[i + 1] === "\n" || src[i + 1] === "\r")) {
+        // line continuation across LF, CR, or CRLF
+        i += src[i + 1] === "\r" && src[i + 2] === "\n" ? 3 : 2;
         continue;
       }
       if (ch === "\r") {
+        if (src[i + 1] === "\n") {
+          i++;
+          continue;
+        }
+        finishLine();
         i++;
         continue;
       }
