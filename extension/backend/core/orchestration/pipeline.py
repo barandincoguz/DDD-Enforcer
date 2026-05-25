@@ -273,7 +273,14 @@ def _apply_context_map(
     PURE: returns a deep copy; never mutates `model` (the critique loop's
     best_model may alias it). No-op (returns `model` unchanged) when no
     context_mapper is wired. On ContextMapperError the text-scan baseline
-    allowed_dependencies is kept and the failure is recorded on context_map."""
+    allowed_dependencies is kept and the failure is recorded on context_map.
+
+    On SUCCESS, allowed_dependencies is a pure derived projection of the context
+    map: every bounded context is overwritten from `derive_allowed_dependencies`
+    (None when it has no outgoing dependency edges). The baseline is NEVER merged
+    with the derived result — A is authoritative. This ensures SEPARATE_WAYS
+    contexts (no edges → None) and upstream-only contexts in CUSTOMER_SUPPLIER
+    relationships are not left with stale text-scan baselines."""
     if deps.context_mapper is None:
         return model
     from core.context_mapper import derive_allowed_dependencies
@@ -295,8 +302,7 @@ def _apply_context_map(
     new_model.context_map = cmap
     for bc in new_model.bounded_contexts:
         dep_list = derived.get(bc.context_name)
-        if dep_list is not None:
-            bc.allowed_dependencies = sorted(dep_list) if dep_list else None
+        bc.allowed_dependencies = sorted(dep_list) if dep_list else None
     return new_model
 
 

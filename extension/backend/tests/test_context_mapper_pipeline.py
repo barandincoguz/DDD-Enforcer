@@ -69,3 +69,34 @@ def test_feedback_forwarded():
         return ContextMap(model_id="m")
     _apply_context_map(_model(), _deps(mapper), _scout(), feedback=["finding"])
     assert captured["fb"] == ["finding"]
+
+
+def test_authoritative_overwrite_clears_stale_baseline_separate_ways():
+    # A succeeds with SEPARATE_WAYS → both contexts must drop stale baseline deps.
+    def mapper(model, scout, feedback):
+        return ContextMap(model_id="m", relationships=[ContextRelationship(
+            context_a="Ordering", context_b="Inventory",
+            relationship_type="SEPARATE_WAYS", upstream=None, rationale="r")])
+    m = _model()
+    m.bounded_contexts[0].allowed_dependencies = ["Inventory"]  # stale text-scan baseline
+    m.bounded_contexts[1].allowed_dependencies = ["Ordering"]
+    out = _apply_context_map(m, _deps(mapper), _scout())
+    ord_ctx = next(b for b in out.bounded_contexts if b.context_name == "Ordering")
+    inv_ctx = next(b for b in out.bounded_contexts if b.context_name == "Inventory")
+    assert ord_ctx.allowed_dependencies is None
+    assert inv_ctx.allowed_dependencies is None
+
+
+def test_upstream_only_context_forced_to_none():
+    # CUSTOMER_SUPPLIER Ordering->Inventory: Inventory is upstream-only → None even if baseline set.
+    def mapper(model, scout, feedback):
+        return ContextMap(model_id="m", relationships=[ContextRelationship(
+            context_a="Ordering", context_b="Inventory",
+            relationship_type="CUSTOMER_SUPPLIER", upstream="Inventory", rationale="r")])
+    m = _model()
+    m.bounded_contexts[1].allowed_dependencies = ["Ordering"]  # wrong stale baseline on upstream-only
+    out = _apply_context_map(m, _deps(mapper), _scout())
+    ord_ctx = next(b for b in out.bounded_contexts if b.context_name == "Ordering")
+    inv_ctx = next(b for b in out.bounded_contexts if b.context_name == "Inventory")
+    assert ord_ctx.allowed_dependencies == ["Inventory"]
+    assert inv_ctx.allowed_dependencies is None
