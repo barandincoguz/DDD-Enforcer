@@ -243,17 +243,24 @@ export async function getApiKey(
       await context.secrets.store("geminiApiKey", apiKey);
       let settingsClearFailed = false;
       if (source === "settings") {
-        try {
-          await cfg.update(
-            "geminiApiKey",
-            "",
-            vscode.ConfigurationTarget.Global,
-          );
-        } catch (err) {
-          settingsClearFailed = true;
-          log(
-            `API key copied to secret storage but failed to clear settings entry: ${err instanceof Error ? err.message : String(err)}`,
-          );
+        const inspected = cfg.inspect<string>("geminiApiKey");
+        const targets: vscode.ConfigurationTarget[] = [];
+        if (inspected?.globalValue) {
+          targets.push(vscode.ConfigurationTarget.Global);
+        }
+        if (inspected?.workspaceValue) {
+          targets.push(vscode.ConfigurationTarget.Workspace);
+        }
+        if (inspected?.workspaceFolderValue) {
+          targets.push(vscode.ConfigurationTarget.WorkspaceFolder);
+        }
+        for (const t of targets) {
+          try {
+            await cfg.update("geminiApiKey", undefined, t);
+          } catch (err) {
+            settingsClearFailed = true;
+            log(`API key copied to secret storage but failed to clear settings target ${t}: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
       }
       if (settingsClearFailed) {
