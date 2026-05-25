@@ -1001,9 +1001,10 @@ Do not invent data not present in the sentences."""
 
     def _build_critic_fn(self):
         """Return a per-cycle critic callable for the critique loop, or None
-        when DDD_CRITIC_LOOP is not enabled. Uses the generation client +
-        the Critic stage config (G1)."""
-        if os.getenv("DDD_CRITIC_LOOP", "") not in ("1", "true", "True"):
+        when DDD_CRITIC_LOOP is explicitly disabled. The loop is ON by default;
+        set DDD_CRITIC_LOOP to 0/false/no/off to opt out. Uses the generation
+        client + the Critic stage config (G1)."""
+        if os.getenv("DDD_CRITIC_LOOP", "1").strip().lower() in ("0", "false", "no", "off"):
             return None
 
         from core.critic.critic import run_critic
