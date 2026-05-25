@@ -11,6 +11,9 @@ from core.critic.prompt import build_critique_prompt
 from core.critic.errors import CriticError
 
 
+_RELATIONSHIP_TYPES = {"WRONG_RELATIONSHIP_TYPE", "ILLEGAL_DEPENDENCY", "MISSING_RELATIONSHIP"}
+
+
 def _valid_targets(model: DomainModel) -> Set[str]:
     targets: Set[str] = set()
     for bc in model.bounded_contexts:
@@ -20,10 +23,24 @@ def _valid_targets(model: DomainModel) -> Set[str]:
     return targets
 
 
+def _relationship_contexts_valid(target_ref: str, context_names: Set[str]) -> bool:
+    """'relationship:A->B' -> True iff both A and B are existing context names."""
+    body = target_ref.split(":", 1)[-1]
+    if "->" not in body:
+        return False
+    a, b = (p.strip() for p in body.split("->", 1))
+    return a in context_names and b in context_names
+
+
 def _map_finding(
     pf: ProposedFinding, valid_targets: Set[str], scout_indices: Set[int],
+    *, model: DomainModel,
 ) -> Optional[CritiqueFinding]:
-    if pf.target_ref not in valid_targets:
+    if pf.finding_type in _RELATIONSHIP_TYPES:
+        context_names = {bc.context_name for bc in model.bounded_contexts}
+        if not _relationship_contexts_valid(pf.target_ref, context_names):
+            return None
+    elif pf.target_ref not in valid_targets:
         return None
     evidence = [i for i in pf.evidence_sentence_indices if i in scout_indices]
     return CritiqueFinding(
@@ -65,7 +82,7 @@ def run_critic(
     findings: List[CritiqueFinding] = []
     malformed = 0
     for pf in parsed.findings:
-        mapped = _map_finding(pf, valid_targets, scout_indices)
+        mapped = _map_finding(pf, valid_targets, scout_indices, model=model)
         if mapped is None:
             malformed += 1
         else:

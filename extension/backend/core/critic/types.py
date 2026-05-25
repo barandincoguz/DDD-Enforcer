@@ -11,7 +11,9 @@ class ProposedFinding(BaseModel):
     finding_type: Literal[
         "CONTEXT_SHOULD_MERGE", "CONTEXT_SHOULD_SPLIT", "BOUNDARY_SMELL",
         "ANEMIC_ENTITY", "ANEMIC_MODEL", "MISSING_AGGREGATE",
-        "MISPLACED_ENTITY", "NAMING_SMELL", "LOW_CONFIDENCE", "OTHER",
+        "MISPLACED_ENTITY", "NAMING_SMELL", "LOW_CONFIDENCE",
+        "WRONG_RELATIONSHIP_TYPE", "ILLEGAL_DEPENDENCY", "MISSING_RELATIONSHIP",
+        "OTHER",
     ]
     priority: Literal["high", "medium", "low"]
     target_ref: str
