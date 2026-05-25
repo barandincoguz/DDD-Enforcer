@@ -39,14 +39,14 @@ def test_partition_splits_structural_content_advisory():
         _finding("ANEMIC_ENTITY", "medium", "entity:Ctx.Order"),
         _finding("NAMING_SMELL", "low", "entity:Ctx.Order"),
     ]
-    structural, content, advisory = partition_findings(findings)
+    structural, content, _relationship, advisory = partition_findings(findings)
     assert [f.finding_type for f in structural] == ["CONTEXT_SHOULD_MERGE"]
     assert [f.finding_type for f in content] == ["ANEMIC_ENTITY"]
     assert [f.finding_type for f in advisory] == ["NAMING_SMELL"]
 
 
 def test_misplaced_entity_is_content_not_structural():
-    structural, content, _ = partition_findings([_finding("MISPLACED_ENTITY", "high", "entity:A.X")])
+    structural, content, _rel, _ = partition_findings([_finding("MISPLACED_ENTITY", "high", "entity:A.X")])
     assert structural == []
     assert len(content) == 1
 

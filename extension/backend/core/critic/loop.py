@@ -82,7 +82,7 @@ def run_critique_loop(
         if not _has_high_or_medium(report):
             outcome = "converged"
             break
-        structural, content, _advisory = partition_findings(report.findings)
+        structural, content, _relationship, _advisory = partition_findings(report.findings)
         try:
             if structural:
                 new_model, arch, specialist = _generate_once(

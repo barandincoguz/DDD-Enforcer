@@ -13,15 +13,17 @@ _CONTENT = {
     "ANEMIC_ENTITY", "ANEMIC_MODEL", "MISSING_AGGREGATE",
     "MISPLACED_ENTITY", "NAMING_SMELL", "LOW_CONFIDENCE",
 }
+_RELATIONSHIP = {"WRONG_RELATIONSHIP_TYPE", "ILLEGAL_DEPENDENCY", "MISSING_RELATIONSHIP"}
 
 
 def partition_findings(
     findings: List[CritiqueFinding],
-) -> Tuple[List[CritiqueFinding], List[CritiqueFinding], List[CritiqueFinding]]:
-    """Return (structural, content, advisory). Only high/medium findings are
-    routable; low priority and OTHER are advisory."""
+) -> Tuple[List[CritiqueFinding], List[CritiqueFinding], List[CritiqueFinding], List[CritiqueFinding]]:
+    """Return (structural, content, relationship, advisory). Only high/medium
+    findings are routable; low priority and OTHER are advisory."""
     structural: List[CritiqueFinding] = []
     content: List[CritiqueFinding] = []
+    relationship: List[CritiqueFinding] = []
     advisory: List[CritiqueFinding] = []
     for f in findings:
         if f.priority == "low" or f.finding_type == "OTHER":
@@ -30,9 +32,11 @@ def partition_findings(
             structural.append(f)
         elif f.finding_type in _CONTENT:
             content.append(f)
+        elif f.finding_type in _RELATIONSHIP:
+            relationship.append(f)
         else:
             advisory.append(f)
-    return structural, content, advisory
+    return structural, content, relationship, advisory
 
 
 @dataclass
@@ -111,4 +115,18 @@ def model_diff_summary(before: DomainModel, after: DomainModel) -> str:
             parts.append(f"{ctx}: entities added: {', '.join(added_e)}")
         if removed_e:
             parts.append(f"{ctx}: entities removed: {', '.join(removed_e)}")
+    def _rels(m: DomainModel) -> dict:
+        cm = getattr(m, "context_map", None)
+        if not cm:
+            return {}
+        return {tuple(sorted((r.context_a, r.context_b))): (r.relationship_type, r.upstream)
+                for r in cm.relationships}
+    rb, ra = _rels(before), _rels(after)
+    for pair in sorted(set(ra) - set(rb)):
+        parts.append(f"relationship added: {pair[0]}/{pair[1]} = {ra[pair][0]}")
+    for pair in sorted(set(rb) - set(ra)):
+        parts.append(f"relationship removed: {pair[0]}/{pair[1]}")
+    for pair in sorted(set(ra) & set(rb)):
+        if ra[pair] != rb[pair]:
+            parts.append(f"relationship changed: {pair[0]}/{pair[1]} {rb[pair][0]}->{ra[pair][0]}")
     return "; ".join(parts) if parts else "no structural change"
