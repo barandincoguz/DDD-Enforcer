@@ -3,6 +3,8 @@
  * HTML Page Builder for Run Manifests Webview
  */
 
+import * as crypto from "crypto";
+
 /** One DDD violation as recorded in a PaperRunManifest (mirror of the backend schema). */
 export interface ManifestViolation {
   violation_type: string;
@@ -123,13 +125,7 @@ export function sortRunSummaries(
  * secrecy — only to satisfy VS Code's inline-script CSP requirement).
  */
 export function generateNonce(): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let nonce = "";
-  for (let i = 0; i < 32; i++) {
-    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return nonce;
+  return crypto.randomBytes(32).toString("base64").replace(/[^A-Za-z0-9]/g, "").slice(0, 32);
 }
 
 /**

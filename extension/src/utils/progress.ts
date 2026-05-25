@@ -118,7 +118,7 @@ export function computeEtaMs(
   elapsedMs: number,
   overallPercent: number,
 ): number | null {
-  if (overallPercent <= 0) {
+  if (!Number.isFinite(overallPercent) || overallPercent <= 0) {
     return null;
   }
   if (overallPercent >= 100) {

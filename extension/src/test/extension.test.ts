@@ -502,6 +502,14 @@ suite("Extension Test Suite", () => {
     assert.strictEqual(classifyExitForRestart(0, null, false), "cleanExit");
   });
 
+  test("classifyExitForRestart T7 mapping assertions", () => {
+    assert.strictEqual(classifyExitForRestart(null, null, false), "crash");
+    assert.strictEqual(classifyExitForRestart(0, null, false), "cleanExit");
+    assert.strictEqual(classifyExitForRestart(1, null, false), "crash");
+    assert.strictEqual(classifyExitForRestart(null, null, true), "intentional");
+  });
+
+
   // ==========================================================================
   // PIPELINE PROGRESS TESTS (Iter 49)
   // ==========================================================================
@@ -602,6 +610,11 @@ suite("Extension Test Suite", () => {
   test("computeEtaMs returns null before any progress (fraction 0)", () => {
     assert.strictEqual(computeEtaMs(10000, 0), null);
     assert.strictEqual(computeEtaMs(10000, -5), null);
+  });
+
+  test("computeEtaMs returns null on NaN or Infinity percent", () => {
+    assert.strictEqual(computeEtaMs(5000, NaN), null);
+    assert.strictEqual(computeEtaMs(5000, Infinity), null);
   });
 
   test("computeEtaMs extrapolates remaining time from elapsed and fraction", () => {
@@ -1083,6 +1096,29 @@ suite("Extension Test Suite", () => {
     const a = generateNonce();
     const b = generateNonce();
     assert.notStrictEqual(a, b);
+  });
+
+  test("generateNonce uniqueness across many iterations", () => {
+    const nonces = new Set<string>();
+    for (let i = 0; i < 1000; i++) {
+      const nonce = generateNonce();
+      assert.strictEqual(nonce.length, 32);
+      assert.ok(/^[A-Za-z0-9]+$/.test(nonce), "nonce must be alphanumeric");
+      assert.ok(!nonces.has(nonce), `duplicate nonce found at iteration ${i}`);
+      nonces.add(nonce);
+    }
+  });
+
+  test("generateNonce does not use Math.random", () => {
+    const originalRandom = Math.random;
+    try {
+      Math.random = () => 0.5;
+      const a = generateNonce();
+      const b = generateNonce();
+      assert.notStrictEqual(a, b, "Nonce must not be identical even if Math.random is hijacked");
+    } finally {
+      Math.random = originalRandom;
+    }
   });
 
   test("buildRunManifestsHtml embeds the nonce on the script tag and in the CSP", () => {
