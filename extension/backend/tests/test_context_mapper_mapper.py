@@ -15,6 +15,13 @@ def test_error_is_exception():
     assert "json_failed" in str(e)
 
 
+def test_error_reason_coerced_to_str():
+    class _Weird:
+        def __str__(self): return "weird-reason"
+    e = ContextMapperError(reason=_Weird())  # non-str reason must not break consumers
+    assert isinstance(e.reason, str) and e.reason == "weird-reason"
+
+
 import pytest
 from core.context_mapper.mapper import run_context_mapper
 from core.context_mapper.errors import ContextMapperError
