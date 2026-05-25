@@ -5,9 +5,9 @@ Pydantic models defining the structure of DDD domain models.
 Used for validation and serialization of domain model data.
 """
 
-from typing import List, Literal, Optional
+from typing import ClassVar, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # =============================================================================
@@ -406,6 +406,56 @@ class CriticReport(BaseModel):
     error: Optional[str] = None
 
 
+class ContextRelationship(BaseModel):
+    """One typed DDD strategic relationship between two bounded contexts."""
+    context_a: str = Field(description="First context_name in the pair.")
+    context_b: str = Field(description="Second context_name in the pair.")
+    relationship_type: Literal[
+        "PARTNERSHIP", "SHARED_KERNEL", "CUSTOMER_SUPPLIER", "CONFORMIST",
+        "ANTI_CORRUPTION_LAYER", "OPEN_HOST_SERVICE", "PUBLISHED_LANGUAGE",
+        "SEPARATE_WAYS", "BIG_BALL_OF_MUD",
+    ]
+    upstream: Optional[str] = Field(
+        default=None,
+        description="context_a or context_b — the upstream/supplier side. None "
+                    "for mutual (PARTNERSHIP, SHARED_KERNEL) and non-integration "
+                    "(SEPARATE_WAYS, BIG_BALL_OF_MUD) types.",
+    )
+    rationale: str = Field(description="Why this pattern + direction, in DDD terms.")
+    evidence_sentence_indices: List[int] = Field(
+        default_factory=list,
+        description="Scout sentence indices grounding this relationship; [-1] if "
+                    "inference-only with no single supporting sentence.",
+    )
+
+    _DIRECTIONAL: ClassVar[set] = {
+        "CUSTOMER_SUPPLIER", "CONFORMIST", "ANTI_CORRUPTION_LAYER",
+        "OPEN_HOST_SERVICE", "PUBLISHED_LANGUAGE",
+    }
+
+    @model_validator(mode="after")
+    def _check_upstream_consistency(self) -> "ContextRelationship":
+        if self.context_a == self.context_b:
+            raise ValueError("context_a and context_b must differ")
+        if self.relationship_type in self._DIRECTIONAL:
+            if self.upstream not in (self.context_a, self.context_b):
+                raise ValueError(
+                    f"{self.relationship_type} requires upstream to be one of "
+                    f"context_a/context_b; got {self.upstream!r}")
+        elif self.upstream is not None:
+            raise ValueError(
+                f"{self.relationship_type} is non-directional; upstream must be None")
+        return self
+
+
+class ContextMap(BaseModel):
+    """Strategic context map produced by the Context-Mapper (A)."""
+    relationships: List["ContextRelationship"] = Field(default_factory=list)
+    model_id: str
+    warnings: List[str] = Field(default_factory=list)
+    error: Optional[str] = Field(default=None)
+
+
 class DomainModel(BaseModel):
     """Complete domain model for a project."""
     project_name: str = Field(description="Name of the project")
@@ -419,6 +469,11 @@ class DomainModel(BaseModel):
     critic_report: Optional["CriticReport"] = Field(
         default=None,
         description="Holistic Critic loop output (best cycle). None when the loop did not run.",
+    )
+    context_map: Optional["ContextMap"] = Field(
+        default=None,
+        description="Strategic DDD context map (Context-Mapper output). None when "
+                    "DDD_CONTEXT_MAP is disabled or no map was produced.",
     )
 
     @field_validator("bounded_contexts")
