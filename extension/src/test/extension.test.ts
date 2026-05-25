@@ -925,6 +925,33 @@ suite("Extension Test Suite", () => {
     );
   });
 
+  test("formatHoverMarkdown still bolds a keyword that contains escaped characters (T13)", () => {
+    const md = formatHoverMarkdown(
+      {
+        type: "V1_NAMING",
+        message: "Value object <Money> must be immutable.",
+        suggestion: "Make <Money> a frozen dataclass.",
+        sources: [
+          {
+            document: "SRS.docx",
+            section: "2.1 Domain Glossary",
+            page: 4,
+            summary: "The <Money> value object holds amount and currency and is immutable.",
+            file_path: "/abs/inputs/SRS.docx",
+            relevance_score: 0.88,
+          },
+        ],
+      },
+      "<Money>",
+    );
+    // Excerpt is escaped, so the keyword must be escaped identically to match
+    // and bold — otherwise the highlight silently fails for special-char keywords.
+    assert.ok(
+      md.includes("**\\<Money\\>**"),
+      "bolds the escaped keyword inside the escaped excerpt",
+    );
+  });
+
   test("formatHoverMarkdown omits the source block when there are no sources", () => {
     const md = formatHoverMarkdown(
       {

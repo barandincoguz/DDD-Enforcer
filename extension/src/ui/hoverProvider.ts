@@ -136,7 +136,7 @@ export function formatHoverMarkdown(
     );
     const excerpt = boldMatchingSpan(
       escapeInlineMarkdown(truncateExcerpt(source.summary, 200)),
-      keyword,
+      escapeInlineMarkdown(keyword),
     );
     lines.push("");
     lines.push(`> ${excerpt}`);
