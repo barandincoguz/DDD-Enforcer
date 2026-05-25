@@ -162,10 +162,13 @@ def _apply_context_map(model, deps, scout, *, feedback=None) -> DomainModel:
     derived, warnings = derive_allowed_dependencies(cmap, valid_names)  # fix #3/#4
     cmap.warnings.extend(warnings)
     new_model.context_map = cmap
+    # A is AUTHORITATIVE on success: every context's allowed_dependencies is the
+    # derived projection (None when it has no edges). Do NOT guard on `is not None`
+    # — that would let SEPARATE_WAYS / upstream-only / unmapped contexts keep a
+    # stale text-scan baseline, contradicting the map and defeating Separate Ways.
     for bc in new_model.bounded_contexts:
         deps_for_ctx = derived.get(bc.context_name)
-        if deps_for_ctx is not None:
-            bc.allowed_dependencies = sorted(deps_for_ctx) or None  # overwrite baseline
+        bc.allowed_dependencies = sorted(deps_for_ctx) if deps_for_ctx else None
     return new_model
 ```
 
