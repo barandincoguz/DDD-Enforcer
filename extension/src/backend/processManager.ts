@@ -113,10 +113,11 @@ export async function findAvailablePort(log: (msg: string) => void): Promise<num
     return preferredPort;
   }
 
+  const maxPort = Math.min(preferredPort + 100, 65535);
   log(
-    `Preferred port ${preferredPort} is in use. Scanning for an available port in the next 99 candidates...`,
+    `Preferred port ${preferredPort} is in use. Scanning for an available port in the next ${Math.max(0, maxPort - 1 - preferredPort)} candidates...`,
   );
-  for (let port = preferredPort + 1; port < preferredPort + 100; port++) {
+  for (let port = preferredPort + 1; port < maxPort; port++) {
     if (await isPortAvailable(port)) {
       log(`Selected port ${port} (preferred port ${preferredPort} was unavailable).`);
       return port;
@@ -124,7 +125,7 @@ export async function findAvailablePort(log: (msg: string) => void): Promise<num
   }
 
   log(
-    `WARNING: no available port found in ${preferredPort}..${preferredPort + 99}. Falling back to preferred port ${preferredPort} (backend startup is likely to fail).`,
+    `WARNING: no available port found in ${preferredPort}..${maxPort - 1}. Falling back to preferred port ${preferredPort} (backend startup is likely to fail).`,
   );
   return preferredPort;
 }
