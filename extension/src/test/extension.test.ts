@@ -241,6 +241,38 @@ suite("Extension Test Suite", () => {
   });
 
   // ==========================================================================
+  // FINGERPRINT — INDENTATION SEMANTICS (T10 integration)
+  // ==========================================================================
+
+  test("Dedenting a statement out of a block triggers validation (T10)", () => {
+    const before = "if x:\n    a()\n    b()\n";
+    const after = "if x:\n    a()\nb()\n";
+    const decision = classifySaveForValidationFromContent(before, after);
+    assert.strictEqual(decision.shouldValidate, true);
+  });
+
+  test("Indenting a statement into a block triggers validation (T10)", () => {
+    const before = "if x:\n    a()\nb()\n";
+    const after = "if x:\n    a()\n    b()\n";
+    const decision = classifySaveForValidationFromContent(before, after);
+    assert.strictEqual(decision.shouldValidate, true);
+  });
+
+  test("A pure reindent (4-space to 2-space) skips validation", () => {
+    const before = "if x:\n    a()\n        b()\n";
+    const after = "if x:\n  a()\n    b()\n";
+    const decision = classifySaveForValidationFromContent(before, after);
+    assert.strictEqual(decision.shouldValidate, false);
+  });
+
+  test("Editing code after a tricky f-string docstring is still detected (T11 no state leak)", () => {
+    const before = 'x = f"a {b.split(" ")} c"\nreturn True\n';
+    const after = 'x = f"a {b.split(" ")} c"\nreturn False\n';
+    const decision = classifySaveForValidationFromContent(before, after);
+    assert.strictEqual(decision.shouldValidate, true);
+  });
+
+  // ==========================================================================
   // FINGERPRINT — PHASE 2: INDENT TOKENIZATION (T10)
   // ==========================================================================
 
