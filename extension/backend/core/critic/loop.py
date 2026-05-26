@@ -26,9 +26,26 @@ def critique_score(findings: List[CritiqueFinding]) -> float:
     return sum(_PRIORITY_WEIGHT[f.priority] for f in findings)
 
 
+def _canonical_target(target_ref: str) -> str:
+    """Canonicalize relationship pairs so A->B == B->A for flap detection."""
+    if target_ref.startswith("relationship:") and "->" in target_ref:
+        body = target_ref.split(":", 1)[1]
+        a, b = (p.strip() for p in body.split("->", 1))
+        return "relationship:" + "->".join(sorted((a, b)))
+    return target_ref
+
+
+def _relationship_pair_in(f: CritiqueFinding, names: set) -> bool:
+    body = f.target_ref.split(":", 1)[-1]
+    if "->" not in body:
+        return False
+    a, b = (p.strip() for p in body.split("->", 1))
+    return a in names and b in names
+
+
 def findings_signature(findings: List[CritiqueFinding]) -> Tuple:
     return tuple(sorted(
-        (f.finding_type, f.target_ref)
+        (f.finding_type, _canonical_target(f.target_ref))
         for f in findings if f.priority in ("high", "medium")
     ))
 
@@ -82,18 +99,27 @@ def run_critique_loop(
         if not _has_high_or_medium(report):
             outcome = "converged"
             break
-        structural, content, _relationship, _advisory = partition_findings(report.findings)
+        structural, content, relationship, _advisory = partition_findings(report.findings)
         try:
+            from core.orchestration.pipeline import _generate_once, _apply_context_map
             if structural:
                 new_model, arch, specialist = _generate_once(
                     scout, deps, srs_path,
                     architect_feedback=adapt_structural_to_issues(structural),
                 )
-            else:  # content-only → reuse architecture, targeted specialist rerun
+            elif content:  # content-only → reuse architecture, targeted specialist rerun
                 specialist = deps.specialist_with_feedback(
                     arch, scout, specialist, adapt_content_to_issues(content),
                 )
                 new_model = deps.synthesizer(specialist)
+                new_model = _apply_context_map(new_model, deps, scout)
+            else:  # relationship-only / advisory-only → no producer rerun
+                new_model = model
+            if relationship:  # every cycle: remap surviving-context relationships
+                survivors = {bc.context_name for bc in new_model.bounded_contexts}
+                rel_live = [f for f in relationship if _relationship_pair_in(f, survivors)]
+                if rel_live:
+                    new_model = _apply_context_map(new_model, deps, scout, feedback=rel_live)
             new_report = deps.critic(new_model, scout, history)
         except (CriticError, PipelineError) as exc:
             # Non-fatal: a revision-cycle critic failure (CriticError) OR a
