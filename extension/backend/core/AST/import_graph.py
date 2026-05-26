@@ -145,6 +145,11 @@ def apply_import_topology_to_model(
       the AST-derived graph found cross-context import edges originating
       at that context, set `allowed_dependencies` to the sorted derived
       list and record the context name under `auto_populated`.
+      EXCEPTION: when `model_data["context_map"]` is present with no
+      `error` (A authoritatively produced the map), an empty
+      `allowed_dependencies` is left untouched — the derived imports are
+      recorded under `cross_check_diff` (diagnostics-only) so a missed
+      relationship stays visible without overriding the strategic map.
     * If the LLM already declared `allowed_dependencies` AND the derived
       graph is non-empty for the same context, do NOT overwrite — instead
       record the sym-diff under `cross_check_diff` so reviewers see drift.
@@ -162,6 +167,15 @@ def apply_import_topology_to_model(
     contexts = model_data.get("bounded_contexts", []) or []
     if not contexts:
         return {"derived": {}, "auto_populated": [], "cross_check_diff": {}}
+
+    # When A (the context-mapper) authoritatively produced the map, an
+    # intentionally-empty `allowed_dependencies` (e.g. a SEPARATE_WAYS context)
+    # MUST NOT be repopulated from code imports — doing so would let V4 allow an
+    # import the strategic map forbids. Switch to diagnostics-only in that case.
+    # If `context_map` is absent or carries an error (A failed/disabled), keep
+    # the legacy auto-fill behavior (no regression).
+    cm = model_data.get("context_map")
+    map_authoritative = bool(cm) and cm.get("error") is None
 
     context_names = [str(c.get("context_name", "")) for c in contexts]
     graph = build_module_import_graph(python_files, workspace_root=workspace_root)
@@ -183,6 +197,14 @@ def apply_import_topology_to_model(
             continue
         existing = context.get("allowed_dependencies")
         if not existing:
+            if map_authoritative:
+                # A authoritatively declared deps (possibly empty, e.g. Separate
+                # Ways). Do NOT repopulate — only record what code imports show.
+                cross_check_diff[ctx_name] = {
+                    "extra_in_llm": [],
+                    "extra_in_derived": sorted(derived_set),
+                }
+                continue
             context["allowed_dependencies"] = sorted(derived_set)
             auto_populated.append(ctx_name)
             continue
