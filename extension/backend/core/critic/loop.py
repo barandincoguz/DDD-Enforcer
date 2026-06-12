@@ -43,15 +43,22 @@ def _relationship_pair_in(f: CritiqueFinding, names: set) -> bool:
     return a in names and b in names
 
 
+def _active_priorities() -> set[str]:
+    threshold = os.getenv("DDD_CRITIC_THRESHOLD", "HIGH_MED").upper()
+    return {"high"} if threshold == "HIGH" else {"high", "medium"}
+
+
 def findings_signature(findings: List[CritiqueFinding]) -> Tuple:
+    active = _active_priorities()
     return tuple(sorted(
         (f.finding_type, _canonical_target(f.target_ref))
-        for f in findings if f.priority in ("high", "medium")
+        for f in findings if f.priority in active
     ))
 
 
 def _has_high_or_medium(report: CriticReport) -> bool:
-    return any(f.priority in ("high", "medium") for f in report.findings)
+    active = _active_priorities()
+    return any(f.priority in active for f in report.findings)
 
 
 def _max_cycles() -> int:
@@ -75,11 +82,20 @@ def run_critique_loop(
     score_trace: List[float] = []
     count_trace: List[int] = []
 
+    print("\n" + "=" * 70)
+    print("🔍 [CRITIC LOOP] Initiating Holistic DDD Critique Loop")
+    print(f"   Max Cycles configured: {max_cycles}")
+    print("=" * 70 + "\n")
+
     # --- cycle 0 -----------------------------------------------------------
+    print("🔄 [CRITIC CYCLE 0] Initial Generation...")
     model, arch, specialist = _generate_once(scout, deps, srs_path)
+    
+    print("\n👉 [CRITIC CYCLE 0] Evaluating generated domain model against SRS...")
     try:
         report = deps.critic(model, scout, history)
     except CriticError as exc:
+        print(f"❌ [CRITIC CYCLE 0] Critic failed: {exc}")
         return _finalize_failed(model, exc, cycles_used=1,
                                 score_trace=[], count_trace=[])
 
@@ -91,6 +107,16 @@ def run_critique_loop(
         diff_summary="initial model",
     ))
 
+    print(f"\n📊 [CYCLE 0 SUMMARY] Score: {critique_score(report.findings)} | Findings count: {len(report.findings)}")
+    high_med = [f for f in report.findings if f.priority in ("high", "medium")]
+    if high_med:
+        print("   ⚠️  Active Critiques:")
+        for f in high_med:
+            emoji = "❌" if f.priority == "high" else "⚠️"
+            print(f"     {emoji} [{f.priority.upper()}] {f.finding_type} ({f.target_ref}): {f.rationale}")
+    else:
+        print("   ✅ No high/medium priority critiques found.")
+
     outcome = "converged"
     prev_signature = findings_signature(report.findings)
 
@@ -98,8 +124,18 @@ def run_critique_loop(
     for cycle in range(1, max_cycles):
         if not _has_high_or_medium(report):
             outcome = "converged"
+            print("\n✅ [CRITIC LOOP] Conformance achieved! No high/medium issues remaining.")
             break
         structural, content, relationship, _advisory = partition_findings(report.findings)
+        
+        print(f"\n🔄 [CRITIC CYCLE {cycle}] Resolving issues and refining model...")
+        if structural:
+            print(f"   🛠️  Action: Structural issues detected. Triggering Bounded Context regeneration.")
+        elif content:
+            print(f"   🔧  Action: Content issues detected. Triggering targeted Specialist refinement.")
+        elif relationship:
+            print(f"   🔗  Action: Relationship issues detected. Applying Context Map updates.")
+        
         try:
             from core.orchestration.pipeline import _generate_once, _apply_context_map
             if structural:
@@ -119,15 +155,13 @@ def run_critique_loop(
                 survivors = {bc.context_name for bc in new_model.bounded_contexts}
                 rel_live = [f for f in relationship if _relationship_pair_in(f, survivors)]
                 if rel_live:
+                    print("   🔗 Applying Context Map relationship fixes...")
                     new_model = _apply_context_map(new_model, deps, scout, feedback=rel_live)
+            
+            print(f"\n👉 [CRITIC CYCLE {cycle}] Evaluating refined model...")
             new_report = deps.critic(new_model, scout, history)
         except (CriticError, PipelineError) as exc:
-            # Non-fatal: a revision-cycle critic failure (CriticError) OR a
-            # regeneration failure (PipelineError subclasses such as
-            # ArchitectGroundingError / SynthesizerEmptyModelError /
-            # RefinementExhaustedError raised by _generate_once / synthesizer
-            # / specialist_with_feedback) falls back to the best model so far.
-            # Cycle-0 generation failure stays fatal (no prior good model).
+            print(f"⚠️  [CRITIC CYCLE {cycle}] Warning: Revision cycle failed with error: {exc}. Falling back to best model.")
             return _finalize_failed(best_model, exc, cycles_used=cycle + 1,
                                     score_trace=score_trace, count_trace=count_trace,
                                     best_report=best_report, best_cycle=best_cycle)
@@ -139,12 +173,24 @@ def run_critique_loop(
             diff_summary=model_diff_summary(model, new_model),
         ))
 
+        print(f"\n📊 [CYCLE {cycle} SUMMARY] Score: {critique_score(new_report.findings)} | Findings count: {len(new_report.findings)}")
+        high_med = [f for f in new_report.findings if f.priority in ("high", "medium")]
+        if high_med:
+            print("   ⚠️  Active Critiques:")
+            for f in high_med:
+                emoji = "❌" if f.priority == "high" else "⚠️"
+                print(f"     {emoji} [{f.priority.upper()}] {f.finding_type} ({f.target_ref}): {f.rationale}")
+        else:
+            print("   ✅ No high/medium priority critiques found.")
+
         if critique_score(new_report.findings) < critique_score(best_report.findings):
+            print(f"   🏆 New best model found in cycle {cycle}!")
             best_model, best_report, best_cycle = new_model, new_report, cycle
 
         sig = findings_signature(new_report.findings)
         if sig == prev_signature:
             outcome = "flapped"
+            print(f"\n⚠️  [CRITIC LOOP] Flapping detected in cycle {cycle} (issues repeated). Terminating loop.")
             model, report = new_model, new_report
             break
         prev_signature = sig
@@ -158,6 +204,13 @@ def run_critique_loop(
         score_per_cycle=score_trace, findings_count_per_cycle=count_trace,
     )
     best_model.critic_report = best_report
+
+    print("\n" + "=" * 70)
+    print(f"🏁 [CRITIC LOOP COMPLETED] Outcome: {outcome.upper()}")
+    print(f"   Total Cycles Used: {len(score_trace)} | Best Cycle: {best_cycle}")
+    print(f"   Final Best Critique Score: {best_report.score}")
+    print("=" * 70 + "\n")
+
     return best_model
 
 

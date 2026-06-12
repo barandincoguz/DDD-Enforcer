@@ -380,6 +380,9 @@ def _generate_once(
         # rerun directly; otherwise the pre-check result is threaded into
         # refine_until_clean via `initial_result=` so the same verifier call
         # is not repeated.
+        print("\n┌─────────────────────────────────────────────────────────────────┐")
+        print("│ STAGE 4: VERIFIER - Running Rules & Semantic Compliance Checks │")
+        print("└─────────────────────────────────────────────────────────────────┘")
         initial_result = deps.verifier(snapshot)
         arch_issues = [
             i for i in initial_result.issues if _issue_stage(i) == "architect"

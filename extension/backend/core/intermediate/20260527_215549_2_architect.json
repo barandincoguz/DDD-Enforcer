@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-05-27 22:13:55",
+  "contexts_identified": 6,
+  "contexts": [
+    {
+      "name": "ProfileManagement",
+      "supporting_sentence_ids": [
+        16,
+        24,
+        25
+      ]
+    },
+    {
+      "name": "JobManagement",
+      "supporting_sentence_ids": [
+        16,
+        30,
+        31,
+        33
+      ]
+    },
+    {
+      "name": "AIMatchingEngine",
+      "supporting_sentence_ids": [
+        12,
+        16,
+        24,
+        31
+      ]
+    },
+    {
+      "name": "PartnerIntegration",
+      "supporting_sentence_ids": [
+        12,
+        16,
+        26
+      ]
+    },
+    {
+      "name": "AnalyticsAndReporting",
+      "supporting_sentence_ids": [
+        12,
+        16,
+        27
+      ]
+    },
+    {
+      "name": "PlatformAdministration",
+      "supporting_sentence_ids": [
+        16,
+        27,
+        28
+      ]
+    }
+  ],
+  "input_sentences_count": 102
+}

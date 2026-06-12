@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-05-07 16:00:52",
-  "workspace_path": "/private/var/folders/g_/jlsd_6ln6pvdtskyr2f9hf3h0000gn/T/pytest-of-barandincoguz/pytest-33/test_enrich_domain_model_adds_0/workspace",
+  "generated_at": "2026-05-26 03:44:56",
+  "workspace_path": "",
   "counts": {
     "entities": {
-      "detected": 1,
-      "grounded": 1,
-      "merged": 1,
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
       "dropped": 0,
       "unassigned": 0
     },
@@ -14,7 +14,7 @@
       "grounded": 0,
       "merged": 0,
       "dropped": 0,
-      "unassigned": 0
+      "unassigned": 1
     },
     "services": {
       "detected": 0,
@@ -36,14 +36,52 @@
       "merged": 0,
       "dropped": 0,
       "unassigned": 0
+    },
+    "repositories": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
+    },
+    "factories": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
+    },
+    "anti_corruption_layers": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
+    },
+    "specifications": {
+      "detected": 0,
+      "grounded": 0,
+      "merged": 0,
+      "dropped": 0,
+      "unassigned": 0
     }
   },
   "samples": {
     "dropped": [],
-    "unassigned": []
+    "unassigned": [
+      {
+        "type": "value_objects",
+        "name": "Amount",
+        "confidence": 0.7,
+        "reason": "context-ambiguous",
+        "signals": [
+          "frozen marker"
+        ]
+      }
+    ]
   },
   "rates": {
-    "grounding_hit_rate": 1.0,
-    "context_assignment_success_rate": 1.0
+    "grounding_hit_rate": 0.0,
+    "context_assignment_success_rate": 0.0
   }
 }

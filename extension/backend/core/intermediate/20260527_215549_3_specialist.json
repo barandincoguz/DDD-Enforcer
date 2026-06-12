@@ -1,0 +1,1109 @@
+{
+  "timestamp": "2026-05-27 22:17:06",
+  "contexts_analyzed": 6,
+  "analyses": [
+    {
+      "context": {
+        "context_name": "ProfileManagement",
+        "description": "",
+        "supporting_sentence_ids": [
+          16,
+          24,
+          25
+        ]
+      },
+      "entities": [
+        {
+          "name": "JobSeeker",
+          "description": "Represents an individual looking for jobs, containing personal details, contact information, and profile visibility settings.",
+          "confidence": 0.95,
+          "justification": "The text explicitly defines a multi-level onboarding process for job seekers to collect personal details, address, and social media links.",
+          "evidence_sentence_indices": [
+            24
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "Employer",
+          "description": "Represents a company or organization offering jobs, containing company details, registration information, and verification status.",
+          "confidence": 0.95,
+          "justification": "The text outlines a stepwise registration process for employers, collecting company details and managing verification status.",
+          "evidence_sentence_indices": [
+            25
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "UserAccount",
+          "description": "Represents the authentication and authorization credentials, roles, and status for any user of the platform.",
+          "confidence": 0.9,
+          "justification": "The system manages user accounts, including enabling, disabling, deletion, recovery, and role-based access control.",
+          "evidence_sentence_indices": [
+            16,
+            27,
+            28,
+            66
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "ExternalJobSite",
+          "description": "Represents a third-party job portal registered and integrated with the platform for job synchronization.",
+          "confidence": 0.85,
+          "justification": "The system provides a registration and onboarding process for external job sites, issuing API keys and managing access.",
+          "evidence_sentence_indices": [
+            26
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "EducationRecord",
+          "attributes": [
+            "degree",
+            "institution"
+          ],
+          "description": "Represents a job seeker's educational background, including the degree obtained and the institution.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "ExperienceRecord",
+          "attributes": [
+            "company",
+            "role",
+            "duration"
+          ],
+          "description": "Represents a job seeker's past work experience, including the company, role, and duration of employment.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "JobPreference",
+          "attributes": [
+            "jobType",
+            "industry",
+            "location",
+            "salaryExpectations",
+            "workArrangements"
+          ],
+          "description": "Represents a job seeker's preferences for future employment, such as job type, industry, and salary expectations.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "Skill",
+          "attributes": [
+            "name",
+            "type",
+            "category"
+          ],
+          "description": "Represents a specific capability or expertise possessed by a job seeker, categorized as primary/secondary or soft/hard.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        }
+      ],
+      "services": [
+        {
+          "name": "ResumeParsingService",
+          "description": "Extracts structured information from uploaded resumes using AI to automatically populate job seeker profiles.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "EmployerVerificationService",
+          "description": "Verifies employer accounts automatically against government databases or manually by administrators.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "AuthenticationService",
+          "description": "Handles user login, multi-factor authentication, OTP delivery, and password policy enforcement.",
+          "kind": null,
+          "confidence": 0.9,
+          "sources": []
+        }
+      ],
+      "aggregates": [
+        {
+          "name": "JobSeekerAggregate",
+          "description": "Consistency boundary for a job seeker's profile, encompassing their personal details, education, experience, skills, and preferences.",
+          "members": [
+            "JobSeeker",
+            "EducationRecord",
+            "ExperienceRecord",
+            "Skill",
+            "JobPreference"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        },
+        {
+          "name": "EmployerAggregate",
+          "description": "Consistency boundary for an employer's profile, company details, and verification status.",
+          "members": [
+            "Employer"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        },
+        {
+          "name": "UserAccountAggregate",
+          "description": "Consistency boundary for user authentication credentials, roles, and account lifecycle status.",
+          "members": [
+            "UserAccount"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "JobSeekerRegistered",
+          "description": "Triggered when a job seeker successfully completes the self-registration process."
+        },
+        {
+          "name": "EmployerRegistered",
+          "description": "Triggered when an employer completes the stepwise registration process."
+        },
+        {
+          "name": "EmployerVerified",
+          "description": "Triggered when an employer's account is successfully verified, granting them a Verified Employer badge."
+        },
+        {
+          "name": "ProfileUpdated",
+          "description": "Triggered when a job seeker or employer edits and updates their profile information."
+        }
+      ],
+      "business_rules": [
+        "The system SHALL require account activation through a one-time password (OTP) sent to the registered mobile number.",
+        "The system SHALL display a Verified Employer badge next to the names of verified companies to enhance trust.",
+        "The system SHALL enforce strong password policies with configurable parameters.",
+        "The system SHALL implement role-based access control to restrict access to features and data based on user roles."
+      ],
+      "ambiguities": []
+    },
+    {
+      "context": {
+        "context_name": "JobManagement",
+        "description": "",
+        "supporting_sentence_ids": [
+          16,
+          30,
+          31,
+          33
+        ]
+      },
+      "entities": [
+        {
+          "name": "JobPosting",
+          "description": "Represents a job opportunity created by an employer or pushed by an external job site.",
+          "confidence": 0.95,
+          "justification": "The system provides a structured form for employers to add new job opportunities and supports various statuses for job postings.",
+          "evidence_sentence_indices": [
+            26,
+            30,
+            33
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "JobCategory",
+          "description": "Represents standardized job categories used to classify and categorize job postings for accurate matching.",
+          "confidence": 0.85,
+          "justification": "The system supports standardized job categories, skills, and qualifications to facilitate accurate matching.",
+          "evidence_sentence_indices": [
+            30
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "SavedSearch",
+          "description": "Represents a custom search filter saved by a job seeker for future use, with optional notifications.",
+          "confidence": 0.85,
+          "justification": "The system supports saved searches with notification options for new matching jobs.",
+          "evidence_sentence_indices": [
+            31,
+            32
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "InterestedList",
+          "description": "Represents a collection of job postings bookmarked and saved by a job seeker.",
+          "confidence": 0.85,
+          "justification": "The system allows job seekers to bookmark and save jobs by adding them to an 'Interested List'.",
+          "evidence_sentence_indices": [
+            32
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "JobStatus",
+          "attributes": [
+            "status"
+          ],
+          "description": "Represents the current state of a job posting.",
+          "confidence": 0.95,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "ContractType",
+          "attributes": [
+            "type"
+          ],
+          "description": "Represents the type of employment contract for a job posting.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "WorkFormat",
+          "attributes": [
+            "format",
+            "location"
+          ],
+          "description": "Represents the work arrangement for a job posting.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "MatchScore",
+          "attributes": [
+            "score",
+            "skillOverlap",
+            "educationMatch",
+            "locationMatch"
+          ],
+          "description": "Represents the calculated score indicating the compatibility between a job seeker and a job posting.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        }
+      ],
+      "services": [
+        {
+          "name": "JobSearchService",
+          "description": "Provides comprehensive search and advanced filtering capabilities for job seekers to find relevant opportunities.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "JobMatchingService",
+          "description": "Executes AI-driven matching algorithms to connect job seekers with relevant job opportunities based on skills, education, and behavior.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "JobRecommendationService",
+          "description": "Generates personalized job recommendations for job seekers and candidate recommendations for employers.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "JobSynchronizationService",
+          "description": "Handles real-time job data synchronization and updates via API with external job sites.",
+          "kind": null,
+          "confidence": 0.9,
+          "sources": []
+        }
+      ],
+      "aggregates": [
+        {
+          "name": "JobPostingAggregate",
+          "description": "Consistency boundary around a job posting, ensuring its status, contract type, work format, and source platform are valid and synchronized.",
+          "members": [
+            "JobPosting",
+            "JobStatus",
+            "ContractType",
+            "WorkFormat"
+          ],
+          "confidence": 0.9,
+          "sources": [],
+          "evidence_sentence_indices": [
+            30,
+            33
+          ]
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "JobPosted",
+          "description": "Triggered when a new job opportunity is successfully created by an employer or pushed via API by an external site."
+        },
+        {
+          "name": "JobStatusChanged",
+          "description": "Triggered when the status of a job posting changes (e.g., from active to paused or archived)."
+        },
+        {
+          "name": "JobExpired",
+          "description": "Triggered when a job posting reaches its application deadline or expiration date."
+        }
+      ],
+      "business_rules": [
+        "JobPostingSchemaCompliance: All input data for job postings must comply with the Schema.org JobPosting standard for semantic compatibility and structured data integrity.",
+        "ExternalJobSourceAttribution: Jobs pushed from external platforms must be automatically tagged with the source platform's name and include a backlink to the original advertisement.",
+        "MinimumMatchThreshold: Job matches displayed to users must meet or exceed a minimum match threshold defined by administrators."
+      ],
+      "ambiguities": []
+    },
+    {
+      "context": {
+        "context_name": "AIMatchingEngine",
+        "description": "",
+        "supporting_sentence_ids": [
+          12,
+          16,
+          24,
+          31
+        ]
+      },
+      "entities": [
+        {
+          "name": "JobMatch",
+          "description": "Represents the calculated match evaluation between a job seeker and a specific job posting. It holds the match score and ranking details.",
+          "confidence": 0.95,
+          "justification": "The system calculates a match score and ranks job postings for seekers and candidates for employers.",
+          "evidence_sentence_indices": [
+            35
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "ParsedResume",
+          "description": "Represents the structured information extracted from an uploaded resume document using AI parsing technology. It contains standardized data that can be reviewed and corrected by the user.",
+          "confidence": 0.9,
+          "justification": "The system extracts structured information from resumes, which job seekers can review and correct.",
+          "evidence_sentence_indices": [
+            35
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "Recommendation",
+          "description": "Represents a personalized suggestion of a job for a seeker or a candidate for an employer. It is generated based on profile data, preferences, and platform activity.",
+          "confidence": 0.9,
+          "justification": "The system provides personalized job recommendations and candidate recommendations using collaborative and content-based filtering.",
+          "evidence_sentence_indices": [
+            36,
+            37
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "MatchingCriteria",
+          "attributes": [
+            "skill_overlap",
+            "education_match",
+            "training_match",
+            "location_match",
+            "experience_range",
+            "salary_expectation_range"
+          ],
+          "description": "An immutable set of parameters used to calculate a match score, such as skill overlap and experience range.",
+          "confidence": 0.95,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "ConfidenceScore",
+          "attributes": [
+            "score_value",
+            "needs_manual_verification"
+          ],
+          "description": "An immutable score representing the AI's certainty regarding the accuracy of extracted resume information.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "SemanticAttribute",
+          "attributes": [
+            "keyword",
+            "semantic_meaning",
+            "standardized_name"
+          ],
+          "description": "A standardized skill or attribute identified via natural language processing from job descriptions or resumes.",
+          "confidence": 0.85,
+          "sources": [],
+          "is_mutable_in_code": false
+        }
+      ],
+      "services": [
+        {
+          "name": "ScoringAlgorithmService",
+          "description": "A stateless service that calculates a vector-based match score between job seekers and job postings based on defined criteria.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "ResumeParsingService",
+          "description": "A stateless service that uses AI and NLP to extract and structure information from uploaded resume documents in multiple languages.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "SemanticAnalysisService",
+          "description": "A stateless service that performs natural language processing on job descriptions and resumes to understand semantic meaning beyond keyword matching.",
+          "kind": null,
+          "confidence": 0.9,
+          "sources": []
+        },
+        {
+          "name": "RecommendationEngineService",
+          "description": "A stateless service that uses collaborative and content-based filtering to generate personalized job and candidate recommendations.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        }
+      ],
+      "aggregates": [
+        {
+          "name": "JobMatch",
+          "description": "Consistency boundary around the match evaluation, containing the match score and the criteria used to calculate it.",
+          "members": [
+            "JobMatch",
+            "MatchingCriteria"
+          ],
+          "confidence": 0.9,
+          "sources": [],
+          "evidence_sentence_indices": [
+            35
+          ]
+        },
+        {
+          "name": "ParsedResume",
+          "description": "Consistency boundary around the extracted resume data, containing the parsed details, semantic attributes, and confidence scores.",
+          "members": [
+            "ParsedResume",
+            "SemanticAttribute",
+            "ConfidenceScore"
+          ],
+          "confidence": 0.9,
+          "sources": [],
+          "evidence_sentence_indices": [
+            35
+          ]
+        },
+        {
+          "name": "Recommendation",
+          "description": "Consistency boundary around generated recommendations for users.",
+          "members": [
+            "Recommendation"
+          ],
+          "confidence": 0.85,
+          "sources": [],
+          "evidence_sentence_indices": [
+            36,
+            37
+          ]
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "ResumeParsed",
+          "description": "A past-tense fact indicating that a resume has been successfully processed and structured information has been extracted."
+        },
+        {
+          "name": "MatchScoreCalculated",
+          "description": "A past-tense fact indicating that a match score between a candidate and a job has been generated."
+        }
+      ],
+      "business_rules": [
+        "Minimum Match Threshold: A minimum match threshold (e.g., 60%) defined by administrators determines which job matches are displayed to users.",
+        "Match Score Calculation Criteria: Match scores must be calculated based on skill overlap, education match, training match, location match, experience range, and salary expectation range.",
+        "Automatic Candidate Filtering: Employers can set minimum qualification thresholds to automatically filter out candidates who do not meet the requirements."
+      ],
+      "ambiguities": []
+    },
+    {
+      "context": {
+        "context_name": "PartnerIntegration",
+        "description": "",
+        "supporting_sentence_ids": [
+          12,
+          16,
+          26
+        ]
+      },
+      "entities": [
+        {
+          "name": "IntegrationPartner",
+          "description": "Represents an external job site or third-party portal registered to integrate with the platform.",
+          "confidence": 0.95,
+          "justification": "The system provides a registration and onboarding process for external job sites to integrate securely.",
+          "evidence_sentence_indices": [
+            26
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "SubmissionLog",
+          "description": "Represents a recorded log entry of an API submission, including response codes, messages, and validation errors.",
+          "confidence": 0.9,
+          "justification": "The system implements comprehensive error handling and response logging, granting external platforms access to view submission logs.",
+          "evidence_sentence_indices": [
+            26
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "JobSyncRecord",
+          "description": "Represents the synchronization state and details of a job posted or updated via the API by an external partner.",
+          "confidence": 0.9,
+          "justification": "The system tracks the status of jobs posted via the API, including indicators for synced, failed, pending, and archived records.",
+          "evidence_sentence_indices": [
+            26
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ApiKey",
+          "attributes": [
+            "tokenString",
+            "expirationDate"
+          ],
+          "description": "An immutable token issued to a partner for secure API access, containing expiration and usage limits.",
+          "confidence": 0.95,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "SyncStatus",
+          "attributes": [
+            "statusValue"
+          ],
+          "description": "Represents the current state of a synchronized job record, such as synced, failed, pending, or archived.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "DataMappingConfig",
+          "attributes": [
+            "schemaRules",
+            "fieldMappings"
+          ],
+          "description": "Represents the configuration rules for mapping data schemas between external platforms and the system.",
+          "confidence": 0.85,
+          "sources": [],
+          "is_mutable_in_code": false
+        }
+      ],
+      "services": [
+        {
+          "name": "JobSynchronizationService",
+          "description": "A stateless service that handles real-time job data synchronization using both pull and push integration models.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "GovernmentIntegrationService",
+          "description": "A stateless service that interacts with government and educational databases for data verification and enrichment.",
+          "kind": null,
+          "confidence": 0.9,
+          "sources": []
+        }
+      ],
+      "aggregates": [
+        {
+          "name": "IntegrationPartnerAggregate",
+          "description": "Manages the lifecycle and configuration of an external partner, ensuring consistency of API keys and data mapping.",
+          "members": [
+            "IntegrationPartner",
+            "ApiKey",
+            "DataMappingConfig"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        },
+        {
+          "name": "JobSynchronizationAggregate",
+          "description": "Manages the consistency of job synchronization processes, tracking status and maintaining submission logs.",
+          "members": [
+            "JobSyncRecord",
+            "SubmissionLog",
+            "SyncStatus"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "PartnerOnboarded",
+          "description": "A past-tense fact indicating that an external job site has successfully registered and onboarded."
+        },
+        {
+          "name": "JobPushedViaApi",
+          "description": "A past-tense fact indicating that a job opportunity was successfully submitted by an external platform via the API."
+        },
+        {
+          "name": "JobSyncFailed",
+          "description": "A past-tense fact indicating that an error occurred during the job synchronization process."
+        }
+      ],
+      "business_rules": [
+        "Each integration partner must be issued a unique API key or token with optional IP whitelisting and expiration management.",
+        "Jobs pushed via the API must be automatically tagged with the source platform's name and include a backlink to the original advertisement.",
+        "A unique job ID must be returned as a confirmation response after a job is successfully pushed via the API to enable accurate record-keeping."
+      ],
+      "ambiguities": []
+    },
+    {
+      "context": {
+        "context_name": "AnalyticsAndReporting",
+        "description": "",
+        "supporting_sentence_ids": [
+          12,
+          16,
+          27
+        ]
+      },
+      "entities": [
+        {
+          "name": "ReportTemplate",
+          "description": "Represents a reusable template defined by administrators with configurable parameters for generating reports.",
+          "confidence": 0.95,
+          "justification": "Administrators can define report templates with configurable parameters.",
+          "evidence_sentence_indices": [
+            46
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "Report",
+          "description": "Represents a generated custom or periodic report that can be saved, exported, or distributed.",
+          "confidence": 0.95,
+          "justification": "The system supports generating custom reports, saving them in a library, and exporting them in various formats.",
+          "evidence_sentence_indices": [
+            44,
+            46
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "UserActivityLog",
+          "description": "Represents a recorded event of a user's action on the platform, such as profile views or job searches.",
+          "confidence": 0.95,
+          "justification": "The system tracks and records user activities for analysis and reporting.",
+          "evidence_sentence_indices": [
+            43
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "PerformanceMetric",
+          "description": "Represents a recorded measurement of system health or matching algorithm performance.",
+          "confidence": 0.9,
+          "justification": "The system monitors and reports on system performance metrics, including algorithm accuracy and technical response times.",
+          "evidence_sentence_indices": [
+            45
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "EmploymentStatistic",
+          "description": "Represents an aggregated metric or insight regarding the labor market, such as hiring rates or skill demand trends.",
+          "confidence": 0.9,
+          "justification": "The system generates employment statistics and labor market insights from platform data.",
+          "evidence_sentence_indices": [
+            44
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "ReportFormat",
+          "attributes": [
+            "formatType"
+          ],
+          "description": "Defines the output format of a report, such as PDF, Excel, CSV, tabular data, or charts.",
+          "confidence": 0.95,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "ActivityType",
+          "attributes": [
+            "typeName"
+          ],
+          "description": "Defines the specific kind of user activity tracked, such as profile view, job search, or application.",
+          "confidence": 0.95,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "PerformanceMetricType",
+          "attributes": [
+            "typeName"
+          ],
+          "description": "Defines the specific performance indicator, such as response time, resource utilization, accuracy, or precision.",
+          "confidence": 0.95,
+          "sources": [],
+          "is_mutable_in_code": false
+        }
+      ],
+      "services": [
+        {
+          "name": "ReportGenerationService",
+          "description": "Handles the creation, scheduling, and automated distribution of custom and periodic labor market reports.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "ActivityTrackingService",
+          "description": "Responsible for monitoring and recording user activities across the platform for analysis.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "PerformanceMonitoringService",
+          "description": "Monitors system health, tracks technical and algorithm metrics, and generates alerts for anomalies.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        }
+      ],
+      "aggregates": [
+        {
+          "name": "ReportManagement",
+          "description": "Consistency boundary for report templates, generated reports, and their access controls.",
+          "members": [
+            "Report",
+            "ReportTemplate"
+          ],
+          "confidence": 0.9,
+          "sources": [],
+          "evidence_sentence_indices": [
+            46
+          ]
+        },
+        {
+          "name": "ActivityTracking",
+          "description": "Consistency boundary for user activity logs and their data retention policies.",
+          "members": [
+            "UserActivityLog"
+          ],
+          "confidence": 0.9,
+          "sources": [],
+          "evidence_sentence_indices": [
+            43
+          ]
+        },
+        {
+          "name": "SystemMonitoring",
+          "description": "Consistency boundary for performance metrics, system usage patterns, and alerts.",
+          "members": [
+            "PerformanceMetric"
+          ],
+          "confidence": 0.9,
+          "sources": [],
+          "evidence_sentence_indices": [
+            45
+          ]
+        },
+        {
+          "name": "LaborMarketAnalytics",
+          "description": "Consistency boundary for employment statistics, trends, and labor market insights.",
+          "members": [
+            "EmploymentStatistic"
+          ],
+          "confidence": 0.9,
+          "sources": [],
+          "evidence_sentence_indices": [
+            44
+          ]
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "ReportGenerated",
+          "description": "Emitted when a custom report or periodic labor market report is successfully generated."
+        },
+        {
+          "name": "PerformanceAnomalyDetected",
+          "description": "Emitted when system performance metrics cross threshold limits, triggering an alert."
+        },
+        {
+          "name": "UserActivityRecorded",
+          "description": "Emitted when a user performs a trackable action on the platform."
+        }
+      ],
+      "business_rules": [
+        "ActivityLogRetentionPolicy: Data retention policies for activity logs must be implemented in compliance with regulations.",
+        "ReportAccessControl: Users can only view reports that are appropriate to their assigned role."
+      ],
+      "ambiguities": []
+    },
+    {
+      "context": {
+        "context_name": "PlatformAdministration",
+        "description": "",
+        "supporting_sentence_ids": [
+          16,
+          27,
+          28
+        ]
+      },
+      "entities": [
+        {
+          "name": "AdministratorAccount",
+          "description": "Represents an administrator user with permissions to manage the platform, users, and settings.",
+          "confidence": 0.95,
+          "justification": "Administrators have comprehensive user management capabilities, including approving, banning, and deactivating accounts.",
+          "evidence_sentence_indices": [
+            27
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "SystemSetting",
+          "description": "Represents a configurable parameter of the system defined and updated by authorized administrators.",
+          "confidence": 0.9,
+          "justification": "Administrators can define and update system settings as needed.",
+          "evidence_sentence_indices": [
+            27
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "Taxonomy",
+          "description": "Represents system taxonomies and static reference files such as the skills list, occupations catalog, and training programs.",
+          "confidence": 0.95,
+          "justification": "Administrators manage system taxonomies and static reference files.",
+          "evidence_sentence_indices": [
+            27
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "AuditLogEntry",
+          "description": "Represents a recorded administrative action maintained for security and accountability.",
+          "confidence": 0.95,
+          "justification": "The system maintains an audit log of all administrative actions.",
+          "evidence_sentence_indices": [
+            27
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "NewsArticle",
+          "description": "Represents an article or announcement published in the content management system.",
+          "confidence": 0.9,
+          "justification": "Administrators can create, edit, and publish articles and announcements with rich text and categorization.",
+          "evidence_sentence_indices": [
+            52
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "HelpContent",
+          "description": "Represents FAQ, laws, regulations, or help topics organized by topic and user role.",
+          "confidence": 0.9,
+          "justification": "The system provides a comprehensive FAQ and help center that administrators can update.",
+          "evidence_sentence_indices": [
+            53
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        },
+        {
+          "name": "ReportTemplate",
+          "description": "Represents a defined template for generating custom reports with configurable parameters.",
+          "confidence": 0.85,
+          "justification": "Administrators can define report templates with configurable parameters.",
+          "evidence_sentence_indices": [
+            46
+          ],
+          "sources": [],
+          "synonyms_to_avoid": null
+        }
+      ],
+      "value_objects": [
+        {
+          "name": "TaxonomyType",
+          "attributes": [
+            "typeName"
+          ],
+          "description": "Defines the category of taxonomy, such as skills, occupations, or training programs.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "ReportFormat",
+          "attributes": [
+            "formatType"
+          ],
+          "description": "Defines the export format of a report, such as PDF, Excel, or CSV.",
+          "confidence": 0.9,
+          "sources": [],
+          "is_mutable_in_code": false
+        },
+        {
+          "name": "SystemMetric",
+          "attributes": [
+            "metricName",
+            "value",
+            "timestamp"
+          ],
+          "description": "Represents a performance or health metric of the system, such as response times or resource utilization.",
+          "confidence": 0.85,
+          "sources": [],
+          "is_mutable_in_code": false
+        }
+      ],
+      "services": [
+        {
+          "name": "UserAdministrationService",
+          "description": "Handles viewing, approving, banning, deactivating user accounts, and resetting credentials.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "TaxonomyManagementService",
+          "description": "Handles managing system taxonomies and static reference files.",
+          "kind": null,
+          "confidence": 0.9,
+          "sources": []
+        },
+        {
+          "name": "ContentManagementService",
+          "description": "Handles creating, editing, and publishing news, updates, and help content.",
+          "kind": null,
+          "confidence": 0.95,
+          "sources": []
+        },
+        {
+          "name": "ReportingAndAnalyticsService",
+          "description": "Handles generating comprehensive statistics, custom reports, and monitoring system metrics.",
+          "kind": null,
+          "confidence": 0.9,
+          "sources": []
+        }
+      ],
+      "aggregates": [
+        {
+          "name": "PlatformConfiguration",
+          "description": "Consistency boundary for system settings and taxonomies.",
+          "members": [
+            "SystemSetting",
+            "Taxonomy"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        },
+        {
+          "name": "PlatformContent",
+          "description": "Consistency boundary for CMS content like news and help articles.",
+          "members": [
+            "NewsArticle",
+            "HelpContent"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        },
+        {
+          "name": "AdministrativeAudit",
+          "description": "Consistency boundary for tracking administrative actions.",
+          "members": [
+            "AuditLogEntry"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        },
+        {
+          "name": "Reporting",
+          "description": "Consistency boundary for report templates and generation.",
+          "members": [
+            "ReportTemplate"
+          ],
+          "confidence": 0.5,
+          "sources": [],
+          "evidence_sentence_indices": []
+        }
+      ],
+      "domain_events": [
+        {
+          "name": "UserAccountStatusChanged",
+          "description": "Emitted when an administrator approves, bans, or deactivates a user account."
+        },
+        {
+          "name": "SystemSettingUpdated",
+          "description": "Emitted when an authorized administrator defines or updates system settings."
+        },
+        {
+          "name": "TaxonomyModified",
+          "description": "Emitted when an administrator manages system taxonomies."
+        },
+        {
+          "name": "ContentPublished",
+          "description": "Emitted when an administrator publishes a news article or announcement."
+        }
+      ],
+      "business_rules": [
+        "The system SHALL maintain an audit log of all administrative actions for security and accountability.",
+        "The system SHALL implement role-based access control to restrict access to features and data based on user roles."
+      ],
+      "ambiguities": []
+    }
+  ]
+}

@@ -178,7 +178,16 @@ def _truncate_numbered_pairs(
         tail_size += pair_size
     tail.reverse()
 
-    return head + tail
+    result = head + tail
+    if not result and pairs:
+        # Fallback: keep the first pair, but truncate its text to fit max_chars.
+        # Leave a small buffer (e.g. 50 characters) for prefix/formatting so f"[{idx}] {text}\n" fits in max_chars
+        first_idx, first_text = pairs[0]
+        buffer = len(f"[{first_idx}] \n") + 10
+        truncated_text = first_text[:max(0, max_chars - buffer)]
+        result = [(first_idx, truncated_text)]
+
+    return result
 
 
 class DomainArchitect:
@@ -574,6 +583,27 @@ RESPOND WITH STRICT JSON OBJECT (no bare strings, no top-level list):
             **{k: v for k, v in unwrapped.items() if k != "context"},
         }
 
+        # Defensively sanitize and coerce business_rules to List[str] if LLM returned dictionaries
+        if "business_rules" in composed and isinstance(composed["business_rules"], list):
+            coerced_rules = []
+            for rule in composed["business_rules"]:
+                if isinstance(rule, dict):
+                    name = rule.get("name", "")
+                    desc = rule.get("description", "")
+                    if name and desc:
+                        coerced_rules.append(f"{name}: {desc}")
+                    elif desc:
+                        coerced_rules.append(desc)
+                    elif name:
+                        coerced_rules.append(name)
+                    else:
+                        coerced_rules.append(str(rule))
+                elif isinstance(rule, str):
+                    coerced_rules.append(rule)
+                else:
+                    coerced_rules.append(str(rule))
+            composed["business_rules"] = coerced_rules
+
         try:
             return SpecialistAnalysis.model_validate(composed)
         except ValidationError as e:
@@ -600,6 +630,9 @@ RESPOND WITH STRICT JSON OBJECT (no bare strings, no top-level list):
         Synthesizer's deterministic merge then copies the IDs into the final
         `BoundedContext.supporting_sentence_ids` (closing F-21 end-to-end).
         """
+        print("\n┌─────────────────────────────────────────────────────────────────┐")
+        print("│ STAGE 3: SPECIALIST - Extracting Per-Context Details            │")
+        print("└─────────────────────────────────────────────────────────────────┘")
         results: List[SpecialistAnalysis] = []
         numbered_sentences_text = "\n".join(
             f"[{i}] {s}" for i, s in enumerate(domain_sentences)
@@ -778,6 +811,9 @@ Do not invent data not present in the sentences."""
         Returns:
             New List[SpecialistAnalysis] — same length as arch.contexts.
         """
+        print("\n┌─────────────────────────────────────────────────────────────────┐")
+        print("│ STAGE 3: SPECIALIST (Rerun Refinement with Feedback)            │")
+        print("└─────────────────────────────────────────────────────────────────┘")
         # ------------------------------------------------------------------
         # Step 1: build lookup from prev_output by context_name.
         # ------------------------------------------------------------------

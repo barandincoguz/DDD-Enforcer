@@ -13,7 +13,7 @@ import re
 from typing import Dict, List
 
 
-SECTION_HEADER_RE = re.compile(r"^(\d+(?:\.\d+)*)\s+(.+?)$", re.MULTILINE)
+SECTION_HEADER_RE = re.compile(r"^(\d+(?:\.\d+)*)\.?\s+(.+?)$", re.MULTILINE)
 _SUBCHUNK_SUFFIX = ".chunk_"
 
 

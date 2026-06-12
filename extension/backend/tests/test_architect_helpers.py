@@ -105,3 +105,62 @@ class TestScoutParallel:
     def test_kwarg_overrides_default(self):
         a = self._make_architect(scout_max_workers=4)
         assert a.scout_max_workers == 4
+
+
+class TestTruncateNumberedPairs:
+    """Tests for _truncate_numbered_pairs helper."""
+
+    def test_no_truncation_when_under_budget(self):
+        from core.architect import _truncate_numbered_pairs
+        pairs = [(0, "hello"), (1, "world")]
+        assert _truncate_numbered_pairs(pairs, 100) == pairs
+
+    def test_truncation_drops_middle_pairs(self):
+        from core.architect import _truncate_numbered_pairs
+        # total chars of 5 pairs of 100 characters ≈ 500 characters
+        pairs = [(i, "A" * 100) for i in range(5)]
+        # max_chars=300 with head_ratio=0.5: head_budget=150 (takes index 0), tail_budget=150 (takes index 4)
+        result = _truncate_numbered_pairs(pairs, 300, head_ratio=0.5)
+        assert len(result) == 2
+        assert result[0][0] == 0
+        assert result[1][0] == 4
+
+    def test_fallback_when_single_pair_exceeds_budget(self):
+        from core.architect import _truncate_numbered_pairs
+        pairs = [(0, "A" * 1000)]
+        result = _truncate_numbered_pairs(pairs, 100)
+        assert len(result) == 1
+        assert result[0][0] == 0
+        assert len(result[0][1]) < 100
+        assert len(result[0][1]) > 50
+
+
+class TestValidateSpecialistPayload:
+    """Tests for DomainArchitect._validate_specialist_payload helper."""
+
+    def test_coerces_dict_business_rules_to_strings(self):
+        from core.architect import DomainArchitect
+        from core.pipeline_contracts import ContextHypothesis
+
+        ctx = ContextHypothesis(context_name="JobPosting", supporting_sentence_ids=[0])
+        payload = {
+            "context": "JobPosting",
+            "business_rules": [
+                {
+                    "name": "Schema.org Compliance",
+                    "description": "All input data for job postings must comply...",
+                },
+                "Plain string rule",
+            ],
+            "entities": [],
+            "value_objects": [],
+            "services": [],
+            "aggregates": [],
+            "domain_events": [],
+            "ambiguities": [],
+        }
+        # Run validation
+        analysis = DomainArchitect._validate_specialist_payload(payload, ctx)
+        assert len(analysis.business_rules) == 2
+        assert analysis.business_rules[0] == "Schema.org Compliance: All input data for job postings must comply..."
+        assert analysis.business_rules[1] == "Plain string rule"

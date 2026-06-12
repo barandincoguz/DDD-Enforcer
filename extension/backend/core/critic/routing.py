@@ -21,12 +21,16 @@ def partition_findings(
 ) -> Tuple[List[CritiqueFinding], List[CritiqueFinding], List[CritiqueFinding], List[CritiqueFinding]]:
     """Return (structural, content, relationship, advisory). Only high/medium
     findings are routable; low priority and OTHER are advisory."""
+    import os
+    threshold = os.getenv("DDD_CRITIC_THRESHOLD", "HIGH_MED").upper()
+    active_priorities = {"high"} if threshold == "HIGH" else {"high", "medium"}
+
     structural: List[CritiqueFinding] = []
     content: List[CritiqueFinding] = []
     relationship: List[CritiqueFinding] = []
     advisory: List[CritiqueFinding] = []
     for f in findings:
-        if f.priority == "low" or f.finding_type == "OTHER":
+        if f.priority not in active_priorities or f.finding_type == "OTHER":
             advisory.append(f)
         elif f.finding_type in _STRUCTURAL:
             structural.append(f)

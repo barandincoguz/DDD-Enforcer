@@ -177,3 +177,24 @@ def test_regeneration_failure_is_non_fatal(monkeypatch):
     assert isinstance(model, DomainModel)
     assert model.critic_report.loop.outcome == "failed"
     assert model.critic_report.error is not None
+
+
+def test_configurable_threshold_high_only(monkeypatch):
+    """Verify that when DDD_CRITIC_THRESHOLD=HIGH, the loop treats medium
+    findings as advisory and terminates (converges) early."""
+    monkeypatch.setenv("DDD_CRITIC_THRESHOLD", "HIGH")
+    deps = _base_deps()
+    # Cycle 0 returns only medium findings
+    deps.critic = lambda model, scout, history: _report([
+        CritiqueFinding(
+            finding_type="NAMING_SMELL",
+            priority="medium",
+            target_ref="entity:Ord.Order",
+            rationale="naming mismatch",
+            proposed_revision="rename",
+        )
+    ])
+    model = run_critique_loop(_scout(), deps, srs_path="x")
+    # Should converge in cycle 0 because medium priority finding is ignored for rerun
+    assert model.critic_report.loop.outcome == "converged"
+    assert model.critic_report.loop.cycles_used == 1
