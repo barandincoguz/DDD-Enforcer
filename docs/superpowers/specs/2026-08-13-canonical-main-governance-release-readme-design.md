@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-13
 
-**Status:** Approved in brainstorming; awaiting specification review
+**Status:** Approved; implementation plans prepared
 
 **Canonical baseline:** `main` at `87f677b3d2a6e5529acbb7dd1e41d5cf84e48b6c`
 
@@ -109,7 +109,7 @@ It is written atomically using a temporary sibling file, flush, `fsync`, and `os
 
 The fingerprint is a SHA-256 digest of a canonical JSON projection of the active `DomainModel`:
 
-- include `project_name`, semantic project version/description, bounded contexts, global rules, and the strategic context map;
+- include `project_name`, semantic project version/description, ordered source-document paths and hashes, bounded contexts, global rules, and the strategic context map;
 - exclude volatile generation timestamps and `critic_report` telemetry;
 - serialize dictionaries with sorted keys and deterministic separators;
 - preserve list order because it is part of the emitted typed model;
@@ -218,6 +218,7 @@ Responses use typed bodies and meaningful HTTP status codes:
 | Workspace path outside the allowed root or unsupported target | `403` |
 | Missing domain model or governance artifact | `404` |
 | Stale governance fingerprint or unknown bounded context | `409` |
+| Missing or changed SRS provenance in the current domain model | `409` |
 | Missing provider credential | `401` |
 | Provider transport or structured-output exhaustion | `502` |
 | Atomic write failure or unexpected internal error | `500` |
@@ -228,6 +229,8 @@ Returned messages provide actionable context without exposing API keys, full pro
 ### 6.3 Shared model-generation implementation
 
 The current `/generate-model` and `/generate-model-stream` routes duplicate ingestion, generation, AST enrichment, persistence, RAG initialization, and error conversion. The existing observable `_run_generate_pipeline` helper is exercised by tests but not by those production routes.
+
+Add an optional, backward-compatible `ProjectMetadata.source_documents` list. Each entry contains a workspace-relative path and SHA-256 captured from the exact ordered SRS batch used for generation. The shared generation service populates it before persisting `domain/model.json`. Governance refuses an older model with no source provenance, or a model whose recorded source hash no longer matches the current file, and instructs the user to regenerate the domain model; it must not guess provenance by scanning the workspace.
 
 Extract one focused generation service that owns the complete lifecycle:
 
