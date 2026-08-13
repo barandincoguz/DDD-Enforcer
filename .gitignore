@@ -67,6 +67,9 @@ yarn-error.log*
 # VS Code Test Artifacts
 .vscode-test/
 
+# Isolated feature worktrees
+.worktrees/
+
 # ----------------------------------------------------------------------
 # RAG & DATABASE (Vector Store)
 # ----------------------------------------------------------------------
